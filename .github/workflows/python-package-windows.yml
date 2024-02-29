@@ -21,5 +21,8 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
 
+      - name: echo path
+        run: echo %PATH%
+
       - name: Run unit tests
         run: py.test analyzer/windows
