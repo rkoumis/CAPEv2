@@ -21,8 +21,14 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
 
-      - name: echo path
-        run: echo $PATH
+      - name: echo some variables
+        run: |
+          echo [Environment]::GetEnvironmentVariable("PATH", "Machine")
+          echo [IO.Path]::PathSeparator
+          echo $IsWindows
+          echo $PROFILE
+          echo $PSHome
+          echo $PWD
 
       - name: Run unit tests
         run: py.test analyzer/windows
