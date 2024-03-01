@@ -23,8 +23,7 @@ jobs:
 
       - name: echo some variables
         run: |
-          echo [Environment]::GetEnvironmentVariable("PATH", "Machine")
-          echo [IO.Path]::PathSeparator
+          Get-ChildItem Env: | Sort Name
           echo $IsWindows
           echo $PROFILE
           echo $PSHome
