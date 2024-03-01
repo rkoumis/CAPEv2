@@ -23,11 +23,9 @@ jobs:
 
       - name: echo some variables
         run: |
-          Get-ChildItem Env: | Sort Name
-          echo $IsWindows
-          echo $PROFILE
-          echo $PSHome
-          echo $PWD
+          echo $Env:Path.Split(';')
+          Get-Variable
+          Get-Alias
 
       - name: Run unit tests
         run: py.test analyzer/windows
