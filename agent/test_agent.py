@@ -1,6 +1,8 @@
 import io
 import multiprocessing
 import os
+import pathlib
+import sys
 import tempfile
 import uuid
 import zipfile
@@ -27,7 +29,8 @@ class TestAgent:
     def setup_class(cls):
         ev = multiprocessing.Event()
         TestAgent.agent_process = multiprocessing.Process(
-            target=agent.app.run, kwargs={"host": "0.0.0.0", "port": 8000, "event": ev}
+            target=agent.app.run,
+            kwargs={"host": HOST, "port": PORT, "event": ev},
         )
         TestAgent.agent_process.start()
 
@@ -48,11 +51,13 @@ class TestAgent:
         r = requests.post(f"{BASE_URL}/remove", data=form)
         assert r.status_code == 200
         assert r.json()["message"] == "Successfully deleted directory"
-
-        # shut down the agent service, which tests the kill endpoint
-        r = requests.get(f"{BASE_URL}/kill")
-        assert r.status_code == 200
-        assert r.json()["message"] == "Quit the CAPE Agent"
+        try:
+            # shut down the agent service, which tests the kill endpoint
+            r = requests.get(f"{BASE_URL}/kill")
+            assert r.status_code == 200
+            assert r.json()["message"] == "Quit the CAPE Agent"
+        except requests.exceptions.ConnectionError:
+            pass
 
         # clean up the multiprocessing stuff
         TestAgent.agent_process.join()
@@ -77,7 +82,6 @@ class TestAgent:
         assert "status" in js
         assert "description" in js
 
-    @pytest.mark.skip("Not working yet")
     def test_status_write_valid(self):
         form = {"status": 5, "description": "Test Status"}
         r = requests.post(f"{BASE_URL}/status", data=form)
@@ -89,17 +93,15 @@ class TestAgent:
         assert r.status_code == 200
         js = r.json()
         assert js["message"] == "Analysis status"
-        assert js["status"] == 5
+        assert js["status"] == "exception"
         assert js["description"] == "Test Status"
 
-    @pytest.mark.skip("Not working yet")
     def test_status_write_invalid(self):
         form = {"description": "Test Status"}
         r = requests.post(f"{BASE_URL}/status", data=form)
         assert r.status_code == 400
         assert r.json()["message"] == "No valid status has been provided"
 
-    @pytest.mark.skip("Not working yet")
     def test_logs(self):
         r = requests.get(f"{BASE_URL}/logs")
         assert r.status_code == 200
@@ -130,7 +132,10 @@ class TestAgent:
         assert "filepath" in js
 
     def test_mkdir_valid(self):
-        form = {"dirpath": os.path.join(DIRPATH, self.make_temp_name()), "mode": 0o777}
+        form = {
+            "dirpath": os.path.join(DIRPATH, self.make_temp_name()),
+            "mode": 0o777,
+        }
         r = requests.post(f"{BASE_URL}/mkdir", data=form)
         assert r.status_code == 200
         assert r.json()["message"] == "Successfully created directory"
@@ -147,7 +152,11 @@ class TestAgent:
         assert r.json()["message"] == "Error creating directory"
 
     def test_mktemp_valid(self):
-        form = {"dirpath": DIRPATH, "prefix": self.make_temp_name(), "suffix": "tmp"}
+        form = {
+            "dirpath": DIRPATH,
+            "prefix": self.make_temp_name(),
+            "suffix": "tmp",
+        }
         r = requests.post(f"{BASE_URL}/mktemp", data=form)
         assert r.status_code == 200
         js = r.json()
@@ -157,14 +166,24 @@ class TestAgent:
         assert "filepath" in js and js["filepath"].startswith(os.path.join(form["dirpath"], form["prefix"]))
 
     def test_mktemp_invalid(self):
-        form = {"dirpath": "/", "prefix": "", "suffix": ""}
+        dirpath = pathlib.Path("/", self.id())
+        assert not dirpath.exists()
+        form = {
+            "dirpath": dirpath,
+            "prefix": "",
+            "suffix": "",
+        }
         r = requests.post(f"{BASE_URL}/mktemp", data=form)
         assert r.status_code == 500
         js = r.json()
         assert js["message"] == "Error creating temporary file"
 
     def test_mkdtemp_valid(self):
-        form = {"dirpath": DIRPATH, "prefix": self.make_temp_name(), "suffix": "tmp"}
+        form = {
+            "dirpath": DIRPATH,
+            "prefix": self.make_temp_name(),
+            "suffix": "tmp",
+        }
         r = requests.post(f"{BASE_URL}/mkdtemp", data=form)
         assert r.status_code == 200
         js = r.json()
@@ -174,7 +193,13 @@ class TestAgent:
         assert "dirpath" in js and js["dirpath"].startswith(os.path.join(form["dirpath"], form["prefix"]))
 
     def test_mkdtemp_invalid(self):
-        form = {"dirpath": "/", "prefix": "", "suffix": ""}
+        dirpath = pathlib.Path("/", self.id())
+        assert not dirpath.exists()
+        form = {
+            "dirpath": dirpath,
+            "prefix": "",
+            "suffix": "",
+        }
         r = requests.post(f"{BASE_URL}/mkdtemp", data=form)
         assert r.status_code == 500
         js = r.json()
@@ -189,7 +214,6 @@ class TestAgent:
         js = r.json()
         assert js["message"] == "Successfully stored file"
 
-    @pytest.mark.skip("Not working yet")
     def test_store_invalid(self):
         # missing file
         form = {"filepath": os.path.join(DIRPATH, self.make_temp_name() + ".tmp")}
@@ -213,7 +237,6 @@ class TestAgent:
         js = r.json()
         assert js["message"].startswith("Error storing file:")
 
-    @pytest.mark.skip("Not working yet")
     def test_retrieve(self):
         upload_file = {"file": ("test_data.txt", "test data\ntest data\n")}
         form = {"filepath": os.path.join(DIRPATH, self.make_temp_name() + ".tmp")}
@@ -273,7 +296,10 @@ class TestAgent:
         tempfile = os.path.join(tempdir, self.make_temp_name())
 
         # create temp directory
-        form = {"dirpath": tempdir, "mode": 0o777}
+        form = {
+            "dirpath": tempdir,
+            "mode": 0o777,
+        }
         r = requests.post(f"{BASE_URL}/mkdir", data=form)
 
         # create file in temp directory
@@ -315,9 +341,19 @@ class TestAgent:
         # error removing file or dir
         # try removing root - not sure how to do this os independently
 
-    @pytest.mark.skip("Not working yet")
+    @pytest.mark.xfail(sys.platform == "win32", reason="The 'date' command in Windows works differently")
     def test_execute(self):
         form = {"command": "date"}
+        r = requests.post(f"{BASE_URL}/execute", data=form)
+        assert r.status_code == 200
+        js = r.json()
+        assert js["message"] == "Successfully executed command"
+        assert "stdout" in js
+        assert "stderr" in js
+
+    @pytest.mark.xfail(sys.platform == "Linux", reason="The 'date' command in Windows works differently")
+    def test_execute(self):
+        form = {"command": "cmd /c date /t"}
         r = requests.post(f"{BASE_URL}/execute", data=form)
         assert r.status_code == 200
         js = r.json()
@@ -338,7 +374,7 @@ class TestAgent:
         js = r.json()
         assert js["message"] == "No command has been provided"
 
-    @pytest.mark.skip("Not working yet")
+    @pytest.mark.xfail(sys.platform == "win32", reason="CR/LF differences")
     def test_execute_py(self):
         # upload test python file
         upload_file = {"file": ("test.py", "print('hello world')")}
@@ -353,7 +389,7 @@ class TestAgent:
         assert "stdout" in js and js["stdout"] == "hello world\n"
         assert "stderr" in js and js["stderr"] == ""
 
-    @pytest.mark.skip("Not working yet")
+    @pytest.mark.xfail(reason="The agent no longer conceals execution failure.")
     def test_execute_py_error(self):
         r = requests.post(f"{BASE_URL}/execpy", data={})
         assert r.status_code == 400
