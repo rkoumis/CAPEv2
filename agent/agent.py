@@ -46,7 +46,7 @@ AGENT_FEATURES = [
 # Check the platform - this allows us to run unit tests in Linux
 if sys.platform == "win32":
     MUTEX_TIMEOUT_MS = 500
-    from ctypes import WinError, windll
+    from ctypes import windll
 
     kernel32 = windll.kernel32
     SYNCHRONIZE = 0x100000

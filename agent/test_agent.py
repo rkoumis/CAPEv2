@@ -364,11 +364,11 @@ class TestAgent:
         assert "stderr" in js
 
     @pytest.mark.xfail(sys.platform == "win32", reason="This is a linux-only test.")
-    def test_execute(self):
+    def test_execute_linux(self):
         self.command_execute_should_succeed("date")
 
     @pytest.mark.xfail(sys.platform == "linux", reason="This is a windows-only test.")
-    def test_execute(self):
+    def test_execute_windows(self):
         self.command_execute_should_succeed("cmd /c date /t")
 
     def test_execute_error(self):
