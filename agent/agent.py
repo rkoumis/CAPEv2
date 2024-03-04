@@ -7,6 +7,7 @@ import cgi
 import http.server
 import ipaddress
 import json
+import multiprocessing
 import os
 import platform
 import shutil
@@ -105,9 +106,14 @@ class MiniHTTPServer:
             "POST": [],
         }
 
-    def run(self, host: ipaddress.IPv4Address = "0.0.0.0", port: int = 8000):
+    def run(self, host: ipaddress.IPv4Address = "0.0.0.0", port: int = 8000, event: multiprocessing.Event = None):
+        socketserver.TCPServer.allow_reuse_address = True
         self.s = socketserver.TCPServer((host, port), self.handler)
-        self.s.allow_reuse_address = True
+
+        # tell anyone waiting that they're good to go
+        if event:
+            event.set()
+
         self.s.serve_forever()
 
     def route(self, path: str, methods: Iterable[str] = ["GET"]):

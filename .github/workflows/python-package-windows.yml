@@ -30,7 +30,12 @@ jobs:
       - name: Install pytest
         run: pip install pytest
 
-      - name: Run unit tests
+      - name: Run analyzer unit tests
         run: |
           cd analyzer/windows
+          pytest -v .
+
+      - name: Run agent unit tests
+        run: |
+          cd agent
           pytest -v .
