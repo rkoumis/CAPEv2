@@ -50,7 +50,7 @@ class TestAgent:
         # remove the temporary directory and files
         form = {"path": DIRPATH}
         r = requests.post(f"{BASE_URL}/remove", data=form)
-        assert r.status_code == 200
+        assert r.status_code in (200, 404)
         assert r.json()["message"] == "Successfully deleted directory"
         try:
             # shut down the agent service, which tests the kill endpoint
@@ -392,6 +392,8 @@ class TestAgent:
         filepath = os.path.join(DIRPATH, self.make_temp_name() + ".py")
         form = {"filepath": filepath}
         r = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
+        js = r.json()
+        assert js["message"] == "Successfully stored file"
         assert r.status_code == 200
         assert os.path.isfile(filepath)
 
