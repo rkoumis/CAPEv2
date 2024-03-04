@@ -145,7 +145,6 @@ class TestAgent:
         assert js["message"] == "No valid status has been provided"
 
         form = {"status": "unexpected value"}
-        r = requests.post(f"{BASE_URL}/status", data=form)
         js = self.post_form("status", form, 400)
         assert js["message"] == "No valid status has been provided"
 
