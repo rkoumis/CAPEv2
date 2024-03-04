@@ -43,19 +43,6 @@ AGENT_FEATURES = [
     "unicodepath",
 ]
 
-# Check the platform - this allows us to run unit tests in Linux
-if sys.platform == "win32":
-    MUTEX_TIMEOUT_MS = 500
-    from ctypes import windll
-
-    kernel32 = windll.kernel32
-    SYNCHRONIZE = 0x100000
-    ERROR_FILE_NOT_FOUND = 0x2
-    WAIT_ABANDONED = 0x00000080
-    WAIT_OBJECT_0 = 0x0
-    WAIT_TIMEOUT = 0x102
-    WAIT_FAILED = 0xFFFFFFFF
-
 
 class Status(enum.IntEnum):
     INIT = 1
