@@ -214,12 +214,14 @@ class TestAgent:
     def test_store(self):
         sep = os.linesep
         upload_file = {"file": ("test_data.txt", f"test data{sep}test data{sep}")}
-        form = {"filepath": os.path.join(DIRPATH, self.make_temp_name() + ".tmp")}
+        path_to_create = os.path.join(DIRPATH, self.make_temp_name() + ".tmp")
+        form = {"filepath": path_to_create}
 
         r = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
         assert r.status_code == 200
         js = r.json()
         assert js["message"] == "Successfully stored file"
+        assert os.path.isfile(path_to_create)
 
     def test_store_invalid(self):
         # missing file
@@ -389,7 +391,9 @@ class TestAgent:
         upload_file = {"file": ("test.py", f"print('{sample_string}')")}
         filepath = os.path.join(DIRPATH, self.make_temp_name() + ".py")
         form = {"filepath": filepath}
-        _ = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
+        r = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
+        assert r.status_code == 200
+        assert os.path.isfile(filepath)
 
         r = requests.post(f"{BASE_URL}/execpy", data=form)
         assert r.status_code == 200
