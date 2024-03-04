@@ -2,6 +2,7 @@ import io
 import multiprocessing
 import os
 import pathlib
+import random
 import sys
 import tempfile
 import uuid
@@ -65,6 +66,11 @@ class TestAgent:
 
     def make_temp_name(self):
         return str(uuid.uuid4())
+
+    def non_existent_directory(self):
+        root = pathlib.Path(tempfile.gettempdir()).root
+        current_pid = os.getpid()
+        return pathlib.Path(root, str(current_pid), str(random.randint(10000, 99999)))
 
     def test_root(self):
         r = requests.get(f"{BASE_URL}/")
@@ -166,7 +172,7 @@ class TestAgent:
         assert "filepath" in js and js["filepath"].startswith(os.path.join(form["dirpath"], form["prefix"]))
 
     def test_mktemp_invalid(self):
-        dirpath = pathlib.Path("/", self.id())
+        dirpath = self.non_existent_directory()
         assert not dirpath.exists()
         form = {
             "dirpath": dirpath,
@@ -193,7 +199,7 @@ class TestAgent:
         assert "dirpath" in js and js["dirpath"].startswith(os.path.join(form["dirpath"], form["prefix"]))
 
     def test_mkdtemp_invalid(self):
-        dirpath = pathlib.Path("/", self.id())
+        dirpath = self.non_existent_directory()
         assert not dirpath.exists()
         form = {
             "dirpath": dirpath,
@@ -206,7 +212,8 @@ class TestAgent:
         assert js["message"] == "Error creating temporary directory"
 
     def test_store(self):
-        upload_file = {"file": ("test_data.txt", "test data\ntest data\n")}
+        sep = os.linesep
+        upload_file = {"file": ("test_data.txt", f"test data{sep}test data{sep}")}
         form = {"filepath": os.path.join(DIRPATH, self.make_temp_name() + ".tmp")}
 
         r = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
@@ -338,12 +345,17 @@ class TestAgent:
         js = r.json()
         assert js["message"] == "Path provided does not exist"
 
-        # error removing file or dir
-        # try removing root - not sure how to do this os independently
+        # error removing file or dir (permission)
+        form = {"path": tempfile.gettempdir()}
+        r = requests.post(f"{BASE_URL}/remove", data=form)
+        assert r.status_code == 500
+        js = r.json()
+        assert js["message"] == "Error removing file or directory"
 
-    @pytest.mark.xfail(sys.platform == "win32", reason="The 'date' command in Windows works differently")
-    def test_execute(self):
-        form = {"command": "date"}
+    @staticmethod
+    def command_execute_should_succeed(command):
+        """Execute a non-python command that should succeed."""
+        form = {"command": command}
         r = requests.post(f"{BASE_URL}/execute", data=form)
         assert r.status_code == 200
         js = r.json()
@@ -351,17 +363,14 @@ class TestAgent:
         assert "stdout" in js
         assert "stderr" in js
 
-    @pytest.mark.xfail(sys.platform == "Linux", reason="The 'date' command in Windows works differently")
+    @pytest.mark.xfail(sys.platform == "win32", reason="This is a linux-only test.")
     def test_execute(self):
-        form = {"command": "cmd /c date /t"}
-        r = requests.post(f"{BASE_URL}/execute", data=form)
-        assert r.status_code == 200
-        js = r.json()
-        assert js["message"] == "Successfully executed command"
-        assert "stdout" in js
-        assert "stderr" in js
+        self.command_execute_should_succeed("date")
 
-    @pytest.mark.skip("Not working yet")
+    @pytest.mark.xfail(sys.platform == "linux", reason="This is a windows-only test.")
+    def test_execute(self):
+        self.command_execute_should_succeed("cmd /c date /t")
+
     def test_execute_error(self):
         form = {"command": "ls"}
         r = requests.post(f"{BASE_URL}/execute", data=form)
@@ -374,36 +383,35 @@ class TestAgent:
         js = r.json()
         assert js["message"] == "No command has been provided"
 
-    @pytest.mark.xfail(sys.platform == "win32", reason="CR/LF differences")
     def test_execute_py(self):
-        # upload test python file
-        upload_file = {"file": ("test.py", "print('hello world')")}
+        """Upload and execute a python file."""
+        sample_string = "hello world"
+        upload_file = {"file": ("test.py", f"print('{sample_string}')")}
         filepath = os.path.join(DIRPATH, self.make_temp_name() + ".py")
         form = {"filepath": filepath}
-        r = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
+        _ = requests.post(f"{BASE_URL}/store", files=upload_file, data=form)
 
         r = requests.post(f"{BASE_URL}/execpy", data=form)
         assert r.status_code == 200
         js = r.json()
         assert js["message"] == "Successfully executed command"
-        assert "stdout" in js and js["stdout"] == "hello world\n"
+        assert "stdout" in js and js["stdout"].strip() == sample_string
         assert "stderr" in js and js["stderr"] == ""
 
-    @pytest.mark.xfail(reason="The agent no longer conceals execution failure.")
     def test_execute_py_error(self):
         r = requests.post(f"{BASE_URL}/execpy", data={})
         assert r.status_code == 400
         js = r.json()
         assert js["message"] == "No Python file has been provided"
 
-        # attempt to run non-existent file. Will return 200,
-        # but stderr will have message
+        # Attempt to run non-existent file. Will return 400,
+        # and stderr will have a message.
         filepath = os.path.join(DIRPATH, self.make_temp_name() + ".py")
         form = {"filepath": filepath}
         r = requests.post(f"{BASE_URL}/execpy", data=form)
-        assert r.status_code == 200
+        assert r.status_code == 400
         js = r.json()
-        assert js["message"] == "Successfully executed command"
+        assert js["message"] == "Error executing python command."
         assert "stderr" in js and "No such file or directory" in js["stderr"]
 
     def test_pinning(self):
@@ -413,7 +421,7 @@ class TestAgent:
         assert js["message"] == "Successfully pinned Agent"
         assert "client_ip" in js
 
-        # pinning again causes an error
+        # Pinning again causes an error.
         r = requests.get(f"{BASE_URL}/pinning")
         assert r.status_code == 500
         js = r.json()
