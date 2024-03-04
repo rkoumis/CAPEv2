@@ -330,8 +330,45 @@ def get_index():
     return json_success("CAPE Agent!", version=AGENT_VERSION, features=AGENT_FEATURES, is_user_admin=bool(is_admin))
 
 
+def get_subprocess_status():
+    """Return the subprocess status."""
+    async_subprocess = state.get("async_subprocess")
+    message = "Analysis status"
+    exitcode = async_subprocess.exitcode
+    if exitcode is None or (sys.platform == "win32" and exitcode == 259):
+        # Process is still running.
+        state["status"] = Status.RUNNING
+        return json_success(
+            message=message,
+            status=str(state.get("status")),
+            description=state.get("description"),
+            process_id=async_subprocess.pid,
+        )
+    # Reset async subprocess state.
+    state["async_subprocess"] = None
+    if exitcode == 0:
+        state["status"] = Status.COMPLETE
+        state["description"] = ""
+        return json_success(
+            message=message,
+            status=str(state.get("status")),
+            description=state.get("description"),
+            exitcode=exitcode,
+        )
+    state["status"] = Status.FAILED
+    state["description"] = f"Exited with exit code {exitcode}"
+    return json_success(
+        message=message,
+        status=str(state.get("status")),
+        description=state.get("description"),
+        exitcode=exitcode,
+    )
+
+
 @app.route("/status")
 def get_status():
+    if state.get("async_subprocess") is not None:
+        return get_subprocess_status()
     return json_success("Analysis status", status=str(state.get("status")), description=state.get("description"))
 
 
