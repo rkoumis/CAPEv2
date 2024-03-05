@@ -1,10 +1,12 @@
 """Tests for the agent."""
+
 import datetime
 import io
 import multiprocessing
 import os
 import pathlib
 import random
+import shutil
 import sys
 import tempfile
 import time
@@ -12,6 +14,7 @@ import uuid
 import zipfile
 from urllib.parse import urljoin
 
+import pytest
 import requests
 
 import agent
@@ -41,32 +44,27 @@ class TestAgent:
         )
         self.agent_process.start()
 
-        # wait for http server to start
+        # Wait for http server to start.
         if not ev.wait(5.0):
             raise Exception("Failed to start agent HTTP server")
 
-        # create temp directory for tests, as makes tidying up easier
-        form = {"dirpath": DIRPATH, "mode": 0o777}
-        r = requests.post(f"{BASE_URL}/mkdir", data=form)
-        assert r.status_code == 200
-        assert r.json()["message"] == "Successfully created directory"
+        # Create temp directory for tests, as makes tidying up easier
+        os.mkdir(DIRPATH, 0o777)
         assert os.path.isdir(DIRPATH)
 
     def teardown_method(self):
-        # remove the temporary directory and files
-        form = {"path": DIRPATH}
-        js = self.post_form("remove", form)
-        assert js["message"] == "Successfully deleted directory"
+        # Remove the temporary directory and files.
         try:
-            # shut down the agent service, which tests the kill endpoint
+            # Test the kill endpoint, which shuts down the agent service.
             r = requests.get(f"{BASE_URL}/kill")
             assert r.status_code == 200
             assert r.json()["message"] == "Quit the CAPE Agent"
         except requests.exceptions.ConnectionError:
             pass
+        shutil.rmtree(DIRPATH, ignore_errors=True)
         assert not os.path.isdir(DIRPATH)
 
-        # clean up the multiprocessing stuff
+        # Ensure agent process completes; release resources.
         self.agent_process.join()
         self.agent_process.close()
 
@@ -80,33 +78,49 @@ class TestAgent:
         return non_existent
 
     @staticmethod
-    def get_status(expected_status=200):
-        """Do a get and check the status"""
+    def confirm_status(expected_status):
+        """Do a get and check the status."""
         status_url = urljoin(BASE_URL, "status")
         r = requests.get(status_url)
         js = r.json()
         assert js["message"] == "Analysis status"
-        assert r.status_code == expected_status
+        assert js["status"] == expected_status
+        assert r.status_code == 200
         return js
 
     @staticmethod
-    def store_file(file_contents):
-        """Store a file with the given contents. Return the filepath."""
-        sep = os.linesep
-        upload_file = {"file": ("test.py", sep.join(file_contents))}
+    def create_file(path, contents):
+        """Create the named file with the supplied contents."""
+        with open(path, "w") as file:
+            file.write(contents)
+        assert os.path.exists(path)
+        assert os.path.isfile(path)
+
+    @staticmethod
+    def file_contains(path, expected_contents):
+        """Examine the contents of a file."""
+        with open(path) as file:
+            actual_contents = file.read()
+            return bool(expected_contents in actual_contents)
+
+    @classmethod
+    def store_file(cls, file_contents):
+        """Store a file via the API, with the given contents. Return the filepath."""
+        contents = os.linesep.join(file_contents)
+        upload_file = {"file": ("name-here-matters-not", contents)}
         filepath = os.path.join(DIRPATH, make_temp_name() + ".py")
         form = {"filepath": filepath}
-        store_url = urljoin(BASE_URL, "store")
-        r = requests.post(store_url, files=upload_file, data=form)
-        assert r.status_code == 200
+        js = cls.post_form("store", form, files=upload_file)
+        assert js["message"] == "Successfully stored file"
         assert os.path.isfile(filepath)
+        assert cls.file_contains(filepath, contents)
         return filepath
 
     @staticmethod
-    def post_form(url_part, form_data, expected_status=200):
+    def post_form(url_part, form_data, expected_status=200, files=None):
         """Post to the URL and return the json."""
         url = urljoin(BASE_URL, url_part)
-        r = requests.post(url, data=form_data)
+        r = requests.post(url, data=form_data, files=files)
         assert r.status_code == expected_status
         js = r.json()
         return js
@@ -124,19 +138,21 @@ class TestAgent:
 
     def test_status_write_valid_text(self):
         """Write a status of 'exception'."""
+        # First, confirm the status is NOT 'exception'.
+        _ = self.confirm_status("init")
         form = {"status": "exception"}
         url_part = "status"
         _ = self.post_form(url_part, form)
-        js = self.get_status()
-        assert js["status"] == "exception"
+        _ = self.confirm_status("exception")
 
     def test_status_write_valid_number(self):
         """Write a status of '5'."""
+        # First, confirm the status is NOT 'exception'.
+        _ = self.confirm_status("init")
         form = {"status": 5}
         url_part = "status"
         _ = self.post_form(url_part, form)
-        js = self.get_status()
-        assert js["status"] == "exception"
+        _ = self.confirm_status("exception")
 
     def test_status_write_invalid(self):
         """Fail to provide a valid status."""
@@ -186,19 +202,6 @@ class TestAgent:
         assert "filepath" in js
         assert os.path.isfile(js["filepath"])
 
-    def test_pinning(self):
-        r = requests.get(f"{BASE_URL}/pinning")
-        assert r.status_code == 200
-        js = r.json()
-        assert js["message"] == "Successfully pinned Agent"
-        assert "client_ip" in js
-
-        # Pinning again causes an error.
-        r = requests.get(f"{BASE_URL}/pinning")
-        assert r.status_code == 500
-        js = r.json()
-        assert js["message"] == "Agent has already been pinned to an IP!"
-
     def test_mkdir_valid(self):
         """Test that the agent creates a directory."""
         new_dir = os.path.join(DIRPATH, make_temp_name())
@@ -212,6 +215,7 @@ class TestAgent:
         assert os.path.isdir(new_dir)
 
     def test_mkdir_invalid(self):
+        """Ensure we get an error returned when the mkdir request fails."""
         form = {}
         js = self.post_form("mkdir", form, 400)
         assert js["message"] == "No dirpath has been provided"
@@ -236,6 +240,7 @@ class TestAgent:
         assert os.path.isfile(js["filepath"])
 
     def test_mktemp_invalid(self):
+        """Ensure we get an error returned when the mktemp request fails."""
         dirpath = self.non_existent_directory()
         form = {
             "dirpath": dirpath,
@@ -246,6 +251,7 @@ class TestAgent:
         assert js["message"] == "Error creating temporary file"
 
     def test_mkdtemp_valid(self):
+        """Ensure we can use the mkdtemp endpoint."""
         form = {
             "dirpath": DIRPATH,
             "prefix": make_temp_name(),
@@ -260,6 +266,7 @@ class TestAgent:
         assert os.path.isdir(js["dirpath"])
 
     def test_mkdtemp_invalid(self):
+        """Ensure we get an error returned when the mkdtemp request fails."""
         dirpath = self.non_existent_directory()
         assert not dirpath.exists()
         form = {
@@ -270,22 +277,77 @@ class TestAgent:
         js = self.post_form("mkdtemp", form, 500)
         assert js["message"] == "Error creating temporary directory"
 
+    def test_store(self):
+        sample_text = make_temp_name()
+        sep = os.linesep
+        upload_file = {"file": ("ignored", sep.join(("test data", sample_text, "test data")))}
+        form = {"filepath": os.path.join(DIRPATH, make_temp_name() + ".tmp")}
+
+        js = self.post_form("store", form, files=upload_file)
+        assert js["message"] == "Successfully stored file"
+        assert os.path.exists(form["filepath"])
+        assert os.path.isfile(form["filepath"])
+        assert self.file_contains(form["filepath"], sample_text)
+
+    def test_store_invalid(self):
+        # missing file
+        form = {"filepath": os.path.join(DIRPATH, make_temp_name() + ".tmp")}
+        js = self.post_form("store", form, 400)
+        assert js["message"] == "No file has been provided"
+
+        # missing filepath
+        upload_file = {"file": ("test_data.txt", "test data\ntest data\n")}
+        js = self.post_form("store", {}, 400, files=upload_file)
+        assert js["message"] == "No filepath has been provided"
+
+        # destination file path is invalid
+        upload_file = {"file": ("test_data.txt", "test data\ntest data\n")}
+        form = {"filepath": os.path.join(DIRPATH, make_temp_name(), "tmp")}
+        js = self.post_form("store", form, 500, files=upload_file)
+        assert js["message"].startswith("Error storing file:")
+
+    def test_retrieve(self):
+        """Create a file, then try to retrieve it."""
+        file_contents = f"test data\n{make_temp_name()}\ntest data\n"
+        file_path = os.path.join(DIRPATH, make_temp_name() + ".tmp")
+        self.create_file(file_path, file_contents)
+
+        form = {"filepath": file_path}
+        r = requests.post(f"{BASE_URL}/retrieve", data=form)
+        assert r.status_code == 200
+        assert self.file_contains(file_path, file_contents)
+        assert file_contents in r.text
+
+    def test_retrieve_invalid(self):
+        js = self.post_form("retrieve", {}, 400)
+        assert js["message"].startswith("No filepath has been provided")
+
+        # request to retrieve non existent file
+        form = {"filepath": os.path.join(DIRPATH, make_temp_name() + ".tmp")}
+        r = requests.post(f"{BASE_URL}/retrieve", data=form)
+        assert r.status_code == 404
+
     def test_extract(self):
+        """Create a file zip file, then upload and extract the contents."""
+        file_dir = make_temp_name()
+        file_name = make_temp_name()
+        file_contents = make_temp_name()
         zfile = io.BytesIO()
         zf = zipfile.ZipFile(zfile, "w", zipfile.ZIP_DEFLATED, False)
-        tempdir = make_temp_name()
-        zf.writestr(os.path.join(tempdir, "test_file.txt"), "some test data")
+        zf.writestr(os.path.join(file_dir, file_name), file_contents)
         zf.close()
         zfile.seek(0)
 
         upload_file = {"zipfile": ("test_file.zip", zfile.read())}
         form = {"dirpath": DIRPATH}
 
-        r = requests.post(f"{BASE_URL}/extract", files=upload_file, data=form)
-        assert r.status_code == 200
-        js = r.json()
+        js = self.post_form("extract", form, files=upload_file)
         assert js["message"] == "Successfully extracted zip file"
-        assert os.path.exists(os.path.join(DIRPATH, tempdir, "test_file.txt"))
+        expected_path = os.path.join(DIRPATH, file_dir, file_name)
+        assert os.path.exists(expected_path)
+        assert self.file_contains(expected_path, file_contents)
+
+        # todo should I check the filesytem for the file?
 
     def test_extract_invalid(self):
         form = {"dirpath": DIRPATH}
@@ -293,10 +355,112 @@ class TestAgent:
         assert js["message"] == "No zip file has been provided"
 
         upload_file = {"zipfile": ("test_file.zip", "dummy data")}
-        r = requests.post(f"{BASE_URL}/extract", files=upload_file)
-        assert r.status_code == 400
-        js = r.json()
+        js = self.post_form("extract", {}, 400, files=upload_file)
         assert js["message"] == "No dirpath has been provided"
+
+    def test_remove(self):
+        tempdir = os.path.join(DIRPATH, make_temp_name())
+        tempfile = os.path.join(tempdir, make_temp_name())
+        os.mkdir(tempdir, 0o777)
+        self.create_file(tempfile, "test data\ntest data\n")
+
+        # delete temp file
+        form = {"path": tempfile}
+        js = self.post_form("remove", form)
+        assert js["message"] == "Successfully deleted file"
+
+        # delete temp directory
+        form = {"path": tempdir}
+        js = self.post_form("remove", form)
+        assert js["message"] == "Successfully deleted directory"
+
+    def test_remove_invalid(self):
+        tempdir = os.path.join(DIRPATH, make_temp_name())
+
+        # missing parameter
+        form = {}
+        js = self.post_form("remove", form, 400)
+        assert js["message"] == "No path has been provided"
+
+        # path doesn't exist
+        form = {"path": tempdir}
+        js = self.post_form("remove", form, 404)
+        assert js["message"] == "Path provided does not exist"
+
+    @pytest.mark.skipif(agent.isAdmin(), reason="Test fails if privileges are elevated.")
+    def test_remove_system_temp_dir(self):
+        # error removing file or dir (permission)
+        form = {"path": tempfile.gettempdir()}
+        js = self.post_form("remove", form, 500)
+        assert js["message"] == "Error removing file or directory"
+
+    def test_async_running(self):
+        """Test async execution shows as running after starting."""
+        # upload test python file
+        file_contents = (
+            "import sys",
+            "import time",
+            "print('hello world')",
+            "print('goodbye world', file=sys.stderr)",
+            "time.sleep(1)",
+            "sys.exit(0)",
+        )
+        filepath = self.store_file(file_contents)
+        form = {"filepath": filepath, "async": 1}
+
+        js = self.post_form("execpy", form)
+        assert js["message"] == "Successfully spawned command"
+        assert "stdout" not in js
+        assert "stderr" not in js
+        assert "process_id" in js
+        _ = self.confirm_status("running")
+
+    def test_async_complete(self):
+        """Test async execution shows as complete after exiting."""
+        # upload test python file
+        file_contents = (
+            "import random",
+            "import sys",
+            "import time",
+            f"print('hello from {random.randint(1000, 9999)}', file=sys.stderr)",
+            "sys.exit(0)",
+        )
+        filepath = self.store_file(file_contents)
+        form = {"filepath": filepath, "async": 1}
+
+        js = self.post_form("execpy", form)
+        assert js["message"] == "Successfully spawned command"
+        # sleep a moment to let it finish
+        time.sleep(1)
+        _ = self.confirm_status("complete")
+
+    def test_async_failure(self):
+        """Test that an unsuccessful script gets a status of 'failed'."""
+        # upload test python file. It will sleep, then try to import a nonexistent module.
+        file_contents = (
+            "import sys",
+            "import time",
+            "time.sleep(1)",
+            "import nonexistent",
+            "print('hello world')",
+            "print('goodbye world', file=sys.stderr)",
+            "sys.exit(0)",
+        )
+
+        filepath = self.store_file(file_contents)
+        form = {"filepath": filepath, "async": 1}
+
+        js = self.post_form("execpy", form)
+        assert js["message"] == "Successfully spawned command"
+        assert "stdout" not in js
+        assert "stderr" not in js
+        assert "process_id" in js
+        js = self.confirm_status("running")
+        assert "process_id" in js
+        time.sleep(2)
+
+        js = self.confirm_status("failed")
+        assert "process_id" not in js
 
     def test_execute(self):
         """Test executing the 'date' command."""
@@ -346,13 +510,10 @@ class TestAgent:
         """Ensure we get a 400 back when a nonexistent filename is provided."""
         filepath = os.path.join(DIRPATH, make_temp_name() + ".py")
         form = {"filepath": filepath}
-        assert not os.path.exists(filepath)
         js = self.post_form("execpy", form, expected_status=400)
         assert js["message"] == "Error executing python command."
         assert "stderr" in js and "No such file or directory" in js["stderr"]
-        js = self.get_status()
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "failed"
+        _ = self.confirm_status("failed")
 
     def test_execute_py_error_non_zero_exit_code(self):
         """Ensure we get a 400 back when there's a non-zero exit code."""
@@ -367,83 +528,17 @@ class TestAgent:
         js = self.post_form("execpy", form, expected_status=400)
         assert js["message"] == "Error executing python command."
         assert "hello world" in js["stdout"]
-        js = self.get_status()
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "failed"
+        _ = self.confirm_status("failed")
 
-    def test_async_running(self):
-        """Test async execution shows as running after starting."""
-        # upload test python file
-        file_contents = (
-            "import sys",
-            "import time",
-            "print('hello world')",
-            "print('goodbye world', file=sys.stderr)",
-            "time.sleep(1)",
-            "sys.exit(0)",
-        )
-        filepath = self.store_file(file_contents)
-        form = {"filepath": filepath, "async": 1}
+    def test_pinning(self):
+        r = requests.get(f"{BASE_URL}/pinning")
+        assert r.status_code == 200
+        js = r.json()
+        assert js["message"] == "Successfully pinned Agent"
+        assert "client_ip" in js
 
-        js = self.post_form("execpy", form)
-        assert js["message"] == "Successfully spawned command"
-        assert "stdout" not in js
-        assert "stderr" not in js
-        assert "process_id" in js
-        js = self.get_status()
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "running"
-
-    def test_async_complete(self):
-        """Test async execution shows as complete after exiting."""
-        # upload test python file
-        file_contents = (
-            "import random",
-            "import sys",
-            "import time",
-            f"print('hello from {random.randint(1000, 9999)}', file=sys.stderr)",
-            "sys.exit(0)",
-        )
-        filepath = self.store_file(file_contents)
-        form = {"filepath": filepath, "async": 1}
-
-        js = self.post_form("execpy", form)
-        assert js["message"] == "Successfully spawned command"
-        # sleep a moment to let it finish
-        time.sleep(2)
-        js = self.get_status()
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "complete"
-
-    def test_async_failure(self):
-        """Test that an unsuccessful script gets a status of 'failed'."""
-        # upload test python file. It will sleep, then try to import a nonexistent module.
-        file_contents = (
-            "import sys",
-            "import time",
-            "time.sleep(1)",
-            "import nonexistent",
-            "print('hello world')",
-            "print('goodbye world', file=sys.stderr)",
-            "sys.exit(0)",
-        )
-
-        filepath = self.store_file(file_contents)
-        form = {"filepath": filepath, "async": 1}
-
-        js = self.post_form("execpy", form)
-        assert js["message"] == "Successfully spawned command"
-        assert "stdout" not in js
-        assert "stderr" not in js
-        assert "process_id" in js
-        js = self.get_status()
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "running"
-        assert "process_id" in js
-        time.sleep(2)
-
-        # should still get a 200
-        js = self.get_status(expected_status=200)
-        assert js["message"] == "Analysis status"
-        assert js["status"] == "failed"
-        assert "process_id" not in js
+        # Pinning again causes an error.
+        r = requests.get(f"{BASE_URL}/pinning")
+        assert r.status_code == 500
+        js = r.json()
+        assert js["message"] == "Agent has already been pinned to an IP!"
