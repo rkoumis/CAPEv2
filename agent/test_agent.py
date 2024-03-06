@@ -323,14 +323,16 @@ class TestAgent:
         )
         assert r.status_code == 200
 
-        retrieved_lines = []
-        try:
-            for line in r.iter_lines(chunk_size=10, delimiter=os.linesep.encode()):
-                retrieved_lines.append(line.decode("utf-8"))
-        except requests.exceptions.ChunkedEncodingError:
-            pass
-        assert first_line in retrieved_lines
-        assert last_line in retrieved_lines
+        # retrieved_lines = []
+        # try:
+        #     for line in r.iter_lines(chunk_size=10, delimiter=os.linesep.encode()):
+        #         retrieved_lines.append(line.decode("utf-8"))
+        # except requests.exceptions.ChunkedEncodingError:
+        #     pass
+        # assert first_line in retrieved_lines
+        # assert last_line in retrieved_lines
+        assert first_line in r.raw.data.decode()
+        assert last_line in r.raw.data.decode()
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
