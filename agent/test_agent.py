@@ -319,13 +319,13 @@ class TestAgent:
         form = {"filepath": file_path}
         received_data = ""
         try:
+            # Can't use self.post_form here as no json will be returned.
             r = requests.post(f"{BASE_URL}/retrieve", data=form)
+            assert r.status_code == 200
             for line in r.iter_lines():
                 received_data = received_data + line.decode("utf-8")
         except http.client.IncompleteRead as e:
             received_data = received_data + e.partial.decode()
-        finally:
-            assert r.status_code == 200
 
         assert first_line in received_data
         assert last_line in received_data
@@ -336,6 +336,7 @@ class TestAgent:
 
         # request to retrieve non existent file
         form = {"filepath": os.path.join(DIRPATH, make_temp_name() + ".tmp")}
+        # Can't use self.post_form here as no json will be returned.
         r = requests.post(f"{BASE_URL}/retrieve", data=form)
         assert r.status_code == 404
 
