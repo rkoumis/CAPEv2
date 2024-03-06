@@ -1,6 +1,7 @@
 """Tests for the agent."""
 
 import datetime
+import http.client
 import io
 import multiprocessing
 import os
@@ -316,23 +317,17 @@ class TestAgent:
 
         # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
-        r = requests.post(
-            f"{BASE_URL}/retrieve",
-            data=form,
-            stream=True,
-        )
+        r = requests.post(f"{BASE_URL}/retrieve", data=form)
         assert r.status_code == 200
+        received_data = ""
+        try:
+            for line in r.iter_lines():
+                received_data = received_data + line.decode("utf-8")
+        except http.client.IncompleteRead as e:
+            received_data = received_data + e.partial.decode()
 
-        # retrieved_lines = []
-        # try:
-        #     for line in r.iter_lines(chunk_size=10, delimiter=os.linesep.encode()):
-        #         retrieved_lines.append(line.decode("utf-8"))
-        # except requests.exceptions.ChunkedEncodingError:
-        #     pass
-        # assert first_line in retrieved_lines
-        # assert last_line in retrieved_lines
-        assert first_line in r.raw.data.decode()
-        assert last_line in r.raw.data.decode()
+        assert first_line in received_data
+        assert last_line in received_data
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
