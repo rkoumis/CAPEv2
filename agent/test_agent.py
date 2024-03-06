@@ -1,7 +1,6 @@
 """Tests for the agent."""
 
 import datetime
-import http.client
 import io
 import multiprocessing
 import os
@@ -29,14 +28,6 @@ DIRPATH = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
 def make_temp_name():
     return str(uuid.uuid4())
-
-
-def cause_gen(exc):
-    """Examine chained exceptions."""
-    yield exc
-    while exc.__cause__:
-        exc = exc.__cause__
-        yield exc
 
 
 class TestAgent:
@@ -325,21 +316,10 @@ class TestAgent:
 
         # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
-        received_data = ""
-        try:
-            # Can't use self.post_form here as no json will be returned.
-            r = requests.post(f"{BASE_URL}/retrieve", data=form)
-            assert r.status_code == 200
-            for line in r.iter_lines():
-                received_data = received_data + line.decode("utf-8")
-        except requests.exceptions.ChunkedEncodingError as e:
-            # Walk up the exception chain to get the partial chunk of data.
-            for prev_exception in cause_gen(e):
-                if isinstance(prev_exception, http.client.IncompleteRead):
-                    received_data = received_data + prev_exception.partial.decode()
-
-        assert first_line in received_data
-        assert last_line in received_data
+        r = requests.post(f"{BASE_URL}/retrieve", data=form)
+        assert r.status_code == 200
+        assert first_line in r.text
+        assert last_line in r.text
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
