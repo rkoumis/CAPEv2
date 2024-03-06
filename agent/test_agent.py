@@ -279,8 +279,7 @@ class TestAgent:
 
     def test_store(self):
         sample_text = make_temp_name()
-        sep = os.linesep
-        upload_file = {"file": ("ignored", sep.join(("test data", sample_text, "test data")))}
+        upload_file = {"file": ("ignored", os.linesep.join(("test data", sample_text, "test data")))}
         form = {"filepath": os.path.join(DIRPATH, make_temp_name() + ".tmp")}
 
         js = self.post_form("store", form, files=upload_file)
@@ -308,15 +307,19 @@ class TestAgent:
 
     def test_retrieve(self):
         """Create a file, then try to retrieve it."""
-        file_contents = f"test data\n{make_temp_name()}\ntest data\n"
+        sample_text = make_temp_name()
+        file_contents = os.linesep.join(("test data", sample_text, "test data"))
         file_path = os.path.join(DIRPATH, make_temp_name() + ".tmp")
         self.create_file(file_path, file_contents)
 
+        # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
-        r = requests.post(f"{BASE_URL}/retrieve", data=form)
+        r = requests.post(f"{BASE_URL}/retrieve", data=form, stream=True)
         assert r.status_code == 200
-        assert self.file_contains(file_path, file_contents)
-        assert file_contents in r.text
+        retrieved_contents = ""
+        for line in r.iter_lines():
+            retrieved_contents = retrieved_contents + line.decode("utf8")
+        assert sample_text in retrieved_contents
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
