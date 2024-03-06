@@ -317,14 +317,15 @@ class TestAgent:
 
         # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
-        r = requests.post(f"{BASE_URL}/retrieve", data=form)
-        assert r.status_code == 200
         received_data = ""
         try:
+            r = requests.post(f"{BASE_URL}/retrieve", data=form)
             for line in r.iter_lines():
                 received_data = received_data + line.decode("utf-8")
         except http.client.IncompleteRead as e:
             received_data = received_data + e.partial.decode()
+        finally:
+            assert r.status_code == 200
 
         assert first_line in received_data
         assert last_line in received_data
