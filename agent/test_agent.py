@@ -314,8 +314,8 @@ class TestAgent:
         file_path = os.path.join(DIRPATH, make_temp_name() + ".tmp")
         self.create_file(file_path, file_contents)
 
-        # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
+        # Can't use self.post_form here as no json will be returned.
         r = requests.post(f"{BASE_URL}/retrieve", data=form)
         assert r.status_code == 200
         assert first_line in r.text
