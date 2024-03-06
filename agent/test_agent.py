@@ -113,7 +113,7 @@ class TestAgent:
         js = cls.post_form("store", form, files=upload_file)
         assert js["message"] == "Successfully stored file"
         assert os.path.isfile(filepath)
-        assert cls.file_contains(filepath, contents)
+        assert cls.file_contains(filepath, file_contents[0])
         return filepath
 
     @staticmethod
