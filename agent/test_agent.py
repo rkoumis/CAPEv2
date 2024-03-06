@@ -401,6 +401,7 @@ class TestAgent:
         """Test async execution shows as running after starting."""
         # upload test python file
         file_contents = (
+            f"# Comment a random number {random.randint(1000, 9999)}'",
             "import sys",
             "import time",
             "print('hello world')",
@@ -422,10 +423,9 @@ class TestAgent:
         """Test async execution shows as complete after exiting."""
         # upload test python file
         file_contents = (
-            "import random",
+            f"# Comment a random number {random.randint(1000, 9999)}'",
             "import sys",
-            "import time",
-            f"print('hello from {random.randint(1000, 9999)}', file=sys.stderr)",
+            "print('hello world')",
             "sys.exit(0)",
         )
         filepath = self.store_file(file_contents)
@@ -441,6 +441,7 @@ class TestAgent:
         """Test that an unsuccessful script gets a status of 'failed'."""
         # upload test python file. It will sleep, then try to import a nonexistent module.
         file_contents = (
+            f"# Comment a random number {random.randint(1000, 9999)}'",
             "import sys",
             "import time",
             "time.sleep(1)",
@@ -491,6 +492,7 @@ class TestAgent:
         """Test we can execute a simple python script."""
         # The output line endings are different between linux and Windows.
         file_contents = (
+            f"# Comment a random number {random.randint(1000, 9999)}'",
             "import sys",
             "print('hello world')",
             "print('goodbye world', file=sys.stderr)",
@@ -522,6 +524,7 @@ class TestAgent:
         """Ensure we get a 400 back when there's a non-zero exit code."""
         # Run a python script that exits non-zero.
         file_contents = (
+            f"# Comment a random number {random.randint(1000, 9999)}'",
             "import sys",
             "print('hello world')",
             "sys.exit(3)",
