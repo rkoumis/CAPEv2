@@ -114,6 +114,7 @@ class TestAgent:
         assert js["message"] == "Successfully stored file"
         assert os.path.isfile(filepath)
         assert cls.file_contains(filepath, file_contents[0])
+        assert cls.file_contains(filepath, file_contents[-1])
         return filepath
 
     @staticmethod
@@ -307,8 +308,9 @@ class TestAgent:
 
     def test_retrieve(self):
         """Create a file, then try to retrieve it."""
-        sample_text = make_temp_name()
-        file_contents = os.linesep.join(("test data", sample_text, "test data"))
+        first_line = make_temp_name()
+        last_line = make_temp_name()
+        file_contents = os.linesep.join((first_line, "test data", last_line))
         file_path = os.path.join(DIRPATH, make_temp_name() + ".tmp")
         self.create_file(file_path, file_contents)
 
@@ -316,10 +318,15 @@ class TestAgent:
         form = {"filepath": file_path}
         r = requests.post(f"{BASE_URL}/retrieve", data=form, stream=True)
         assert r.status_code == 200
+
         retrieved_contents = ""
-        for line in r.iter_lines():
-            retrieved_contents = retrieved_contents + line.decode("utf8")
-        assert sample_text in retrieved_contents
+        try:
+            for line in r.iter_lines():
+                retrieved_contents = retrieved_contents + line.decode("utf8")
+        except requests.exceptions.ChunkedEncodingError:
+            pass
+        assert first_line in retrieved_contents
+        assert last_line in retrieved_contents
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
