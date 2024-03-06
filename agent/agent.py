@@ -251,10 +251,9 @@ class send_file:
             return
 
         try:
-            with open(self.path, "r") as f:
+            with open(self.path, "rb") as f:
                 buf = f.read(1024 * 1024)
                 while buf:
-                    buf = buf.encode()
                     if self.encoding == "base64":
                         buf = base64.b64encode(buf)
                     sock.write(buf)
