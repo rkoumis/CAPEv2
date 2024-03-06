@@ -316,17 +316,21 @@ class TestAgent:
 
         # Retrieve the entire file; it comes back in a stream.
         form = {"filepath": file_path}
-        r = requests.post(f"{BASE_URL}/retrieve", data=form, stream=True)
+        r = requests.post(
+            f"{BASE_URL}/retrieve",
+            data=form,
+            stream=True,
+        )
         assert r.status_code == 200
 
-        retrieved_contents = ""
+        retrieved_lines = []
         try:
-            for line in r.iter_lines():
-                retrieved_contents = retrieved_contents + line.decode("utf8")
+            for line in r.iter_lines(chunk_size=10, delimiter=os.linesep.encode()):
+                retrieved_lines.append(line.decode("utf-8"))
         except requests.exceptions.ChunkedEncodingError:
             pass
-        assert first_line in retrieved_contents
-        assert last_line in retrieved_contents
+        assert first_line in retrieved_lines
+        assert last_line in retrieved_lines
 
     def test_retrieve_invalid(self):
         js = self.post_form("retrieve", {}, 400)
