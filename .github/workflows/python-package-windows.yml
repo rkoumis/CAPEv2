@@ -27,7 +27,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          architecture: 'x86'
 
       - name: Install dependencies
         run: pip install --upgrade pytest requests
