@@ -27,10 +27,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: Install pytest
-        run: pip install pytest
+      - name: Install dependencies
+        run: pip install pytest requests
 
-      - name: Run unit tests
+      - name: Run analyzer unit tests
         run: |
           cd analyzer/windows
+          pytest -v .
+
+      - name: Run agent unit tests
+        run: |
+          cd agent
           pytest -v .
