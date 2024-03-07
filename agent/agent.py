@@ -33,7 +33,7 @@ except ImportError:
 if sys.version_info[:2] < (3, 6):
     sys.exit("You are running an incompatible version of Python, please use >= 3.6")
 
-AGENT_VERSION = "0.15"
+AGENT_VERSION = "0.16"
 AGENT_FEATURES = [
     "execpy",
     "execute",
@@ -42,6 +42,18 @@ AGENT_FEATURES = [
     "largefile",
     "unicodepath",
 ]
+if sys.platform == "win32":
+    AGENT_FEATURES.append("mutex")
+    MUTEX_TIMEOUT_MS = 500
+    from ctypes import WinError, windll
+
+    kernel32 = windll.kernel32
+    SYNCHRONIZE = 0x100000
+    ERROR_FILE_NOT_FOUND = 0x2
+    WAIT_ABANDONED = 0x00000080
+    WAIT_OBJECT_0 = 0x0
+    WAIT_TIMEOUT = 0x102
+    WAIT_FAILED = 0xFFFFFFFF
 
 
 class Status(enum.IntEnum):
@@ -68,10 +80,13 @@ class Status(enum.IntEnum):
 
 
 ANALYZER_FOLDER = ""
+agent_mutexes = {}
+"""Holds handles of mutexes held by the agent."""
 state = {
     "status": Status.INIT,
     "description": "",
     "async_subprocess": None,
+    "mutexes": agent_mutexes,
 }
 
 
@@ -346,11 +361,89 @@ def get_subprocess_status():
     )
 
 
+def open_mutex(mutex_name):
+    assert sys.platform == "win32"
+    access = SYNCHRONIZE  # only flag the mutex for use
+    inherit_handle = False  # don't pass the handle to children
+    hndl_mutex = kernel32.OpenMutexW(access, inherit_handle, mutex_name)
+    if not hndl_mutex:
+        winerr = WinError()
+        if winerr.errno == ERROR_FILE_NOT_FOUND:
+            return None, json_error(404, "mutex not found")
+        return None, json_error(500, f"error accessing mutex: {winerr}")
+    return hndl_mutex, None
+
+
+def wait_mutex(hndl_mutex):
+    assert sys.platform == "win32"
+    ret = kernel32.WaitForSingleObject(hndl_mutex, MUTEX_TIMEOUT_MS)
+    if ret in (WAIT_ABANDONED, WAIT_OBJECT_0):
+        return True, None
+    elif ret == WAIT_TIMEOUT:
+        return False, json_error(408, "timeout waiting for mutex")
+    elif ret == WAIT_FAILED:
+        # get the extended error information
+        winerr = WinError()
+        return False, json_error(500, f"failed waiting for mutex: {winerr}")
+    else:
+        return False, json_error(500, f"failed waiting for mutex: {ret}")
+
+
+def release_mutex(hndl_mutex):
+    assert sys.platform == "win32"
+    ret = kernel32.ReleaseMutex(hndl_mutex)
+    if not ret:
+        # get the extended error information
+        winerr = WinError()
+        return False, json_error(500, f"failed releasing mutex: {winerr}")
+    return True, None
+
+
 @app.route("/status")
 def get_status():
     if state.get("async_subprocess") is not None:
         return get_subprocess_status()
     return json_success("Analysis status", status=str(state.get("status")), description=state.get("description"))
+
+
+@app.route("/mutex", methods=["POST"])
+def post_mutex():
+    if sys.platform != "win32":
+        return json_error(400, f"mutex feature not supported on {sys.platform}")
+    mutex_name = request.form.get("mutex", "")
+    if not mutex_name:
+        return json_error(400, "no mutex provided")
+    if mutex_name in agent_mutexes:
+        return json_success(f"have mutex: {mutex_name}")
+
+    # does the mutex exist?
+    hndl_mutex, error = open_mutex(mutex_name)
+    if error:
+        return error
+
+    # try waiting on it
+    ok, error = wait_mutex(hndl_mutex)
+    if ok:
+        # save the mutex handle for future requests
+        agent_mutexes[mutex_name] = hndl_mutex
+        return json_success(f"got mutex: {mutex_name}", status_code=201)
+    return error
+
+
+@app.route("/mutex", methods=["DELETE"])
+def delete_mutex():
+    if sys.platform != "win32":
+        return json_error(400, f"mutex feature not supported on {sys.platform}")
+    mutex_name = request.form.get("mutex", "")
+    if not mutex_name:
+        return json_error(400, "no mutex provided")
+    if mutex_name not in agent_mutexes:
+        return json_error(404, f"mutex does not exist: {mutex_name}")
+    hndl_mutex = agent_mutexes.pop(mutex_name)
+    ok, error = release_mutex(hndl_mutex)
+    if ok:
+        return json_success(f"released mutex: {mutex_name}")
+    return error
 
 
 @app.route("/status", methods=["POST"])
