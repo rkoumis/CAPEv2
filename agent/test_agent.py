@@ -16,7 +16,13 @@ from urllib.parse import urljoin
 import pytest
 import requests
 
-import agent
+try:
+    import agent
+except SystemExit:
+    # This will happen if run on the wrong architecture.
+    print("The agent module could not be imported. Exiting!")
+    raise
+
 
 HOST = "127.0.0.1"
 PORT = 8000
