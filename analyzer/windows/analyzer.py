@@ -240,7 +240,6 @@ class Analyzer:
     def prepare(self):
         """Prepare env for analysis."""
         global MONITOR_DLL, MONITOR_DLL_64, HIDE_PIDS
-        # global SERVICES_PID
 
         # Get SeDebugPrivilege for the Python process. It will be needed in
         # order to perform the injections.
@@ -347,6 +346,34 @@ class Analyzer:
 
     def get_completion_key(self):
         return getattr(self.config, "completion_key", "")
+
+    def monitor_dcom(self):
+        """Add the 'DcomLaunch' service to critical process list."""
+        if not self.MONITORED_DCOM:
+            self.MONITORED_DCOM = True
+            self.critical_process_by_name("DcomLaunch")
+
+    def monitor_wmi(self):
+        """Add the 'winmgmt' service to critical process list."""
+        if not self.MONITORED_WMI:
+            self.MONITORED_WMI = True
+            self.critical_process_by_name("winmgmt")
+
+    def critical_process_by_name(self, process_name):
+        """Add the named process to the CRITICAL_PROCESS_LIST."""
+        process_id = pid_from_service_name(process_name)
+        self.critical_process(process_id)
+
+    def critical_process(self, process_id, sleep_msec=2000):
+        """Add this process_id to the CRITICAL_PROCESS_LIST."""
+        if process_id:
+            servproc = Process(options=self.options, config=self.config, pid=process_id)
+            self.CRITICAL_PROCESS_LIST.append(int(process_id))
+            filepath = servproc.get_filepath()
+            servproc.inject(interest=filepath, nosleepskip=True)
+            self.LASTINJECT_TIME = timeit.default_timer()
+            servproc.close()
+            KERNEL32.Sleep(sleep_msec)
 
     def run(self):
         """Run analysis.
@@ -1039,51 +1066,15 @@ class CommandPipeHandler:
     def _handle_shell(self, data):
         explorer_pid = get_explorer_pid()
         if explorer_pid:
-            explorer = Process(options=self.analyzer.options, config=self.analyzer.config, pid=explorer_pid)
-            self.analyzer.CRITICAL_PROCESS_LIST.append(int(explorer_pid))
-            filepath = explorer.get_filepath()
-            explorer.inject(interest=filepath, nosleepskip=True)
-            self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-            explorer.close()
-            KERNEL32.Sleep(2000)
+            self.analyzer.critical_process(explorer_pid)
 
     def _handle_interop(self, data):
-        if not self.analyzer.MONITORED_DCOM:
-            self.analyzer.MONITORED_DCOM = True
-            dcom_pid = pid_from_service_name("DcomLaunch")
-            if dcom_pid:
-                servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=dcom_pid)
-                self.analyzer.CRITICAL_PROCESS_LIST.append(int(dcom_pid))
-                filepath = servproc.get_filepath()
-                servproc.inject(interest=filepath, nosleepskip=True)
-                self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                servproc.close()
-                KERNEL32.Sleep(2000)
+        self.analyzer.monitor_dcom()
 
     def _handle_wmi(self, data):
-        if not self.analyzer.MONITORED_WMI and not ANALYSIS_TIMED_OUT:
-            self.analyzer.MONITORED_WMI = True
-            if not self.analyzer.MONITORED_DCOM:
-                self.analyzer.MONITORED_DCOM = True
-                dcom_pid = pid_from_service_name("DcomLaunch")
-                if dcom_pid:
-                    servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=dcom_pid)
-                    self.analyzer.CRITICAL_PROCESS_LIST.append(int(dcom_pid))
-                    filepath = servproc.get_filepath()
-                    servproc.inject(interest=filepath, nosleepskip=True)
-                    self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                    servproc.close()
-                    KERNEL32.Sleep(2000)
-
-            wmi_pid = pid_from_service_name("winmgmt")
-            if wmi_pid:
-                servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=wmi_pid)
-                self.analyzer.CRITICAL_PROCESS_LIST.append(int(wmi_pid))
-                filepath = servproc.get_filepath()
-                servproc.inject(interest=filepath, nosleepskip=True)
-                self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                servproc.close()
-                KERNEL32.Sleep(2000)
+        if not ANALYSIS_TIMED_OUT:
+            self.analyzer.monitor_wmi()
+            self.analyzer.monitor_dcom()
 
     def _handle_tasksched(self, data):
         if not self.analyzer.MONITORED_TASKSCHED and not ANALYSIS_TIMED_OUT:
@@ -1102,15 +1093,7 @@ class CommandPipeHandler:
             subprocess.call("net start schedule", startupinfo=si)
             log.info("Started Task Scheduler Service")
 
-            sched_pid = pid_from_service_name("schedule")
-            if sched_pid:
-                servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=sched_pid)
-                self.analyzer.CRITICAL_PROCESS_LIST.append(int(sched_pid))
-                filepath = servproc.get_filepath()
-                servproc.inject(interest=filepath, nosleepskip=True)
-                self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                servproc.close()
-                KERNEL32.Sleep(2000)
+            self.analyzer.critical_process_by_name("schedule")
 
     def _handle_bits(self, data):
         if not self.analyzer.MONITORED_BITS and not ANALYSIS_TIMED_OUT:
@@ -1126,31 +1109,12 @@ class CommandPipeHandler:
             log.info("Stopped BITS Service")
             subprocess.call("sc config BITS type= own", startupinfo=si)
 
-            if not self.analyzer.MONITORED_DCOM:
-                self.analyzer.MONITORED_DCOM = True
-                dcom_pid = pid_from_service_name("DcomLaunch")
-                if dcom_pid:
-                    servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=dcom_pid)
-
-                    self.analyzer.CRITICAL_PROCESS_LIST.append(int(dcom_pid))
-                    filepath = servproc.get_filepath()
-                    servproc.inject(interest=filepath, nosleepskip=True)
-                    self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                    servproc.close()
-                    KERNEL32.Sleep(2000)
+            self.analyzer.monitor_dcom()
 
             log.info("Starting BITS Service")
             subprocess.call("net start BITS", startupinfo=si)
             log.info("Started BITS Service")
-            bits_pid = pid_from_service_name("BITS")
-            if bits_pid:
-                servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=bits_pid)
-                self.analyzer.CRITICAL_PROCESS_LIST.append(int(bits_pid))
-                filepath = servproc.get_filepath()
-                servproc.inject(interest=filepath, nosleepskip=True)
-                self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                servproc.close()
-                KERNEL32.Sleep(2000)
+            self.analyzer.critical_process_by_name("BITS")
 
     # Handle case of a service being started by a monitored process
     # Switch the service type to own process behind its back so we
@@ -1169,14 +1133,8 @@ class CommandPipeHandler:
                 # if tasklist previously failed to get the services.exe PID we'll be
                 # unable to inject
                 if self.analyzer.SERVICES_PID:
-                    servproc = Process(options=self.analyzer.options, config=self.analyzer.config, pid=self.analyzer.SERVICES_PID)
-                    self.analyzer.CRITICAL_PROCESS_LIST.append(int(self.analyzer.SERVICES_PID))
-                    filepath = servproc.get_filepath()
-                    servproc.inject(interest=filepath, nosleepskip=True)
-                    self.analyzer.LASTINJECT_TIME = timeit.default_timer()
-                    servproc.close()
-                    KERNEL32.Sleep(1000)
                     self.analyzer.MONITORED_SERVICES = True
+                    self.analyzer.critical_process(self.analyzer.SERVICES_PID, sleep_msec=1000)
                 else:
                     log.error("Unable to monitor service %s", servname)
 
@@ -1195,7 +1153,7 @@ class CommandPipeHandler:
             if event_handle:
                 KERNEL32.SetEvent(event_handle)
                 KERNEL32.CloseHandle(event_handle)
-                self.files.dump_files()
+                self.analyzer.files.dump_files()
         self.analyzer.process_lock.release()
 
     # Handle case of malware terminating a process -- notify the target
@@ -1248,7 +1206,7 @@ class CommandPipeHandler:
             return
 
         # Open the process and inject the DLL. Hope it enjoys it.
-        proc = Process(pid=process_id, tid=thread_id)
+        proc = Process(pid=process_id, thread_id=thread_id)
 
         filepath = proc.get_filepath()
         filename = os.path.basename(filepath)
@@ -1315,7 +1273,7 @@ class CommandPipeHandler:
                     # We want to prevent multiple injection attempts if one is already underway
                     if not in_protected_path(filename):
                         _ = proc.inject(interest)
-                        self.LASTINJECT_TIME = timeit.default_timer()
+                        self.analyzer.LASTINJECT_TIME = timeit.default_timer()
                         self.analyzer.NUM_INJECTED += 1
                     proc.close()
             else:
