@@ -1,6 +1,6 @@
 import unittest
 
-from analyzer.windows.analyzer import Analyzer
+from analyzer import Analyzer
 
 
 class TestAnalyzer(unittest.TestCase):
