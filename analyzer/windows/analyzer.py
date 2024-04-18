@@ -212,11 +212,14 @@ class Analyzer:
         self.do_run = True
         self.time_counter = 0
 
+        self.command_pipe = None
+        self.default_dll = None
         self.process_lock = Lock()
         self.files_list_lock = Lock()
         self.pid = os.getpid()
         self.ppid = Process(pid=self.pid).get_parent_pid()
         self.files = Files()
+        self.options = {}
         self.process_list = ProcessList()
         self.package = None
 
@@ -230,7 +233,8 @@ class Analyzer:
         self.LASTINJECT_TIME = None
         self.NUM_INJECTED = 0
 
-    def get_pipe_path(self, name):
+    @staticmethod
+    def get_pipe_path(name):
         """Return \\\\.\\PIPE on Windows XP and \\??\\PIPE elsewhere."""
         version = sys.getwindowsversion()
         if version.major == 5 and version.minor == 1:

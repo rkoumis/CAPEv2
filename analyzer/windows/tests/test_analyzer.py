@@ -27,3 +27,11 @@ class TestAnalyzer(unittest.TestCase):
         self.assertEqual(1, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertTrue(analyzer.MONITORED_WMI)
         self.assertIsNotNone(analyzer.LASTINJECT_TIME)
+
+    def test_get_pipe_path(self):
+        pipe_name = "random_text"
+        pipe_path = Analyzer.get_pipe_path(pipe_name)
+        self.assertIsNotNone(pipe_path)
+        self.assertIsInstance(pipe_path, str)
+        self.assertIn(pipe_name, pipe_path)
+        self.assertIn("PIPE", pipe_path)
