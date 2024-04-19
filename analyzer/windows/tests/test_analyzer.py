@@ -1,3 +1,4 @@
+import random
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +14,8 @@ class TestAnalyzer(unittest.TestCase):
     @patch("lib.api.process.Process")
     def test_monitor_dcom(self, mock_process, mock_pid_from_service_name):
         mock_process.return_value = MagicMock()
-        mock_pid_from_service_name.return_value = 100
+        random_pid = random.randint(1, 99999999)
+        mock_pid_from_service_name.return_value = random_pid
         analyzer = Analyzer()
         self.assertEqual(0, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertFalse(analyzer.MONITORED_DCOM)
@@ -22,9 +24,12 @@ class TestAnalyzer(unittest.TestCase):
         self.assertEqual(1, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertTrue(analyzer.MONITORED_DCOM)
         self.assertIsNotNone(analyzer.LASTINJECT_TIME)
-        self.assertIn(100, analyzer.CRITICAL_PROCESS_LIST)
+        self.assertIn(random_pid, analyzer.CRITICAL_PROCESS_LIST)
 
-    def test_monitor_wmi(self):
+    @patch("analyzer.pid_from_service_name")
+    def test_monitor_wmi(self, mock_pid_from_service_name):
+        random_pid = random.randint(1, 99999999)
+        mock_pid_from_service_name.return_value = random_pid
         analyzer = Analyzer()
         self.assertEqual(0, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertFalse(analyzer.MONITORED_WMI)
@@ -33,6 +38,7 @@ class TestAnalyzer(unittest.TestCase):
         self.assertEqual(1, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertTrue(analyzer.MONITORED_WMI)
         self.assertIsNotNone(analyzer.LASTINJECT_TIME)
+        self.assertIn(random_pid, analyzer.CRITICAL_PROCESS_LIST)
 
     def test_get_pipe_path(self):
         pipe_name = "random_text"
