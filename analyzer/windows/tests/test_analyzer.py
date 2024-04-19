@@ -1,6 +1,7 @@
 import unittest
 
 from analyzer import Analyzer
+from analyzer.windows.analyzer import CommandPipeHandler
 
 
 class TestAnalyzer(unittest.TestCase):
@@ -35,3 +36,14 @@ class TestAnalyzer(unittest.TestCase):
         self.assertIsInstance(pipe_path, str)
         self.assertIn(pipe_name, pipe_path)
         self.assertIn("PIPE", pipe_path)
+
+    def test_handle_bits(self):
+        analyzer = Analyzer()
+        cph = CommandPipeHandler(analyzer)
+        self.assertEqual(0, len(analyzer.CRITICAL_PROCESS_LIST))
+        self.assertFalse(analyzer.MONITORED_DCOM)
+        self.assertIsNone(analyzer.LASTINJECT_TIME)
+        cph._handle_bits(data=None)
+        self.assertEqual(2, len(analyzer.CRITICAL_PROCESS_LIST))
+        self.assertTrue(analyzer.MONITORED_DCOM)
+        self.assertIsNotNone(analyzer.LASTINJECT_TIME)

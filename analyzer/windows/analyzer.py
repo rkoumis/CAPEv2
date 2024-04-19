@@ -835,9 +835,10 @@ class Files:
         self.files_orig = {}
         self.dumped = []
 
-    def is_protected_filename(self, file_name):
+    @classmethod
+    def is_protected_filename(cls, file_name):
         """Return whether or not to inject into a process with this name."""
-        return file_name.lower() in self.PROTECTED_NAMES
+        return file_name.lower() in cls.PROTECTED_NAMES
 
     def add_pid(self, filepath, pid, verbose=True):
         """Track a process identifier for this file."""
