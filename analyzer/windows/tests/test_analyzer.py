@@ -9,9 +9,11 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = Analyzer()
         self.assertIsInstance(analyzer, Analyzer)
 
+    @patch("pid_from_service_name")
     @patch("lib.api.process.Process")
-    def test_monitor_dcom(self, mock_process):
+    def test_monitor_dcom(self, mock_process, mock_pid_from_service_name):
         mock_process.return_value = MagicMock()
+        mock_pid_from_service_name.return_value = 100
         analyzer = Analyzer()
         self.assertEqual(0, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertFalse(analyzer.MONITORED_DCOM)
@@ -20,6 +22,7 @@ class TestAnalyzer(unittest.TestCase):
         self.assertEqual(1, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertTrue(analyzer.MONITORED_DCOM)
         self.assertIsNotNone(analyzer.LASTINJECT_TIME)
+        self.assertIn(100, analyzer.CRITICAL_PROCESS_LIST)
 
     def test_monitor_wmi(self):
         analyzer = Analyzer()
