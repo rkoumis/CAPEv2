@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from analyzer import Analyzer, CommandPipeHandler
 
@@ -8,7 +9,9 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = Analyzer()
         self.assertIsInstance(analyzer, Analyzer)
 
-    def test_monitor_dcom(self):
+    @patch("lib.api.process.Process")
+    def test_monitor_dcom(self, mock_process):
+        mock_process.return_value = MagicMock()
         analyzer = Analyzer()
         self.assertEqual(0, len(analyzer.CRITICAL_PROCESS_LIST))
         self.assertFalse(analyzer.MONITORED_DCOM)
