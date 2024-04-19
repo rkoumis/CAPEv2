@@ -9,7 +9,7 @@ class TestAnalyzer(unittest.TestCase):
         analyzer = Analyzer()
         self.assertIsInstance(analyzer, Analyzer)
 
-    @patch("pid_from_service_name")
+    @patch("analyzer.pid_from_service_name")
     @patch("lib.api.process.Process")
     def test_monitor_dcom(self, mock_process, mock_pid_from_service_name):
         mock_process.return_value = MagicMock()
