@@ -1,7 +1,6 @@
 import unittest
 
-from analyzer import Analyzer
-from analyzer.windows.analyzer import CommandPipeHandler
+from analyzer import Analyzer, CommandPipeHandler
 
 
 class TestAnalyzer(unittest.TestCase):
