@@ -48,8 +48,8 @@ class TestProcessList(unittest.TestCase):
         process_list.pids_notrack = [pid2]
         self.assertTrue(process_list.has_pid(pid1))
         self.assertTrue(process_list.has_pid(pid2))
-        self.assertFalse(process_list.has_pid(pid1, notrack=False))
-        self.assertTrue(process_list.has_pid(pid2, notrack=False))
+        self.assertTrue(process_list.has_pid(pid1, notrack=False))
+        self.assertFalse(process_list.has_pid(pid2, notrack=False))
 
     def test_remove_pid(self):
         """Calling remove_pid should remove pid from process_list."""
