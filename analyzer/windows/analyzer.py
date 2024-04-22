@@ -263,10 +263,9 @@ class Analyzer:
         self.options = self.config.get_options()
 
         # Resolve the paths first in case some other part of the code needs those (fullpath) parameters.
-        if "curdir" in self.options:
-            self.options["curdir"] = os.path.expandvars(self.options["curdir"])
-        if "executiondir" in self.options:
-            self.options["executiondir"] = os.path.expandvars(self.options["executiondir"])
+        for option_name in ("curdir", "executiondir"):
+            if option_name in self.options:
+                self.options[option_name] = os.path.expandvars(self.options[option_name])
 
         # Set the default DLL to be used for this analysis.
         self.default_dll = self.options.get("dll")
@@ -1040,10 +1039,14 @@ class CommandPipeHandler:
     def _handle_kerror(self, error_msg):
         log.error("Error : %s", error_msg)
 
-    # if a new driver has been loaded, we stop the analysis
     def _handle_ksubvert(self, data):
-        for pid in self.analyzer.process_list.pids:
-            log.info("Process with pid %s has terminated", pid)
+        """Remove pids from the list.
+
+        If a new driver has been loaded, we stop the analysis.
+        """
+        # Use a list slice ([:]) to make a copy of the list we are changing.
+        for pid in self.analyzer.process_list.pids[:]:
+            log.info("No longer tracking process with pid %s", pid)
             self.analyzer.process_list.remove_pid(pid)
 
     def _handle_shell(self, data):
@@ -1162,10 +1165,13 @@ class CommandPipeHandler:
                 servproc.close()
                 KERNEL32.Sleep(2000)
 
-    # Handle case of a service being started by a monitored process
-    # Switch the service type to own process behind its back so we
-    # can monitor the service more easily with less noise
     def _handle_service(self, servname):
+        """Start a service and monitor it.
+
+        Handle case of a service being started by a monitored process.
+        Switch the service type to own process behind its back so we
+        can monitor the service more easily with less noise.
+        """
         if not ANALYSIS_TIMED_OUT:
             si = subprocess.STARTUPINFO()
             # STARTF_USESHOWWINDOW
