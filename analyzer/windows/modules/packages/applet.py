@@ -15,6 +15,12 @@ class Applet(Package):
         ("ProgramFiles", "Mozilla Firefox", "firefox.exe"),
         ("ProgramFiles", "Internet Explorer", "iexplore.exe"),
     ]
+    summary = """Uses firefox (or iexplore) to open a java applet."""
+    description = """Creates an HTML wrapper around the applet file.
+    You must supply the class name option; the applet will execute the
+    named class.  Opens the HTML file with firefox, or iexplore if firefox
+    is not available."""
+    option_names = ("class",)
 
     def make_html(self, path, class_name):
         html = f"""

@@ -14,7 +14,13 @@ class TestAnalysisPackages(unittest.TestCase):
         member_classes = [m[1] for m in members if inspect.isclass(m[1])]
         pkg_classes = [c for c in member_classes if issubclass(c, Package) and c != Package]
         self.assertEqual(1, len(pkg_classes))
-        return pkg_classes[0]
+        cls = pkg_classes[0]
+        self.assertIsInstance(cls, Package)
+        # self.assertIsInstance(str, cls.summary)
+        # self.assertGreater(len(cls.summary), 0)
+        # self.assertIsInstance(str, cls.description)
+        # self.assertGreater(len(cls.description), 0)
+        return cls
 
     def test_choose_package_Shellcode_Unpacker(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Shellcode-Unpacker")
@@ -58,7 +64,10 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_applet(self):
         pkg_class = self.class_from_analysis_package("modules.packages.applet")
-        pkg_class()
+        obj = pkg_class()
+        self.assertEqual("class", obj.option_names[0])
+        summary = """Uses firefox (or iexplore) to open a java applet."""
+        self.assertEqual(summary, obj.summary)
 
     def test_archive(self):
         pkg_class = self.class_from_analysis_package("modules.packages.archive")
@@ -158,7 +167,8 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_lnk(self):
         pkg_class = self.class_from_analysis_package("modules.packages.lnk")
-        pkg_class()
+        obj = pkg_class()
+        self.assertEqual("Executes .lnk files using cmd.exe", obj.summary)
 
     def test_mht(self):
         pkg_class = self.class_from_analysis_package("modules.packages.mht")
