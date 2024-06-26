@@ -28,6 +28,9 @@ class Package:
 
     PATHS = []
     default_curdir = None
+    summary: str = None
+    description: str = None
+    option_names = []  # option_names: List[str]
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
