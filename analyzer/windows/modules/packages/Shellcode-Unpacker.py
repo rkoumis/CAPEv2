@@ -14,6 +14,10 @@ log = logging.getLogger(__name__)
 class Shellcode_Unpacker(Package):
     """32-bit Shellcode Unpacker package."""
 
+    summary = "Executes 32-bit Shellcode using loader.exe with the unpacker option"
+    description = """Uses bin\\loader.exe shellcode [offset] <sample> with the option unpacker=1"
+    to execute 32-bit Shellcode"""
+
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
         if options is None:

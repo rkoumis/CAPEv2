@@ -12,6 +12,10 @@ class Unpacker_Regsvr(Package):
     PATHS = [
         ("SystemRoot", "system32", "regsvr32.exe"),
     ]
+    summary = """Executes DLL files using regsvr32.exe."""
+    description = """Uses regsvr32.exe to run a .dll file.
+    The .dll extension will be added automatically."""
+    option_names = ("arguments",)
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""

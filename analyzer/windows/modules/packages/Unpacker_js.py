@@ -13,6 +13,9 @@ class Unpacker_JS(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
+    summary = """Executes .JS files using wscript.exe."""
+    description = """Uses wscript.exe to run a .js/.jse file.
+    The appropriate extension will be added automatically."""
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
