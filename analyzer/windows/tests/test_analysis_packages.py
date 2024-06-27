@@ -15,7 +15,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_classes = [c for c in member_classes if issubclass(c, Package) and c != Package]
         self.assertEqual(1, len(pkg_classes))
         cls = pkg_classes[0]
-        self.assertIsInstance(cls, Package)
+        self.assertTrue(issubclass(cls, Package))
         # self.assertIsInstance(str, cls.summary)
         # self.assertGreater(len(cls.summary), 0)
         # self.assertIsInstance(str, cls.description)
