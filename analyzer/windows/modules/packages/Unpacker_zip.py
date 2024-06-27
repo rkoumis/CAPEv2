@@ -24,6 +24,11 @@ class Unpacker_zip(Package):
     PATHS = [
         ("SystemRoot", "system32", "cmd.exe"),
     ]
+    summary = """Unzip a file with the supplied password, execute its contents."""
+    description = """Extract the sample from a zip file. If the file name is not
+    supplied in the 'file" option, the first file in the zip is taken.
+    The appropriate extension will be added automatically."""
+    option_names = ("file", "password", "function", "arguments", "dllloader")
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""

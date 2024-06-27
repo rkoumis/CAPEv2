@@ -15,6 +15,10 @@ class Unpacker_dll(Package):
     PATHS = [
         ("SystemRoot", "system32", "rundll32.exe"),
     ]
+    summary = """Executes .dll files using rundll32.exe."""
+    description = """Uses rundll32.exe with the "/wait" option to run a .lnk file.
+    The .dll extension will be added automatically."""
+    option_names = ("function", "arguments", "dllloader")
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""

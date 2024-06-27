@@ -11,6 +11,10 @@ from lib.common.abstracts import Package
 class Shellcode_x64(Package):
     """64-bit Shellcode analysis package."""
 
+    summary = "Executes 64-bit Shellcode using loader_x64.exe"
+    description = "Uses bin\\loader_x64.exe shellcode [offset] <sample> to execute 64-bit Shellcode"
+    option_names = ("offset",)
+
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
         if options is None:
