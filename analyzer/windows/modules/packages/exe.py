@@ -13,6 +13,14 @@ from lib.common.common import check_file_extension
 class Exe(Package):
     """EXE analysis package."""
 
+    summary = """Run the supplied executable."""
+    description = """Execute the given sample.
+    If the 'appdata' option is specified, run the executable from the APPDATA directory.
+    IF the 'runasx86' option is specified, first use 'CorFlags.exe /32bit+' to set the
+    32BITREQUIRED flag in the PE header.
+    The .exe extension will be added automatically."""
+    option_names = ("arguments", "appdata", "runasx86")
+
     def start(self, path):
         args = self.options.get("arguments")
         appdata = self.options.get("appdata")

@@ -26,7 +26,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_class = self.class_from_analysis_package("modules.packages.Shellcode")
         obj = pkg_class()
         self.assertEqual("offset", obj.option_names[0])
-        expected_summary = """Uses firefox (or iexplore) to open a java applet."""
+        expected_summary = "Executes 32-bit Shellcode using loader.exe."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Shellcode_x64(self):
@@ -129,19 +129,24 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_exe(self):
         pkg_class = self.class_from_analysis_package("modules.packages.exe")
-        pkg_class()
+        obj = pkg_class()
+        self.assertEqual("Run the supplied executable.", obj.summary)
 
     def test_firefox(self):
         pkg_class = self.class_from_analysis_package("modules.packages.firefox")
-        pkg_class()
+        obj = pkg_class()
+        self.assertEqual("Open the URL in firefox.", obj.summary)
 
     def test_generic(self):
         pkg_class = self.class_from_analysis_package("modules.packages.generic")
-        pkg_class()
+        obj = pkg_class()
+        self.assertEqual("Execute the sample file with cmd.exe.", obj.summary)
 
     def test_hta(self):
         pkg_class = self.class_from_analysis_package("modules.packages.hta")
-        pkg_class()
+        expected_summary = "Executes the sample with mshta.exe."
+        obj = pkg_class()
+        self.assertEqual(expected_summary, obj.summary)
 
     def test_hwp(self):
         pkg_class = self.class_from_analysis_package("modules.packages.hwp")
@@ -165,7 +170,10 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_jar(self):
         pkg_class = self.class_from_analysis_package("modules.packages.jar")
-        pkg_class()
+        expected_summary = "Executes a java class using java.exe."
+        obj = pkg_class()
+        self.assertEqual(expected_summary, obj.summary)
+        self.assertEqual("class", obj.option_names[0])
 
     def test_js(self):
         pkg_class = self.class_from_analysis_package("modules.packages.js")

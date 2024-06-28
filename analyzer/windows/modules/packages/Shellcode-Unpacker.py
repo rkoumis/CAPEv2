@@ -16,7 +16,8 @@ class Shellcode_Unpacker(Package):
 
     summary = "Executes 32-bit Shellcode using loader.exe with the unpacker option"
     description = """Uses bin\\loader.exe shellcode [offset] <sample> with the option unpacker=1"
-    to execute 32-bit Shellcode"""
+    to execute 32-bit Shellcode.
+    Turns off procdump and dump-caller-regions."""
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""

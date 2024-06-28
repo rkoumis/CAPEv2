@@ -11,8 +11,9 @@ from lib.common.abstracts import Package
 class Shellcode(Package):
     """32-bit Shellcode analysis package."""
 
-    summary = "Executes 32-bit Shellcode using loader.exe"
-    description = "Uses bin\\loader.exe shellcode [offset] <sample> to execute 32-bit Shellcode"
+    summary = "Executes 32-bit Shellcode using loader.exe."
+    description = """Uses bin\\loader.exe shellcode [offset] <sample> to execute 32-bit Shellcode.
+    Turns off procdump."""
     option_names = ("offset",)
 
     def __init__(self, options=None, config=None):

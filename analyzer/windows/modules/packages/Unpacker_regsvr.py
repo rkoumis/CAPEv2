@@ -14,6 +14,7 @@ class Unpacker_Regsvr(Package):
     ]
     summary = """Executes DLL files using regsvr32.exe."""
     description = """Uses regsvr32.exe to run a .dll file.
+    Turns off procdump and injection.
     The .dll extension will be added automatically."""
     option_names = ("arguments",)
 
