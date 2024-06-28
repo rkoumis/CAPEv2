@@ -42,6 +42,15 @@ class Archive(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
+    summary = """Looks for executables inside an archive."""
+    description = """Uses 7z.exe to unpack the archive with the supplied password option.
+    If the 'file' option was given, expect file of that name to be in the archive,
+    and attempt to execute it. Else, attempt to execute all executables in the archive.
+    For each execution attempt, choose the appropriate method based on the file extension.
+    The options 'function' and 'dllloader' will be applied to .DLL execution attempts.
+    The option 'arguments' can be applied to a .DLL or a PE executable.
+    """
+    option_names = ("file", "password", "function", "arguments", "dllloader")
 
     def start(self, path):
         # 7za and 7r is limited so better install it inside of the vm

@@ -12,6 +12,11 @@ class Unpacker(Package):
     # PATHS = [
     #    ("SystemRoot", "system32"),
     # ]
+    summary = """Executes .exe files with the unpacker option."""
+    description = """Executes the sample with the unpacker option.
+    Turns off procdump and injection.
+    The .exe extension will be added automatically."""
+    option_names = ("arguments",)
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""

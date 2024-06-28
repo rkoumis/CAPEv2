@@ -21,6 +21,28 @@ class Dll(Package):
     PATHS = [
         ("SystemRoot", "System32", "rundll32.exe"),
     ]
+    summary = """Execute the supplied DLL with rundll32.exe."""
+    description = f"""Use rundll32.exe or alternatively, the loader specified in the 'dllloader' option.
+    Arguments may be supplied in the 'arguments' option.
+
+    Functions to execute may be specified by number, the default is '#1'.
+    Specify the 'enable_multi' option if multiple functions should be executed.
+    Function numbers should be separated by a colon, for example: '#1:#3:#5'.
+    A range of functions can be specified, for example: '#1..3' or '#2-4'
+
+    Functions to execute may be specified by name, if the 'use_export_name' option is True.
+    The default function name is 'DllMain'
+    Specify the 'enable_multi' option if multiple functions should be executed.
+    Function names should be separated by a colon, for example: 'func1:func2'.
+
+    When 'enable_multi' is used and function names are not specified, attempt to identify exported functions.
+    If no exported function names were available, default to 'DllMain' and 'DllRegisterServer'.
+
+    The maximum number of functions to be executed is {MAX_DLL_EXPORTS_DEFAULT}; use the option
+    'max_dll_exports' to set a lower limit.
+
+    The .dll extension will be added to the sample name automatically."""
+    option_names = ("arguments", "dllloader", "function", "enable_multi", "use_export_name", "max_dll_exports")
 
     def start(self, path):
         rundll32 = self.get_path("rundll32.exe")

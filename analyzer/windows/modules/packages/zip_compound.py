@@ -34,6 +34,24 @@ class ZipCompound(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
+    summary = "Unpacks a .zip archive with the given password and execute the contents appropriately."
+    description = """Extract the contents of a .zip file.
+    *NB*: Either ``file`` option must be set, or a ``__configuration.json`` file must be present in the zip file.
+    Sample json file:
+
+        {
+            "path_to_extract": {
+                "a.exe": "%USERPROFILE%\\Desktop\\a\\b\\c",
+                "folder_b": "%appdata%"
+            },
+            "target_file":"a.exe"
+        }
+
+    If the 'curdir' option is specified, use that as the current directory.
+    Else, if the 'appdata' option is specified, run the executable from the APPDATA directory.
+    If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
+    """
+    option_names = ("curdir", "file", "password", "function", "arguments", "dllloader")
 
     def process_unzipped_contents(self, unzipped_directory: str, json_filename: str) -> Tuple[str, str]:
         """Checks JSON to move the various files to."""
