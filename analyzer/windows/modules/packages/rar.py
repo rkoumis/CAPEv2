@@ -40,6 +40,13 @@ class Rar(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
+    summary = "Unpacks a .rar archive with the given password and execute the contents appropriately."
+    description = """Extract the contents of a .rar file. If the file name is not
+    supplied in the 'file" option, examine the archive for files that look executable.
+    If none can be found, the first file in the archive is taken.
+    If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
+    """
+    option_names = ("file", "password", "function", "arguments", "dllloader")
 
     def extract_rar(self, rar_path, extract_path, password):
         """Extracts a nested RAR file.

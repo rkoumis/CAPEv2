@@ -12,6 +12,11 @@ class Regsvr(Package):
     PATHS = [
         ("SystemRoot", "system32", "regsvr32.exe"),
     ]
+    summary = "Open the file with regsvr32.exe"
+    description = """Use 'regsvr32.exe to open a .dll file.
+    If the 'arguments' option is set, the contents will be used as arguments to regsvr32.exe.
+    The .dll extension will be added automatically."""
+    option_names = ("arguments",)
 
     def start(self, path):
         regsvr32 = self.get_path("regsvr32.exe")

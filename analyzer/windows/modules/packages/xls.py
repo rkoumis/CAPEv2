@@ -23,6 +23,9 @@ class XLS(Package):
         ("ProgramFiles", "Microsoft Office", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
     ]
+    summary = "Use EXCEL.EXE to open the supplied document."
+    description = """Use 'EXCEL.EXE <path> /dde' to open the file.
+    The .xls extension will be added automatically."""
 
     def start(self, path):
         if not path.endswith((".xls", ".xlsx")):

@@ -18,6 +18,12 @@ class PS1(Package):
         ("SystemRoot", "sysnative", "WindowsPowerShell", "v*.0", "powershell.exe"),
         ("SystemRoot", "system32", "WindowsPowerShell", "v*.0", "powershell.exe"),
     ]
+    summary = "Executes sample files with powershell."
+    description = """Uses powershell -NoProfile -ExecutionPolicy bypass -File <sample>
+    to run a .ps1 file.
+    If the 'pwsh' option is set, Powershell Core (PS v7) will be preferred.
+    The .ps1 extension will be added automatically."""
+    option_names = ("pwsh",)
 
     def get_paths(self):
         """Return list of paths to search for the PowerShell executable.
