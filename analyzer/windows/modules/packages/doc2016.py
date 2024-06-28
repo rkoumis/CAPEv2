@@ -21,6 +21,9 @@ class DOC2016(Package):
     PATHS = [
         ("ProgramFiles", "Microsoft Office*", "root", "Office16", "WINWORD.EXE"),
     ]
+    summary = "Use WINWORD.EXE to open the supplied document."
+    description = """Use 'Office16\\WINWORD.EXE /q /dde /n' to open the sample.
+    The .doc extension will be added automatically."""
 
     def start(self, path):
         word = self.get_path_glob("WINWORD.EXE")

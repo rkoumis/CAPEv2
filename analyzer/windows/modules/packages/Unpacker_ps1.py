@@ -12,9 +12,10 @@ class PS1(Package):
     PATHS = [
         ("SystemRoot", "system32", "WindowsPowerShell", "v*.0", "powershell.exe"),
     ]
-    summary = """Executes sample files with powershell."""
+    summary = "Executes sample files with powershell."
     description = """Uses powershell -NoProfile -ExecutionPolicy bypass -File <sample>
     to run a .ps1 file.
+    Turns off procdump and injection.
     The .ps1 extension will be added automatically."""
 
     def __init__(self, options=None, config=None):
