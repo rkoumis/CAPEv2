@@ -10,8 +10,8 @@ class Python(Package):
     """Python analysis package."""
 
     PATHS = [("HomeDrive", "Python*", "python.exe"), ("SystemRoot", "py.exe")]
-    summary = "Executes sample file with python."
-    description = """Uses python.exe or py.exe to run a python script.
+    summary = "Execute sample file with python."
+    description = """Use python.exe or py.exe to run a python script.
     If the 'arguments' option is set, the contents will be used as arguments to the python script."""
     option_names = ("arguments",)
 

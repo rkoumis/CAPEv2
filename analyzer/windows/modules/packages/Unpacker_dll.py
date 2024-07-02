@@ -17,8 +17,8 @@ class Unpacker_dll(Package):
     ]
     summary = """Executes .dll files using rundll32.exe."""
     description = """Uses rundll32.exe with the "/wait" option to run a .lnk file.
-    Turns off injection.
-    The .dll extension will be added automatically."""
+    Turns off the 'injection' option.
+    The .dll filename extension will be added automatically."""
     option_names = ("function", "arguments", "dllloader")
 
     def __init__(self, options=None, config=None):

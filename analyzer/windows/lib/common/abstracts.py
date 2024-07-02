@@ -22,6 +22,19 @@ log = logging.getLogger(__name__)
 
 PE_INDICATORS = [b"MZ", b"This program cannot be run in DOS mode"]
 
+_OPT_FREE = "free"
+_OPT_KERNEL_ANALYSIS = "kernel_analysis"
+_OPT_FUNCTION = "function"
+_OPT_DLLLOADER = "dllloader"
+_OPT_ARGUMENTS = "arguments"
+COMMON_OPTIONS = (_OPT_FREE, _OPT_KERNEL_ANALYSIS)
+DLL_OPTIONS = (_OPT_DLLLOADER, _OPT_FUNCTION, _OPT_ARGUMENTS)
+
+COMMON_OPTION_TEXT = """
+Use the 'kernel_analysis' option to enable kernel analysis.
+Use the 'free' option to enable the sample to execute freely (not suspended).
+"""
+
 
 class Package:
     """Base abstract analysis package."""
@@ -30,7 +43,7 @@ class Package:
     default_curdir = None
     summary: str = None
     description: str = None
-    option_names = []  # option_names: List[str]
+    option_names = sorted(COMMON_OPTIONS)
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -163,10 +176,10 @@ class Package:
         @param interest: file of interest, passed to the cuckoomon config
         @return: process pid
         """
-        free = self.options.get("free", False)
+        free = self.options.get(_OPT_FREE, False)
         suspended = not free
 
-        kernel_analysis = bool(self.options.get("kernel_analysis", False))
+        kernel_analysis = bool(self.options.get(_OPT_KERNEL_ANALYSIS, False))
 
         p = Process(options=self.options, config=self.config)
         if not p.execute(path=path, args=args, suspended=suspended, kernel_analysis=kernel_analysis):
@@ -255,9 +268,9 @@ class Package:
                 rundll32 = self.get_path("regsvr32.exe")
             else:
                 rundll32 = self.get_path_app_in_path("rundll32.exe")
-                function = self.options.get("function", "#1")
-            arguments = self.options.get("arguments")
-            dllloader = self.options.get("dllloader")
+                function = self.options.get(_OPT_FUNCTION, "#1")
+            arguments = self.options.get(_OPT_ARGUMENTS)
+            dllloader = self.options.get(_OPT_DLLLOADER)
             dll_args = f'"{file_path}",{function}'
             if arguments:
                 dll_args += f" {arguments}"
@@ -291,7 +304,7 @@ class Package:
         # File extensions that are portable executables
         elif is_pe_image(file_path):
             file_path = check_file_extension(file_path, ".exe")
-            return self.execute(file_path, self.options.get("arguments"), file_path)
+            return self.execute(file_path, self.options.get(_OPT_ARGUMENTS), file_path)
         # Last ditch effort to attempt to execute this file
         else:
             # From zip_compound package

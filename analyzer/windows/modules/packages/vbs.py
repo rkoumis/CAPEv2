@@ -16,9 +16,9 @@ class VBS(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
-    summary = "Executes .vbs (or .vbe) files using wscript.exe."
-    description = """Uses wscript.exe to run a .vb/.vbe file.
-    The appropriate extension will be added automatically."""
+    summary = "Execute .vbs (or .vbe) files using wscript.exe."
+    description = """Use wscript.exe to run a .vb/.vbe file.
+    The appropriate filename extension will be added automatically."""
 
     def start(self, path):
         wscript = self.get_path("wscript.exe")

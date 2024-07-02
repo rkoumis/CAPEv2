@@ -25,9 +25,9 @@ class DOC(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "WINWORD.EXE"),
         ("ProgramFiles", "Microsoft Office", "WORDVIEW.EXE"),
     ]
-    summary = "Use WINWORD.EXE to open the supplied document."
+    summary = "Open a document file with WINWORD.EXE."
     description = """Use 'WINWORD.EXE /q', or if unavailable, 'WORDVIEW.EXE /q'.
-    The .doc extension will be added automatically."""
+    The .doc filename extension will be added automatically."""
 
     def start(self, path):
         # Try getting winword or wordview as a backup

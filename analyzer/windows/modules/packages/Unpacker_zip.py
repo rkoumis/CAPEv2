@@ -28,7 +28,7 @@ class Unpacker_zip(Package):
     description = """Extract the sample from a zip file. If the file name is not
     supplied in the 'file" option, the first file in the zip is taken.
     Turns off procdump and injection.
-    The appropriate extension will be added automatically."""
+    The appropriate filename extension will be added automatically."""
     option_names = ("file", "password", "function", "arguments", "dllloader")
 
     def __init__(self, options=None, config=None):

@@ -2,7 +2,7 @@
 # This file is part of Cuckoo Sandbox - http://www.cuckoosandbox.org
 # See the file 'docs/LICENSE' for copying permission.
 
-from lib.common.abstracts import Package
+from lib.common.abstracts import COMMON_OPTIONS, Package
 
 
 class Jar(Package):
@@ -11,11 +11,11 @@ class Jar(Package):
     PATHS = [
         ("ProgramFiles", "Java", "jre*", "bin", "java.exe"),
     ]
-    summary = "Executes a java class using java.exe."
-    description = """Uses 'java.exe -jar [path] to run the given sample.
-    However, if the 'class' option is specified, uses
+    summary = "Execute a java class using java.exe."
+    description = """Use 'java.exe -jar [path] to run the given sample.
+    However, if the 'class' option is specified, use
     'java.exe -cp [path] [class]' to run the named java class."""
-    option_names = ("class",)
+    option_names = sorted(set(COMMON_OPTIONS + ("class",)))
 
     def start(self, path):
         java = self.get_path_glob("Java")

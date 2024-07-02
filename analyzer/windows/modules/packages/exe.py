@@ -14,10 +14,10 @@ class Exe(Package):
     """EXE analysis package."""
 
     summary = """Run the supplied executable."""
-    description = """Execute the given sample.
-    If the 'appdata' option is specified, run the executable from the APPDATA directory.
-    IF the 'runasx86' option is specified, first use 'CorFlags.exe /32bit+' to set the
-    32BITREQUIRED flag in the PE header.
+    description = """Execute the given sample, passing 'arguments' if specified.
+    Use the 'appdata' option to run the executable from the APPDATA directory.
+    Use the 'runasx86' option to set the 32BITREQUIRED flag in the PE header,
+    using 'CorFlags.exe /32bit+'.
     The .exe extension will be added automatically."""
     option_names = ("arguments", "appdata", "runasx86")
 

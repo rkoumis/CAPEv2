@@ -13,12 +13,11 @@ class JS(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
-    summary = "Executes .JS files using wscript.exe."
-    description = """Uses wscript.exe to run a .js/.jse file.
+    summary = "Execute .JS files using wscript.exe."
+    description = """Use wscript.exe to run a .js/.jse file.
     In the case of '.jse' files, first start up 20 calc.exe windows, to thwart
     some antivm measures.
-    Also (only for .jse files) if the 'free' option is given, set
-    The appropriate extension will be added automatically."""
+    The appropriate file extension will be added automatically."""
 
     def start(self, path):
         wscript = self.get_path("wscript.exe")

@@ -21,8 +21,8 @@ class Msix(Package):
         ("SystemRoot", "sysnative", "WindowsPowerShell", "v*.0", "powershell.exe"),
         ("SystemRoot", "system32", "WindowsPowerShell", "v*.0", "powershell.exe"),
     ]
-    summary = "Executes sample .msix files with powershell."
-    description = """Uses the bundled msix.ps1 powershell script to run a .msix file.
+    summary = "Execute sample .msix files with powershell."
+    description = """Use the bundled msix.ps1 powershell script to run a .msix file.
     Default behavior is to run 'powershell.exe -NoProfile -ExecutionPolicy bypass data\\msix.ps1 <sample>
     However, if the .msix package contains a file config.json, that config file will be
     examined for applications/startScript/scriptPath.  If any are found, the first will be used

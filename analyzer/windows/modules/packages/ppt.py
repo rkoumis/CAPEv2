@@ -22,8 +22,8 @@ class PPT(Package):
         ("ProgramFiles", "Microsoft Office", "Office*", "POWERPNT.EXE"),
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "POWERPNT.EXE"),
     ]
-    summary = "Opens sample file with Powerpoint."
-    description = f"""Uses 'POWERPNT.EXE /s <sample>' to open a powerpoint presentation file.
+    summary = "Open sample file with Powerpoint."
+    description = f"""Use 'POWERPNT.EXE /s <sample>' to open a powerpoint presentation file.
     Use MS Office Trusted Path location {default_curdir} unless the user has provided a
     'curdir' option.
     """

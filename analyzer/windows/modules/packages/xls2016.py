@@ -21,7 +21,7 @@ class XLS2207(Package):
     ]
     summary = "Use Office16\\EXCEL.EXE to open the supplied document."
     description = """Use 'EXCEL.EXE <path> /dde' to open the file.
-    The .xls extension will be added automatically."""
+    The .xls filename extension will be added automatically."""
 
     def start(self, path):
         path = check_file_extension(path, ".xls")

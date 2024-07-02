@@ -20,8 +20,8 @@ class PPT2007(Package):
     PATHS = [
         ("ProgramFiles", "Microsoft Office*", "root", "Office16", "POWERPNT.EXE"),
     ]
-    summary = "Opens sample file with Powerpoint."
-    description = f"""Uses 'Office16\\POWERPNT.EXE /s <sample>' to open a powerpoint presentation file.
+    summary = "Open sample file with Powerpoint."
+    description = f"""Use 'Office16\\POWERPNT.EXE /s <sample>' to open a powerpoint presentation file.
     Use MS Office Trusted Path location {default_curdir} unless the user has provided a
     'curdir' option.
     """

@@ -27,13 +27,14 @@ class ONE(Package):
         ("ProgramFiles", "Microsoft Office", "Office*", "ONENOTE.EXE"),
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "ONENOTE.EXE"),
     ]
-    summary = "Executes sample files with ONENOTE.EXE."
-    description = """Uses 'ONENOTE.EXE /nologo /navigate <sample>'
+    summary = "Execute sample files with ONENOTE.EXE."
+    description = """Use 'ONENOTE.EXE /nologo /navigate <sample>'
     to run a onenote .one file.
-    Turns off yarascan. Sets the 'office' and 'no-iat' options.
-    Before execution, modifies the registry entries LowRiskFileTypes and DefaultFileTypeRisk,
+    The option 'yarascan' is disabled.
+    The 'office' and 'no-iat' options are enabled.
+    Before execution, modify the registry entries LowRiskFileTypes and DefaultFileTypeRisk,
     to encourage detonation.
-    The .one extension will be added automatically."""
+    The .one filename extension will be added automatically."""
 
     def start(self, path):
         onenote = self.get_path_glob("ONENOTE.EXE")
