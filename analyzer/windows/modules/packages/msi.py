@@ -11,7 +11,7 @@ class Msi(Package):
     PATHS = [
         ("SystemRoot", "system32", "msiexec.exe"),
     ]
-    summary = "Execute sample with msiexe.exe."
+    summary = "Execute a sample with msiexec.exe."
     description = """Run 'msiexec.exe /I <sample> /qb ACCEPTEULA=1 LicenseAccepted=1'
     to run the sample."""
 

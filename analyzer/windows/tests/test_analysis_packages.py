@@ -36,7 +36,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker")
         obj = pkg_class()
-        expected_summary = """Execute .exe file with the unpacker option."""
+        expected_summary = """Execute a .exe file with the unpacker option."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_dll(self):
@@ -49,7 +49,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker_js(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_js")
         obj = pkg_class()
-        expected_summary = """Execute .JS files using wscript.exe."""
+        expected_summary = """Execute a .JS file using wscript.exe."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_ps1(self):
@@ -203,13 +203,13 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_msi(self):
         pkg_class = self.class_from_analysis_package("modules.packages.msi")
         obj = pkg_class()
-        expected_summary = "Execute sample with msiexec.exe."
+        expected_summary = "Execute a sample with msiexec.exe."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_msix(self):
         pkg_class = self.class_from_analysis_package("modules.packages.msix")
         obj = pkg_class()
-        expected_summary = "Execute sample .msix file with powershell."
+        expected_summary = "Execute a sample .msix file with powershell."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_nsis(self):
@@ -223,7 +223,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_one(self):
         pkg_class = self.class_from_analysis_package("modules.packages.one")
         obj = pkg_class()
-        expected_summary = "Execute sample file with ONENOTE.EXE."
+        expected_summary = "Open a sample file with ONENOTE.EXE."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_pdf(self):
@@ -244,7 +244,7 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_ps1(self):
         pkg_class = self.class_from_analysis_package("modules.packages.ps1")
-        expected_summary = "Execute sample file with powershell."
+        expected_summary = "Execute a sample file with powershell."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
         self.assertEqual("pwsh", obj.option_names[0])
