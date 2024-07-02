@@ -39,7 +39,7 @@ class Zip(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
-    summary = "Unpacks a .zip archive with the given password and execute the contents appropriately."
+    summary = "Unpack a .zip archive with the given password and execute the contents appropriately."
     description = """Extract the contents of a .zip file. If the file name is not
     supplied in the 'file" option, examine the archive for files that look executable.
     If none can be found, the first file in the archive is taken.

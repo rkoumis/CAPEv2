@@ -13,7 +13,7 @@ class Unpacker_JS(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
-    summary = "Execute .JS files using wscript.exe."
+    summary = "Execute a .JS file using wscript.exe."
     description = """Use wscript.exe to run a .js/.jse file.
     Turn off procdump and injection.
     The appropriate filename extension will be added automatically."""

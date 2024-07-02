@@ -34,7 +34,7 @@ class ZipCompound(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
-    summary = "Unpacks a .zip archive with the given password and execute the contents appropriately."
+    summary = "Unpack a .zip archive with the given password and execute the contents appropriately."
     description = """Extract the contents of a .zip file.
     *NB*: Either ``file`` option must be set, or a ``__configuration.json`` file must be present in the zip file.
     Sample json file:

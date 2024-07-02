@@ -12,7 +12,7 @@ class Unpacker(Package):
     # PATHS = [
     #    ("SystemRoot", "system32"),
     # ]
-    summary = """Execute .exe files with the unpacker option."""
+    summary = """Execute a .exe file with the unpacker option."""
     description = """Execute the sample passing 'arguments' if any, using the 'unpacker' option.
     Turn off the 'procdump' and 'injection' options.
     The .exe filename extension will be added automatically."""

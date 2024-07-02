@@ -36,7 +36,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker")
         obj = pkg_class()
-        expected_summary = """Execute .exe files with the unpacker option."""
+        expected_summary = """Execute .exe file with the unpacker option."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_dll(self):
@@ -55,7 +55,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker_ps1(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_ps1")
         obj = pkg_class()
-        expected_summary = """Execute sample files with powershell."""
+        expected_summary = """Execute sample file with powershell."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_regsvr(self):
@@ -209,7 +209,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_msix(self):
         pkg_class = self.class_from_analysis_package("modules.packages.msix")
         obj = pkg_class()
-        expected_summary = "Execute sample .msix files with powershell."
+        expected_summary = "Execute sample .msix file with powershell."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_nsis(self):

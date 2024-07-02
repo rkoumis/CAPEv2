@@ -27,9 +27,9 @@ class ONE(Package):
         ("ProgramFiles", "Microsoft Office", "Office*", "ONENOTE.EXE"),
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "ONENOTE.EXE"),
     ]
-    summary = "Execute sample files with ONENOTE.EXE."
+    summary = "Open a sample file with ONENOTE.EXE."
     description = """Use 'ONENOTE.EXE /nologo /navigate <sample>'
-    to run a onenote .one file.
+    to open a onenote .one file.
     The option 'yarascan' is disabled.
     The 'office' and 'no-iat' options are enabled.
     Before execution, modify the registry entries LowRiskFileTypes and DefaultFileTypeRisk,

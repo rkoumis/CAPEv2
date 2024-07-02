@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 class Shellcode_Unpacker(Package):
     """32-bit Shellcode Unpacker package."""
 
-    summary = "Execute 32-bit Shellcode using loader.exe with the unpacker option"
+    summary = "Execute 32-bit Shellcode using loader.exe with the unpacker option."
     description = """Use 'bin\\loader.exe shellcode [offset] <sample>' with the option 'unpacker=1'"
     to execute 32-bit Shellcode.
     Turns off the 'procdump' and 'dump-caller-regions' options."""

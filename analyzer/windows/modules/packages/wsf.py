@@ -13,7 +13,7 @@ class WSF(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
-    summary = "Execute .wsf files using wscript.exe."
+    summary = "Execute a .wsf file using wscript.exe."
     description = """Use wscript.exe to run a .wsf file.
     The .wsf filename extension will be added automatically."""
 

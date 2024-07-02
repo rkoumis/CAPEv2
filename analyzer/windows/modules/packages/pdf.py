@@ -13,7 +13,7 @@ class PDF(Package):
         ("ProgramFiles", "Adobe", "*a*", "Reader", "AcroRd32.exe"),
         ("ProgramFiles", "Adobe", "Acrobat DC", "Acrobat", "Acrobat.exe"),
     ]
-    summary = "Open .pdf file with Adobe Reader / Acrobat"
+    summary = "Open .pdf file with Adobe Reader / Acrobat."
     description = """Use AcroRd32.exe or Acrobat.exe to open a PDF file.
     The 'pdf' option is set automatically."""
 

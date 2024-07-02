@@ -16,7 +16,7 @@ class VBS(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
-    summary = "Execute .vbs (or .vbe) files using wscript.exe."
+    summary = "Execute a .vbs (or .vbe) file using wscript.exe."
     description = """Use wscript.exe to run a .vb/.vbe file.
     The appropriate filename extension will be added automatically."""
 

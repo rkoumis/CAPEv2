@@ -18,7 +18,7 @@ class PS1(Package):
         ("SystemRoot", "sysnative", "WindowsPowerShell", "v*.0", "powershell.exe"),
         ("SystemRoot", "system32", "WindowsPowerShell", "v*.0", "powershell.exe"),
     ]
-    summary = "Execute sample files with powershell."
+    summary = "Execute a sample file with powershell."
     description = """Uses powershell -NoProfile -ExecutionPolicy bypass -File <sample>
     to run a .ps1 file.
     If the 'pwsh' option is set, Powershell Core (PS v7) will be preferred.

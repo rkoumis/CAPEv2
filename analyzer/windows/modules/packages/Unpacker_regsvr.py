@@ -12,8 +12,8 @@ class Unpacker_Regsvr(Package):
     PATHS = [
         ("SystemRoot", "system32", "regsvr32.exe"),
     ]
-    summary = """Execute DLL files using regsvr32.exe."""
-    description = """Use regsvr32.exe to run a .dll file.
+    summary = """Execute function(s) in a DLL file using regsvr32.exe."""
+    description = """Use regsvr32.exe to run one or more functions in a .dll file.
     Turn off procdump and injection.
     The .dll filename extension will be added automatically."""
     option_names = ("arguments",)

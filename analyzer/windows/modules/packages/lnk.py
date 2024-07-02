@@ -12,7 +12,7 @@ class LNK(Package):
     PATHS = [
         ("SystemRoot", "system32", "cmd.exe"),
     ]
-    summary = """Execute .lnk files using cmd.exe."""
+    summary = """Execute a .lnk file using cmd.exe."""
     description = """Use cmd.exe with the "/wait" option to run a .lnk file.
     The .lnk extension will be added automatically."""
 

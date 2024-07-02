@@ -12,8 +12,8 @@ class PS1(Package):
     PATHS = [
         ("SystemRoot", "system32", "WindowsPowerShell", "v*.0", "powershell.exe"),
     ]
-    summary = "Execute sample files with powershell."
-    description = """Use powershell -NoProfile -ExecutionPolicy bypass -File <sample>
+    summary = "Execute a sample file with powershell."
+    description = """Use 'powershell -NoProfile -ExecutionPolicy bypass -File <sample>'
     to run a .ps1 file.
     Turns off procdump and injection.
     The .ps1 filename extension will be added automatically."""
