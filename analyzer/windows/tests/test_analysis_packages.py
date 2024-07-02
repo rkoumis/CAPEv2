@@ -55,7 +55,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker_ps1(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_ps1")
         obj = pkg_class()
-        expected_summary = """Execute sample file with powershell."""
+        expected_summary = """Execute a sample file with powershell."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_regsvr(self):
@@ -76,7 +76,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_class = self.class_from_analysis_package("modules.packages.applet")
         obj = pkg_class()
         self.assertEqual("class", obj.option_names[0])
-        summary = """Use firefox (or iexplore) to open a java applet."""
+        summary = """Open a java applet with firefox (or iexplore) to open a java applet."""
         self.assertEqual(summary, obj.summary)
 
     def test_archive(self):
@@ -269,7 +269,7 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_rar(self):
         pkg_class = self.class_from_analysis_package("modules.packages.rar")
-        expected_summary = "Unpack a .rar archive and execute the contents appropriately."
+        expected_summary = "Unpack a .rar archive with the given password and execute the contents appropriately."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
