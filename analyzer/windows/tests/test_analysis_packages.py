@@ -26,7 +26,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_class = self.class_from_analysis_package("modules.packages.Shellcode")
         obj = pkg_class()
         self.assertEqual("offset", obj.option_names[0])
-        expected_summary = "Executes 32-bit Shellcode using loader.exe."
+        expected_summary = "Execute 32-bit Shellcode using loader.exe."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Shellcode_x64(self):
@@ -36,7 +36,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker")
         obj = pkg_class()
-        expected_summary = """Executes .exe files with the unpacker option."""
+        expected_summary = """Execute .exe files with the unpacker option."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_dll(self):
@@ -49,13 +49,13 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker_js(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_js")
         obj = pkg_class()
-        expected_summary = """Executes .JS files using wscript.exe."""
+        expected_summary = """Execute .JS files using wscript.exe."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_ps1(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_ps1")
         obj = pkg_class()
-        expected_summary = """Executes sample files with powershell."""
+        expected_summary = """Execute sample files with powershell."""
         self.assertEqual(expected_summary, obj.summary)
 
     def test_Unpacker_regsvr(self):
@@ -76,7 +76,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_class = self.class_from_analysis_package("modules.packages.applet")
         obj = pkg_class()
         self.assertEqual("class", obj.option_names[0])
-        summary = """Uses firefox (or iexplore) to open a java applet."""
+        summary = """Use firefox (or iexplore) to open a java applet."""
         self.assertEqual(summary, obj.summary)
 
     def test_archive(self):
@@ -144,7 +144,7 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_hta(self):
         pkg_class = self.class_from_analysis_package("modules.packages.hta")
-        expected_summary = "Executes the sample with mshta.exe."
+        expected_summary = "Execute the sample with mshta.exe."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
@@ -170,7 +170,7 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_jar(self):
         pkg_class = self.class_from_analysis_package("modules.packages.jar")
-        expected_summary = "Executes a java class using java.exe."
+        expected_summary = "Execute a java class using java.exe."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
         self.assertEqual("class", obj.option_names[0])
@@ -186,7 +186,7 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_lnk(self):
         pkg_class = self.class_from_analysis_package("modules.packages.lnk")
         obj = pkg_class()
-        self.assertEqual("Executes .lnk files using cmd.exe.", obj.summary)
+        self.assertEqual("Execute a .lnk file using cmd.exe.", obj.summary)
 
     def test_mht(self):
         pkg_class = self.class_from_analysis_package("modules.packages.mht")
@@ -203,13 +203,13 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_msi(self):
         pkg_class = self.class_from_analysis_package("modules.packages.msi")
         obj = pkg_class()
-        expected_summary = "Executes sample with msiexec.exe."
+        expected_summary = "Execute sample with msiexec.exe."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_msix(self):
         pkg_class = self.class_from_analysis_package("modules.packages.msix")
         obj = pkg_class()
-        expected_summary = "Executes sample .msix files with powershell."
+        expected_summary = "Execute sample .msix files with powershell."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_nsis(self):
@@ -223,19 +223,19 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_one(self):
         pkg_class = self.class_from_analysis_package("modules.packages.one")
         obj = pkg_class()
-        expected_summary = "Executes sample files with ONENOTE.EXE."
+        expected_summary = "Execute sample file with ONENOTE.EXE."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_pdf(self):
         pkg_class = self.class_from_analysis_package("modules.packages.pdf")
         obj = pkg_class()
-        expected_summary = "Opens .pdf file with Adobe Reader / Acrobat."
+        expected_summary = "Open .pdf file with Adobe Reader / Acrobat."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_ppt(self):
         pkg_class = self.class_from_analysis_package("modules.packages.ppt")
         obj = pkg_class()
-        expected_summary = "Opens sample file with Powerpoint."
+        expected_summary = "Open sample file with Powerpoint."
         self.assertEqual(expected_summary, obj.summary)
 
     def test_ppt2016(self):
@@ -244,32 +244,32 @@ class TestAnalysisPackages(unittest.TestCase):
 
     def test_ps1(self):
         pkg_class = self.class_from_analysis_package("modules.packages.ps1")
-        expected_summary = "Executes sample files with powershell."
+        expected_summary = "Execute sample file with powershell."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
         self.assertEqual("pwsh", obj.option_names[0])
 
     def test_pub(self):
         pkg_class = self.class_from_analysis_package("modules.packages.pub")
-        expected_summary = "Opens a .pub file with MS Publisher."
+        expected_summary = "Open a .pub file with MS Publisher."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
     def test_pub2016(self):
         pkg_class = self.class_from_analysis_package("modules.packages.pub2016")
-        expected_summary = "Opens a .pub file with MS Publisher."
+        expected_summary = "Open a .pub file with MS Publisher."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
     def test_python(self):
         pkg_class = self.class_from_analysis_package("modules.packages.python")
-        expected_summary = "Executes sample file with python."
+        expected_summary = "Execute sample file with python."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
     def test_rar(self):
         pkg_class = self.class_from_analysis_package("modules.packages.rar")
-        expected_summary = "Unpacks a .rar archive and executes the contents appropriately."
+        expected_summary = "Unpack a .rar archive and execute the contents appropriately."
         obj = pkg_class()
         self.assertEqual(expected_summary, obj.summary)
 
