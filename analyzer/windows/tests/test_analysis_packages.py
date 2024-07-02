@@ -76,7 +76,7 @@ class TestAnalysisPackages(unittest.TestCase):
         pkg_class = self.class_from_analysis_package("modules.packages.applet")
         obj = pkg_class()
         self.assertEqual("class", obj.option_names[0])
-        summary = """Open a java applet with firefox (or iexplore) to open a java applet."""
+        summary = """Open a java applet using firefox (or iexplore)."""
         self.assertEqual(summary, obj.summary)
 
     def test_archive(self):
