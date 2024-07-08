@@ -6,7 +6,7 @@ import os
 import shutil
 
 from lib.common.abstracts import Package
-from lib.common.constants import OPT_PROCDUMP
+from lib.common.constants import OPT_OFFSET, OPT_PROCDUMP
 
 
 class Shellcode_x64(Package):
@@ -14,8 +14,9 @@ class Shellcode_x64(Package):
 
     summary = "Execute 64-bit Shellcode using loader_x64.exe."
     description = f"""Use bin\\loader_x64.exe shellcode [offset] <sample> to execute 64-bit Shellcode."
+    Use the '{OPT_OFFSET}' option to set the offset.
     Turn off the '{OPT_PROCDUMP}' option."""
-    option_names = ("offset",)
+    option_names = (OPT_OFFSET,)
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -26,7 +27,7 @@ class Shellcode_x64(Package):
         self.options[OPT_PROCDUMP] = "0"
 
     def start(self, path):
-        offset = self.options.get("offset")
+        offset = self.options.get(OPT_OFFSET)
         loaderpath = "bin\\loader_x64.exe"
         args = f"shellcode {path}"
         if offset:

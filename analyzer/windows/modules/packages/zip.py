@@ -49,7 +49,7 @@ class Zip(Package):
     If the 'appdata' option is specified, run the executable from the APPDATA directory.
     If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
     """
-    option_names = sorted(set(ARCHIVE_OPTIONS + DLL_OPTIONS + [OPT_APPDATA, OPT_ARGUMENTS, OPT_MULTI_PASSWORD]))
+    option_names = sorted(set(ARCHIVE_OPTIONS + DLL_OPTIONS + (OPT_APPDATA, OPT_ARGUMENTS, OPT_MULTI_PASSWORD)))
 
     def start(self, path):
         password = self.options.get(OPT_PASSWORD, "infected")

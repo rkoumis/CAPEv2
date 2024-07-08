@@ -16,9 +16,10 @@ from winreg import (
 from lib.api.process import Process
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension, disable_wow64_redirection
+from lib.common.constants import OPT_ARGUMENTS, OPT_SERVICEDESC, OPT_SERVICENAME
 from lib.common.defines import ADVAPI32, KERNEL32
 
-from .service import OPT_ARGUMENTS, OPT_SERVICEDESC, OPT_SERVICENAME, SERVICE_OPTIONS
+from .service import SERVICE_OPTIONS
 
 SC_MANAGER_CONNECT = 0x0001
 SC_MANAGER_CREATE_SERVICE = 0x0002

@@ -13,7 +13,18 @@ except ImportError:
     import re
 
 from lib.common.abstracts import Package
-from lib.common.constants import OPT_ARGUMENTS, OPT_INJECTION, OPT_PROCDUMP, OPT_UNPACKER
+from lib.common.constants import (
+    ARCHIVE_OPTIONS,
+    DLL_OPTIONS,
+    OPT_ARGUMENTS,
+    OPT_DLLLOADER,
+    OPT_FILE,
+    OPT_FUNCTION,
+    OPT_INJECTION,
+    OPT_PASSWORD,
+    OPT_PROCDUMP,
+    OPT_UNPACKER,
+)
 from lib.common.exceptions import CuckooPackageError
 
 log = logging.getLogger(__name__)
@@ -26,11 +37,11 @@ class Unpacker_zip(Package):
         ("SystemRoot", "system32", "cmd.exe"),
     ]
     summary = "Unzip a file with the supplied password, execute its contents."
-    description = """Extract the sample from a zip file. If the file name is not
-    supplied in the 'file" option, the first file in the zip is taken.
-    Turns off procdump and injection.
-    The appropriate filename extension will be added automatically."""
-    option_names = ("file", "password", "function", OPT_ARGUMENTS, "dllloader")
+    description = f"""Extract the sample from a zip file. If the file name is not
+    supplied in the '{OPT_FILE}" option, the first file in the zip is taken.
+    Set options '{OPT_UNPACKER}=1', '{OPT_PROCDUMP}=0' and '{OPT_INJECTION}=0'.
+    The execution method is chosen based on the filename extension."""
+    option_names = sorted(set(ARCHIVE_OPTIONS + DLL_OPTIONS))
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -110,13 +121,13 @@ class Unpacker_zip(Package):
 
     def start(self, path):
         root = os.environ["TEMP"]
-        password = self.options.get("password")
+        password = self.options.get(OPT_PASSWORD)
         exe_regex = re.compile(r"(\.exe|\.scr|\.msi|\.bat|\.lnk|\.js|\.jse|\.vbs|\.vbe|\.wsf\.ps1)$", flags=re.IGNORECASE)
         dll_regex = re.compile(r"(\.dll|\.ocx)$", flags=re.IGNORECASE)
         zipinfos = self.get_infos(path)
         self.extract_zip(path, root, password, 0)
 
-        file_name = self.options.get("file")
+        file_name = self.options.get(OPT_FILE)
         # If no file name is provided via option, take the first file.
         if file_name is None:
             # No name provided try to find a better name.
@@ -152,9 +163,9 @@ class Unpacker_zip(Package):
             return self.execute(wscript, wscript_args, file_path)
         elif file_name.lower().endswith((".dll", ".ocx")):
             rundll32 = self.get_path_app_in_path("rundll32.exe")
-            function = self.options.get("function", "#1")
+            function = self.options.get(OPT_FUNCTION, "#1")
             arguments = self.options.get(OPT_ARGUMENTS)
-            dllloader = self.options.get("dllloader")
+            dllloader = self.options.get(OPT_DLLLOADER)
             dll_args = f'"{file_path}",{function}'
             if arguments:
                 dll_args += f" {arguments}"

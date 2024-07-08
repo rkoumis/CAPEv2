@@ -28,28 +28,27 @@ LOGSERVER_PREFIX = f"\\\\.\\PIPE\\{random_string(8, 12)}"
 
 # Options
 OPT_APPDATA = "appdata"
+OPT_ARGUMENTS = "arguments"
 OPT_CLASS = "class"
 OPT_CURDIR = "curdir"
+OPT_DLLLOADER = "dllloader"
 OPT_EXECUTIONDIR = "executiondir"
+OPT_FILE = "file"
 OPT_FREE = "free"
+OPT_FUNCTION = "function"
 OPT_KERNEL_ANALYSIS = "kernel_analysis"
 OPT_INJECTION = "injection"
+OPT_MULTI_PASSWORD = "enable_multi_password"
+OPT_OFFSET = "offset"
+OPT_PASSWORD = "password"
 OPT_PROCDUMP = "procdump"
 OPT_SERVICENAME = "servicename"
 OPT_SERVICEDESC = "servicedesc"
 OPT_RUNASX86 = "runasx86"
 OPT_UNPACKER = "unpacker"
 
-OPT_FUNCTION = "function"
-OPT_DLLLOADER = "dllloader"
-
-# The 'arguments' option applies to the dll, exe, or python packages
-OPT_ARGUMENTS = "arguments"
-
-OPT_FILE = "file"
-OPT_PASSWORD = "password"
-OPT_MULTI_PASSWORD = "enable_multi_password"
 ARCHIVE_OPTIONS = (OPT_FILE, OPT_PASSWORD)
+DLL_OPTIONS = (OPT_DLLLOADER, OPT_FUNCTION, OPT_ARGUMENTS)
 
 
 """ Excel, Word, and Powerpoint won't have macros enabled without interaction for

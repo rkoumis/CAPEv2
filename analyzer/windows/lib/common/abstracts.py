@@ -23,9 +23,6 @@ log = logging.getLogger(__name__)
 
 PE_INDICATORS = [b"MZ", b"This program cannot be run in DOS mode"]
 
-PASSWORD_OPTION_TEXT = """
-Use the 'password' option to set the password to use for zip or rar extraction"""
-
 
 class Package:
     """Base abstract analysis package."""
