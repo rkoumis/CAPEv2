@@ -5,6 +5,7 @@
 import os
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_FREE
 
 
 class JS(Package):
@@ -34,9 +35,9 @@ class JS(Package):
 
         if ext == ".jse":
             # antivm fix
-            free = self.options.get("free", False)
+            free = self.options.get(OPT_FREE, False)
             # to not track calcs
-            self.options["free"] = 1
+            self.options[OPT_FREE] = 1
             # fuck antivm
             for _ in range(20):
                 # calc
@@ -44,7 +45,7 @@ class JS(Package):
                 # cl = Process()
                 self.execute(calc, "", path)
             if not free:
-                self.options["free"] = 0
+                self.options[OPT_FREE] = 0
 
         args = f'"{path}"'
         return self.execute(wscript, args, path)

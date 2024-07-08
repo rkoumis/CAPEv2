@@ -4,6 +4,7 @@
 
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_ARGUMENTS
 
 
 class CHM(Package):
@@ -15,7 +16,7 @@ class CHM(Package):
     summary = "Open the compiled help file with hh.exe."
     description = """Use 'hh.exe <sample>' to open the sample.
     The .chm filename extension will be added automatically."""
-    option_names = ("arguments",)
+    option_names = (OPT_ARGUMENTS,)
 
     def start(self, path):
         hh = self.get_path_glob("hh.exe")

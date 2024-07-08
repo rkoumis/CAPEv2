@@ -7,6 +7,7 @@ import os
 import shutil
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_PROCDUMP, OPT_UNPACKER
 
 log = logging.getLogger(__name__)
 
@@ -15,9 +16,9 @@ class Shellcode_Unpacker(Package):
     """32-bit Shellcode Unpacker package."""
 
     summary = "Execute 32-bit Shellcode using loader.exe with the unpacker option."
-    description = """Use 'bin\\loader.exe shellcode [offset] <sample>' to execute 32-bit Shellcode.
-    Set the option 'unpacker=1'.
-    Turn off the 'procdump' and 'dump-caller-regions' options."""
+    description = f"""Use 'bin\\loader.exe shellcode [offset] <sample>' to execute 32-bit Shellcode.
+    Set the option '{OPT_UNPACKER}=1'.
+    Turn off the '{OPT_PROCDUMP}' and 'dump-caller-regions' options."""
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -25,8 +26,8 @@ class Shellcode_Unpacker(Package):
             options = {}
         self.config = config
         self.options = options
-        self.options["procdump"] = "0"
-        self.options["unpacker"] = "1"
+        self.options[OPT_PROCDUMP] = "0"
+        self.options[OPT_UNPACKER] = "1"
         self.options["dump-caller-regions"] = "0"
 
     def start(self, path):

@@ -8,6 +8,7 @@ import shutil
 from typing import Tuple
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_APPDATA, OPT_ARGUMENTS, OPT_CURDIR, OPT_FILE, OPT_PASSWORD
 from lib.common.exceptions import CuckooPackageError
 from lib.common.zip_utils import extract_zip
 from lib.core.compound import create_custom_folders, extract_json_data
@@ -51,7 +52,7 @@ class ZipCompound(Package):
     Else, if the 'appdata' option is specified, run the executable from the APPDATA directory.
     If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
     """
-    option_names = ("curdir", "file", "password", "function", "arguments", "dllloader")
+    option_names = (OPT_CURDIR, OPT_FILE, OPT_PASSWORD, OPT_APPDATA, OPT_ARGUMENTS, "function", "dllloader")
 
     def process_unzipped_contents(self, unzipped_directory: str, json_filename: str) -> Tuple[str, str]:
         """Checks JSON to move the various files to."""
@@ -61,11 +62,11 @@ class ZipCompound(Package):
         target_file = raw_json.get("target_file", "")
 
         # Enforce the requirement of having a specified file. No guessing.
-        target_file = target_file or self.options.get("file")
+        target_file = target_file or self.options.get(OPT_FILE)
         if not target_file:
             raise CuckooPackageError("File must be specified in the JSON or the web submission UI!")
 
-        # In case the "file" submittion option is relative, we split here
+        # In case the "file" submission option is relative, we split here
         target_srcdir, target_name = os.path.split(target_file)
 
         # Note for 32bit samples: Even if JSON configutation specifies "System32",
@@ -98,8 +99,8 @@ class ZipCompound(Package):
 
                 if target_file.lower() == f.lower():
                     fin_target_path = newpath
-                    self.options["curdir"] = dst_fld
-                    log.debug("New curdir value: %s", self.options["curdir"])
+                    self.options[OPT_CURDIR] = dst_fld
+                    log.debug("New curdir value: %s", self.options[OPT_CURDIR])
 
         # Only runs if a relative path is given for target file
         # Errors out if the file's containing folder is shifted
@@ -115,16 +116,16 @@ class ZipCompound(Package):
         log.info("Final target path: %s", fin_target_path)
         return target_name, fin_target_path
 
-    def prepare_zip_compound(self, path: str, json_filename: str) -> Tuple[str, str]:
+    def prepare_zip_compound(self, path: str, json_filename: str) -> Tuple[str, str, str]:
         """Pre-process the submitted zip file"""
-        password = self.options.get("password")
+        password = self.options.get(OPT_PASSWORD)
         if password is None:
             log.info("No archive password provided")
             password = b""
 
-        if "curdir" in self.options:
-            root = self.options["curdir"]
-        elif "appdata" in self.options:
+        if OPT_CURDIR in self.options:
+            root = self.options[OPT_CURDIR]
+        elif OPT_APPDATA in self.options:
             root = os.environ["APPDATA"]
         else:
             root = os.environ["TEMP"]

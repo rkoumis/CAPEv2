@@ -5,6 +5,7 @@
 import os
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_FREE
 
 
 class JS_ANTIVM(Package):
@@ -20,10 +21,10 @@ class JS_ANTIVM(Package):
 
     def start(self, path):
         # Determine if the submitter wants the sample to be monitored
-        free = self.options.get("free", False)
+        free = self.options.get(OPT_FREE, False)
 
         # We will be temporarily setting this option so that the background processes will not be monitored.
-        self.options["free"] = 1
+        self.options[OPT_FREE] = 1
 
         # Start 20 Calculator windows
         for _ in range(20):
@@ -32,7 +33,7 @@ class JS_ANTIVM(Package):
 
         # If the user did not request the monitor to be disabled, enable it
         if not free:
-            self.options["free"] = 0
+            self.options[OPT_FREE] = 0
 
         wscript = self.get_path("wscript.exe")
         ext = os.path.splitext(path)[-1].lower()

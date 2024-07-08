@@ -6,14 +6,15 @@ import os
 import shutil
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_PROCDUMP
 
 
 class Shellcode_x64(Package):
     """64-bit Shellcode analysis package."""
 
     summary = "Execute 64-bit Shellcode using loader_x64.exe."
-    description = """Use bin\\loader_x64.exe shellcode [offset] <sample> to execute 64-bit Shellcode."
-    Turn off the 'procdump' option."""
+    description = f"""Use bin\\loader_x64.exe shellcode [offset] <sample> to execute 64-bit Shellcode."
+    Turn off the '{OPT_PROCDUMP}' option."""
     option_names = ("offset",)
 
     def __init__(self, options=None, config=None):
@@ -22,7 +23,7 @@ class Shellcode_x64(Package):
             options = {}
         self.config = config
         self.options = options
-        self.options["procdump"] = "0"
+        self.options[OPT_PROCDUMP] = "0"
 
     def start(self, path):
         offset = self.options.get("offset")

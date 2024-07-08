@@ -9,6 +9,7 @@ import sys
 from lib.api.process import Process
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_ARGUMENTS, OPT_SERVICEDESC, OPT_SERVICENAME
 from lib.common.defines import ADVAPI32, KERNEL32
 
 INJECT_CREATEREMOTETHREAD = 0
@@ -53,9 +54,6 @@ SERVICE_DEMAND_START = 0x0003
 SERVICE_ERROR_IGNORE = 0x0000
 log = logging.getLogger(__name__)
 
-OPT_SERVICENAME = "servicename"
-OPT_SERVICEDESC = "servicedesc"
-OPT_ARGUMENTS = "arguments"
 SERVICE_OPTIONS = (OPT_SERVICENAME, OPT_SERVICEDESC, OPT_ARGUMENTS)
 
 

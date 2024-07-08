@@ -15,6 +15,7 @@ except ImportError:
 
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_ARGUMENTS
 from lib.common.exceptions import CuckooPackageError
 from lib.common.zip_utils import get_interesting_files, upload_extracted_files
 
@@ -46,7 +47,7 @@ class Rar(Package):
     If none can be found, the first file in the archive is taken.
     If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
     """
-    option_names = ("file", "password", "function", "arguments", "dllloader")
+    option_names = ("file", "password", "function", OPT_ARGUMENTS, "dllloader")
 
     def extract_rar(self, rar_path, extract_path, password):
         """Extracts a nested RAR file.

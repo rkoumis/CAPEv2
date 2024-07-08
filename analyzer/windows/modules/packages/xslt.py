@@ -4,6 +4,7 @@
 
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_ARGUMENTS
 
 
 class XSLT(Package):
@@ -17,7 +18,7 @@ class XSLT(Package):
     description = """Use 'wmic.exe process LIST /FORMAT:"<sample>"' to detonate any
     code embedded in the xml sample.
     The .xsl filename extension will be added automatically."""
-    option_names = ("arguments",)
+    option_names = (OPT_ARGUMENTS,)
 
     def start(self, path):
         wmic = self.get_path("wmic.exe")

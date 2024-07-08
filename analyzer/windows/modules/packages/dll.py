@@ -7,12 +7,22 @@ import logging
 import os
 import shutil
 
-from lib.common.abstracts import DLL_OPTION_TEXT, DLL_OPTIONS, Package
+from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_ARGUMENTS, OPT_DLLLOADER, OPT_FUNCTION
 
 log = logging.getLogger(__name__)
 
 MAX_DLL_EXPORTS_DEFAULT = 8
+
+DLL_OPTION_TEXT = """
+Use the 'dllloader' option to set the name of the process loading the DLL (defaults to rundll32.exe).
+Use the 'arguments' option to set the arguments to be passed to the exported function(s).
+Use the 'function' option to set the name of the exported function/ordinal to execute.
+The default function is '#1'.
+Can be multiple function/ordinals split by colon. Ex: function=#1:#3 or #2-4
+"""
+DLL_OPTIONS = (OPT_DLLLOADER, OPT_FUNCTION, OPT_ARGUMENTS)
 
 
 class Dll(Package):
@@ -43,12 +53,12 @@ class Dll(Package):
 
     The .dll filename extension will be added to the sample name automatically."""
     option_names = sorted(
-        set(DLL_OPTIONS + ("arguments", "dllloader", "function", "enable_multi", "use_export_name", "max_dll_exports"))
+        set(DLL_OPTIONS + (OPT_ARGUMENTS, "dllloader", "function", "enable_multi", "use_export_name", "max_dll_exports"))
     )
 
     def start(self, path):
         rundll32 = self.get_path("rundll32.exe")
-        arguments = self.options.get("arguments", "")
+        arguments = self.options.get(OPT_ARGUMENTS, "")
         dllloader = self.options.get("dllloader")
 
         # If the file doesn't have the proper .dll extension force it

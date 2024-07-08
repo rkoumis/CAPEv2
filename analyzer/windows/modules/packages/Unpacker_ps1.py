@@ -4,6 +4,7 @@
 
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
+from lib.common.constants import OPT_INJECTION, OPT_PROCDUMP, OPT_UNPACKER
 
 
 class PS1(Package):
@@ -24,9 +25,9 @@ class PS1(Package):
             options = {}
         self.config = config
         self.options = options
-        self.options["unpacker"] = "1"
-        self.options["procdump"] = "0"
-        self.options["injection"] = "0"
+        self.options[OPT_UNPACKER] = "1"
+        self.options[OPT_PROCDUMP] = "0"
+        self.options[OPT_INJECTION] = "0"
 
     def start(self, path):
         powershell = self.get_path_glob("PowerShell")

@@ -6,6 +6,7 @@ import logging
 import os
 
 from lib.common.abstracts import Package
+from lib.common.constants import ARCHIVE_OPTIONS, OPT_APPDATA, OPT_ARGUMENTS, OPT_FILE, OPT_MULTI_PASSWORD, OPT_PASSWORD
 from lib.common.exceptions import CuckooPackageError
 from lib.common.zip_utils import (
     attempt_multiple_passwords,
@@ -16,6 +17,7 @@ from lib.common.zip_utils import (
     get_interesting_files,
     upload_extracted_files,
 )
+from modules.packages.dll import DLL_OPTIONS
 
 log = logging.getLogger(__name__)
 
@@ -47,12 +49,12 @@ class Zip(Package):
     If the 'appdata' option is specified, run the executable from the APPDATA directory.
     If the archive contains .dll files, then options 'function', 'arguments' and 'dllloader' will take effect.
     """
-    option_names = ("file", "password", "function", "arguments", "dllloader")
+    option_names = sorted(set(ARCHIVE_OPTIONS + DLL_OPTIONS + [OPT_APPDATA, OPT_ARGUMENTS, OPT_MULTI_PASSWORD]))
 
     def start(self, path):
-        password = self.options.get("password", "infected")
+        password = self.options.get(OPT_PASSWORD, "infected")
         try_multiple_passwords = attempt_multiple_passwords(self.options, password)
-        appdata = self.options.get("appdata")
+        appdata = self.options.get(OPT_APPDATA)
         root = os.environ["APPDATA"] if appdata else os.environ["TEMP"]
         file_names = []
         try:
@@ -80,7 +82,7 @@ class Zip(Package):
             if len(file_names):
                 extract_archive(seven_zip_path, nested_7z, root, password, try_multiple_passwords)
 
-        file_name = self.options.get("file")
+        file_name = self.options.get(OPT_FILE)
         # If no file name is provided via option, discover files to execute.
         if not file_name:
             # If no file names to choose from, bail

@@ -13,6 +13,7 @@ except ImportError:
     import re
 
 from lib.common.abstracts import Package
+from lib.common.constants import OPT_ARGUMENTS, OPT_INJECTION, OPT_PROCDUMP, OPT_UNPACKER
 from lib.common.exceptions import CuckooPackageError
 
 log = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class Unpacker_zip(Package):
     supplied in the 'file" option, the first file in the zip is taken.
     Turns off procdump and injection.
     The appropriate filename extension will be added automatically."""
-    option_names = ("file", "password", "function", "arguments", "dllloader")
+    option_names = ("file", "password", "function", OPT_ARGUMENTS, "dllloader")
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -38,9 +39,9 @@ class Unpacker_zip(Package):
         self.config = config
         self.options = options
         self.pids = []
-        self.options["unpacker"] = "1"
-        self.options["procdump"] = "0"
-        self.options["injection"] = "0"
+        self.options[OPT_UNPACKER] = "1"
+        self.options[OPT_PROCDUMP] = "0"
+        self.options[OPT_INJECTION] = "0"
 
     def extract_zip(self, zip_path, extract_path, password, recursion_depth):
         """Extracts a nested ZIP file.
@@ -152,7 +153,7 @@ class Unpacker_zip(Package):
         elif file_name.lower().endswith((".dll", ".ocx")):
             rundll32 = self.get_path_app_in_path("rundll32.exe")
             function = self.options.get("function", "#1")
-            arguments = self.options.get("arguments")
+            arguments = self.options.get(OPT_ARGUMENTS)
             dllloader = self.options.get("dllloader")
             dll_args = f'"{file_path}",{function}'
             if arguments:
@@ -166,4 +167,4 @@ class Unpacker_zip(Package):
             powershell = self.get_path_app_in_path("powershell.exe")
             args = f'-NoProfile -ExecutionPolicy bypass -File "{path}"'
             return self.execute(powershell, args, file_path)
-        return self.execute(file_path, self.options.get("arguments"), file_path)
+        return self.execute(file_path, self.options.get(OPT_ARGUMENTS), file_path)

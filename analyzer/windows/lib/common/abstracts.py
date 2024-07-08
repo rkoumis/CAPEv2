@@ -11,6 +11,7 @@ import shutil
 
 from lib.api.process import Process
 from lib.common.common import check_file_extension, disable_wow64_redirection
+from lib.common.constants import OPT_ARGUMENTS, OPT_CURDIR, OPT_DLLLOADER, OPT_FREE, OPT_FUNCTION, OPT_KERNEL_ANALYSIS
 from lib.common.exceptions import CuckooPackageError
 from lib.common.parse_pe import choose_dll_export, is_pe_image
 from lib.core.compound import create_custom_folders
@@ -22,33 +23,8 @@ log = logging.getLogger(__name__)
 
 PE_INDICATORS = [b"MZ", b"This program cannot be run in DOS mode"]
 
-_OPT_CURDIR = "curdir"
-_OPT_FREE = "free"
-_OPT_KERNEL_ANALYSIS = "kernel_analysis"
-_OPT_FUNCTION = "function"
-_OPT_DLLLOADER = "dllloader"
-_OPT_ARGUMENTS = "arguments"
-_OPT_FILE = "file"
-_OPT_PASSWORD = "password"
-DLL_OPTIONS = (_OPT_DLLLOADER, _OPT_FUNCTION, _OPT_ARGUMENTS)
-ARCHIVE_OPTIONS = (_OPT_FILE, _OPT_PASSWORD)
-
-COMMON_OPTION_TEXT = """
-Use the 'kernel_analysis' option to enable kernel analysis.
-Use the 'free' option to enable the sample to execute freely (not suspended).
-(Using the 'free' option disables many capabilities)
-"""
-
 PASSWORD_OPTION_TEXT = """
 Use the 'password' option to set the password to use for zip or rar extraction"""
-
-DLL_OPTION_TEXT = """
-Use the 'dllloader' option to set the name of the process loading the DLL (defaults to rundll32.exe).
-Use the 'arguments' option to set the arguments to be passed to the exported function(s).
-Use the 'function' option to set the name of the exported function/ordinal to execute.
-Can be multiple function/ordinals split by colon. Ex: function=#1:#3 or #2-4
-"""
-# The 'arguments' option applies to the dll, exe, or python packages
 
 
 class Package:
@@ -191,10 +167,10 @@ class Package:
         @param interest: file of interest, passed to the cuckoomon config
         @return: process pid
         """
-        free = self.options.get(_OPT_FREE, False)
+        free = self.options.get(OPT_FREE, False)
         suspended = not free
 
-        kernel_analysis = bool(self.options.get(_OPT_KERNEL_ANALYSIS, False))
+        kernel_analysis = bool(self.options.get(OPT_KERNEL_ANALYSIS, False))
 
         p = Process(options=self.options, config=self.config)
         if not p.execute(path=path, args=args, suspended=suspended, kernel_analysis=kernel_analysis):
@@ -233,8 +209,8 @@ class Package:
         @param filepath: the file to be moved
         @return: the new filepath
         """
-        if _OPT_CURDIR in self.options:
-            self.curdir = os.path.expandvars(self.options[_OPT_CURDIR])
+        if OPT_CURDIR in self.options:
+            self.curdir = os.path.expandvars(self.options[OPT_CURDIR])
         elif self.default_curdir:
             self.curdir = os.path.expandvars(self.default_curdir)
         else:
@@ -283,9 +259,9 @@ class Package:
                 rundll32 = self.get_path("regsvr32.exe")
             else:
                 rundll32 = self.get_path_app_in_path("rundll32.exe")
-                function = self.options.get(_OPT_FUNCTION, "#1")
-            arguments = self.options.get(_OPT_ARGUMENTS)
-            dllloader = self.options.get(_OPT_DLLLOADER)
+                function = self.options.get(OPT_FUNCTION, "#1")
+            arguments = self.options.get(OPT_ARGUMENTS)
+            dllloader = self.options.get(OPT_DLLLOADER)
             dll_args = f'"{file_path}",{function}'
             if arguments:
                 dll_args += f" {arguments}"
@@ -319,7 +295,7 @@ class Package:
         # File extensions that are portable executables
         elif is_pe_image(file_path):
             file_path = check_file_extension(file_path, ".exe")
-            return self.execute(file_path, self.options.get(_OPT_ARGUMENTS), file_path)
+            return self.execute(file_path, self.options.get(OPT_ARGUMENTS), file_path)
         # Last ditch effort to attempt to execute this file
         else:
             # From zip_compound package
