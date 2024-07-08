@@ -22,18 +22,33 @@ log = logging.getLogger(__name__)
 
 PE_INDICATORS = [b"MZ", b"This program cannot be run in DOS mode"]
 
+_OPT_CURDIR = "curdir"
 _OPT_FREE = "free"
 _OPT_KERNEL_ANALYSIS = "kernel_analysis"
 _OPT_FUNCTION = "function"
 _OPT_DLLLOADER = "dllloader"
 _OPT_ARGUMENTS = "arguments"
-COMMON_OPTIONS = (_OPT_FREE, _OPT_KERNEL_ANALYSIS)
+_OPT_FILE = "file"
+_OPT_PASSWORD = "password"
 DLL_OPTIONS = (_OPT_DLLLOADER, _OPT_FUNCTION, _OPT_ARGUMENTS)
+ARCHIVE_OPTIONS = (_OPT_FILE, _OPT_PASSWORD)
 
 COMMON_OPTION_TEXT = """
 Use the 'kernel_analysis' option to enable kernel analysis.
 Use the 'free' option to enable the sample to execute freely (not suspended).
+(Using the 'free' option disables many capabilities)
 """
+
+PASSWORD_OPTION_TEXT = """
+Use the 'password' option to set the password to use for zip or rar extraction"""
+
+DLL_OPTION_TEXT = """
+Use the 'dllloader' option to set the name of the process loading the DLL (defaults to rundll32.exe).
+Use the 'arguments' option to set the arguments to be passed to the exported function(s).
+Use the 'function' option to set the name of the exported function/ordinal to execute.
+Can be multiple function/ordinals split by colon. Ex: function=#1:#3 or #2-4
+"""
+# The 'arguments' option applies to the dll, exe, or python packages
 
 
 class Package:
@@ -43,7 +58,7 @@ class Package:
     default_curdir = None
     summary: str = None
     description: str = None
-    option_names = sorted(COMMON_OPTIONS)
+    option_names = []
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
@@ -218,8 +233,8 @@ class Package:
         @param filepath: the file to be moved
         @return: the new filepath
         """
-        if "curdir" in self.options:
-            self.curdir = os.path.expandvars(self.options["curdir"])
+        if _OPT_CURDIR in self.options:
+            self.curdir = os.path.expandvars(self.options[_OPT_CURDIR])
         elif self.default_curdir:
             self.curdir = os.path.expandvars(self.default_curdir)
         else:

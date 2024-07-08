@@ -53,6 +53,11 @@ SERVICE_DEMAND_START = 0x0003
 SERVICE_ERROR_IGNORE = 0x0000
 log = logging.getLogger(__name__)
 
+OPT_SERVICENAME = "servicename"
+OPT_SERVICEDESC = "servicedesc"
+OPT_ARGUMENTS = "arguments"
+SERVICE_OPTIONS = (OPT_SERVICENAME, OPT_SERVICEDESC, OPT_ARGUMENTS)
+
 
 class Service(Package):
     """Service analysis package."""
@@ -60,12 +65,17 @@ class Service(Package):
     PATHS = [
         ("SystemRoot", "system32", "sc.exe"),
     ]
+    summary = "Launch the given sample as a service."
+    description = """Use 'svchost.exe -k capegroup <sample> [arguments]' to launch the sample
+    as a service.
+    The .exe filename extension will be added automatically."""
+    option_names = SERVICE_OPTIONS
 
     def start(self, path):
         try:
-            servicename = self.options.get("servicename", "CAPEService").encode("utf8")
-            servicedesc = self.options.get("servicedesc", "CAPE Service").encode("utf8")
-            arguments = self.options.get("arguments")
+            servicename = self.options.get(OPT_SERVICENAME, "CAPEService").encode("utf8")
+            servicedesc = self.options.get(OPT_SERVICEDESC, "CAPE Service").encode("utf8")
+            arguments = self.options.get(OPT_ARGUMENTS)
             path = check_file_extension(path, ".exe")
             binpath = f'"{path}"'.encode("utf8")
             if arguments:

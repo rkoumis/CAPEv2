@@ -4,7 +4,7 @@
 
 from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
-from lib.common.constants import MSOFFICE_TRUSTED_PATH
+from lib.common.constants import MSOFFICE_TRUSTED_PATH, TRUSTED_PATH_TEXT
 
 
 class DOC2016(Package):
@@ -22,7 +22,8 @@ class DOC2016(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office16", "WINWORD.EXE"),
     ]
     summary = "Open a document file with WINWORD.EXE."
-    description = """Use 'Office16\\WINWORD.EXE /q /dde /n' to open the sample.
+    description = f"""Use 'Office16\\WINWORD.EXE /q /dde /n' to open the sample.
+    {TRUSTED_PATH_TEXT}
     The .doc filename extension will be added automatically."""
 
     def start(self, path):

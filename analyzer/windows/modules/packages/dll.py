@@ -7,7 +7,7 @@ import logging
 import os
 import shutil
 
-from lib.common.abstracts import COMMON_OPTION_TEXT, COMMON_OPTIONS, Package
+from lib.common.abstracts import DLL_OPTION_TEXT, DLL_OPTIONS, Package
 from lib.common.common import check_file_extension
 
 log = logging.getLogger(__name__)
@@ -21,11 +21,9 @@ class Dll(Package):
     PATHS = [
         ("SystemRoot", "System32", "rundll32.exe"),
     ]
-    summary = """Execute a .DLL file using rundll32.exe."""
+    summary = "Execute a .DLL file using rundll32.exe."
     description = f"""Use rundll32.exe to execute a function or functions in the DLL file.
-    {COMMON_OPTION_TEXT}
-    Use the 'dllloader' option to rename rundll32.exe to the given name.
-    Use the 'arguments' option to supply arguments to the DLL.
+    {DLL_OPTION_TEXT}
 
     Functions to execute may be specified by number, the default is '#1'.
     Use the 'enable_multi' option if multiple functions should be executed.
@@ -45,7 +43,7 @@ class Dll(Package):
 
     The .dll filename extension will be added to the sample name automatically."""
     option_names = sorted(
-        set(COMMON_OPTIONS + ("arguments", "dllloader", "function", "enable_multi", "use_export_name", "max_dll_exports"))
+        set(DLL_OPTIONS + ("arguments", "dllloader", "function", "enable_multi", "use_export_name", "max_dll_exports"))
     )
 
     def start(self, path):

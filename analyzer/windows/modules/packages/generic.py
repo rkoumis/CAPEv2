@@ -18,7 +18,7 @@ class Generic(Package):
     For context behind this command:
     /C          Carries out the command specified by string and then terminates
     START       Starts a separate window to run a specified program or command.
-    WAIT        Start application and wait for it to terminate.
+    /WAIT       Start application and wait for it to terminate.
     ""          The name of the separate window
     "path"      The path of the uploaded sample
     """

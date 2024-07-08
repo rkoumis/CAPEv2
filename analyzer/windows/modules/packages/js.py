@@ -14,14 +14,13 @@ class JS(Package):
         ("SystemRoot", "system32", "wscript.exe"),
     ]
     summary = "Execute a .JS file using wscript.exe."
-    description = """Use wscript.exe to run a .js/.jse file.
+    description = """Use 'wscript.exe <sample>' to run a .js/.jse file.
     In the case of '.jse' files, first start up 20 calc.exe windows, to thwart
     some antivm measures.
     The appropriate file extension will be added automatically."""
 
     def start(self, path):
         wscript = self.get_path("wscript.exe")
-        args = f'"{path}"'
         ext = os.path.splitext(path)[-1].lower()
         if ext not in (".js", ".jse"):
             if ext == ".jse" or os.path.isfile(path) and open(path, "rt").read(4) == "#@~^":

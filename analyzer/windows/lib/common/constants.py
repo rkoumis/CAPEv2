@@ -34,3 +34,4 @@ location for all 3 apps. See
 https://learn.microsoft.com/en-us/deployoffice/security/trusted-locations
 """
 MSOFFICE_TRUSTED_PATH = os.path.join("%SystemDrive%", "Program Files", "Microsoft Office", "root", "Templates")
+TRUSTED_PATH_TEXT = f"Use MS Office Trusted Path location {MSOFFICE_TRUSTED_PATH} unless the user has provided a 'curdir' option."

@@ -15,7 +15,7 @@ class Unpacker_dll(Package):
     PATHS = [
         ("SystemRoot", "system32", "rundll32.exe"),
     ]
-    summary = """Execute a .dll file using rundll32.exe."""
+    summary = "Execute a .dll file using rundll32.exe."
     description = """Use rundll32.exe with the '/wait' option to run a .lnk file.
     Turns off the 'injection' option.
     The .dll filename extension will be added automatically."""

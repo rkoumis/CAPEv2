@@ -13,7 +13,7 @@ from lib.common.common import check_file_extension
 class Exe(Package):
     """EXE analysis package."""
 
-    summary = """Run the supplied executable."""
+    summary = "Run the supplied executable."
     description = """Execute the given sample, passing 'arguments' if specified.
     Use the 'appdata' option to run the executable from the APPDATA directory.
     Use the 'runasx86' option to set the 32BITREQUIRED flag in the PE header,

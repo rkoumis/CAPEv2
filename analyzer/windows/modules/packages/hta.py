@@ -13,7 +13,7 @@ class HTA(Package):
         ("SystemRoot", "system32", "mshta.exe"),
     ]
     summary = "Execute the sample with mshta.exe."
-    description = """Uses mshta.exe to run a .hta file.
+    description = """Uses 'mshta.exe <sample>' to run a .hta file.
     The .hta filename extension will be added automatically."""
 
     def start(self, path):

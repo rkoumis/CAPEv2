@@ -12,6 +12,10 @@ class CHM(Package):
     PATHS = [
         ("SystemRoot", "hh.exe"),
     ]
+    summary = "Open the compiled help file with hh.exe."
+    description = """Use 'hh.exe <sample>' to open the sample.
+    The .chm filename extension will be added automatically."""
+    option_names = ("arguments",)
 
     def start(self, path):
         hh = self.get_path_glob("hh.exe")

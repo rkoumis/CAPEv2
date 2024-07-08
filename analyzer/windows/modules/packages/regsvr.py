@@ -13,7 +13,7 @@ class Regsvr(Package):
         ("SystemRoot", "system32", "regsvr32.exe"),
     ]
     summary = "Open the file with regsvr32.exe."
-    description = """Use 'regsvr32.exe to open a .dll file.
+    description = """Use 'regsvr32.exe [arguments] <sample>' to open a .dll file.
     If the 'arguments' option is set, the contents will be used as arguments to regsvr32.exe.
     The .dll filename extension will be added automatically."""
     option_names = ("arguments",)

@@ -12,7 +12,7 @@ class Shellcode(Package):
     """32-bit Shellcode analysis package."""
 
     summary = "Execute 32-bit Shellcode using loader.exe."
-    description = """Use bin\\loader.exe shellcode [offset] <sample> to execute 32-bit Shellcode.
+    description = """Use 'bin\\loader.exe shellcode [offset] <sample>' to execute 32-bit Shellcode.
     Turn off the 'procdump' option."""
     option_names = ("offset",)
 

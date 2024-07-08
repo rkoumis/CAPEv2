@@ -8,12 +8,20 @@ from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
 
 
-class IE(Package):
-    """Internet Explorer analysis package."""
+class VawTrak(Package):
+    """VawTrak analysis package."""
 
     PATHS = [
         ("ProgramFiles", "Internet Explorer", "iexplore.exe"),
     ]
+    summary = "Run the supplied executable."
+    description = """First run 'iexplore.exe about:blank' to open Internet Explorer.
+    Then, execute the given sample, passing 'arguments' if specified.
+    Use the 'appdata' option to run the executable from the APPDATA directory.
+    Use the 'runasx86' option to set the 32BITREQUIRED flag in the PE header,
+    using 'CorFlags.exe /32bit+'.
+    The .exe filename extension will be added automatically."""
+    option_names = ("arguments", "appdata", "runasx86")
 
     def start(self, path):
         iexplore = self.get_path("iexplore.exe")

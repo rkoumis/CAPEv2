@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 
-from lib.common.abstracts import COMMON_OPTIONS, DLL_OPTIONS, Package
+from lib.common.abstracts import DLL_OPTIONS, Package
 from lib.common.exceptions import CuckooPackageError
 from lib.common.zip_utils import (
     attempt_multiple_passwords,
@@ -42,7 +42,7 @@ class Archive(Package):
         ("ProgramFiles", "Microsoft Office*", "root", "Office*", "EXCEL.EXE"),
         ("ProgramFiles", "Microsoft", "Edge", "Application", "msedge.exe"),
     ]
-    summary = """Look for executables inside an archive."""
+    summary = "Look for executables inside an archive."
     description = """Use 7z.exe to unpack the archive with the supplied 'password' option.
     The default password is 'infected.'
     If the 'enable_multi_password' option is set, the 'password' option can contain
@@ -55,7 +55,7 @@ class Archive(Package):
     The options 'function' and 'dllloader' will be applied to .DLL execution attempts.
     The option 'arguments' can be applied to a .DLL or a PE executable.
     """
-    option_names = sorted(set(COMMON_OPTIONS + DLL_OPTIONS + ("file", "password", "function", "arguments", "dllloader")))
+    option_names = sorted(set(DLL_OPTIONS + ("file", "password", "function", "arguments", "dllloader")))
 
     def start(self, path):
         # 7za and 7r is limited so better install it inside of the vm

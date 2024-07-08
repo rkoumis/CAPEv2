@@ -13,6 +13,10 @@ class JS_ANTIVM(Package):
     PATHS = [
         ("SystemRoot", "system32", "wscript.exe"),
     ]
+    summary = "Execute a .JS file using wscript.exe."
+    description = """Use 'wscript.exe <sample>' to run a .js/.jse file.
+    First start up 20 calc.exe windows, to thwart some antivm measures.
+    The appropriate file extension will be added automatically."""
 
     def start(self, path):
         # Determine if the submitter wants the sample to be monitored
@@ -31,7 +35,6 @@ class JS_ANTIVM(Package):
             self.options["free"] = 0
 
         wscript = self.get_path("wscript.exe")
-        args = f'"{path}"'
         ext = os.path.splitext(path)[-1].lower()
         if ext not in (".js", ".jse"):
             if os.path.isfile(path) and open(path, "rt").read(4) == "#@~^":
