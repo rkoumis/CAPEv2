@@ -19,10 +19,16 @@ class TestAnalysisPackages(unittest.TestCase):
         return cls
 
     def test_has_summary_description(self):
-        """Ensure each Package has a summary and description."""
+        """Ensure each Package class in modules.packages has a summary and description."""
         clazz = Package
         module = importlib.import_module("modules.packages")
-        subclasses = [cls for name, cls in inspect.getmembers(module) if inspect.isclass(cls) and issubclass(cls, clazz)]
+        subclasses = [
+            cls
+            for _, mod in inspect.getmembers(module)
+            if inspect.ismodule(mod)
+            for name, cls in inspect.getmembers(mod)
+            if inspect.isclass(cls) and issubclass(cls, clazz) and cls != clazz
+        ]
         self.assertGreater(len(subclasses), 0)
         for subclass in subclasses:
             self.assertTrue(hasattr(subclass, "summary"))

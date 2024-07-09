@@ -48,7 +48,7 @@ OPT_RUNASX86 = "runasx86"
 OPT_UNPACKER = "unpacker"
 
 ARCHIVE_OPTIONS = (OPT_FILE, OPT_PASSWORD)
-DLL_OPTIONS = (OPT_DLLLOADER, OPT_FUNCTION, OPT_ARGUMENTS)
+DLL_OPTIONS = (OPT_ARGUMENTS, OPT_DLLLOADER, OPT_FUNCTION)
 
 
 """ Excel, Word, and Powerpoint won't have macros enabled without interaction for
