@@ -63,12 +63,6 @@ log = logging.getLogger(__name__)
 class ServiceDll(Package):
     """Service Dll analysis package."""
 
-    def __init__(self, options=None, config=None):
-        if options is None:
-            options = {}
-        self.config = config
-        self.options = options
-
     PATHS = [
         ("SystemRoot", "system32", "sc.exe"),
     ]

@@ -12,10 +12,6 @@ class XLS2207(Package):
 
     default_curdir = MSOFFICE_TRUSTED_PATH
 
-    def __init__(self, options={}, config=None):
-        self.config = config
-        self.options = options
-
     PATHS = [
         ("ProgramFiles", "Microsoft Office*", "root", "Office16", "EXCEL.EXE"),
     ]

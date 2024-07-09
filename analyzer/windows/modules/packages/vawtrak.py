@@ -8,8 +8,8 @@ from lib.common.abstracts import Package
 from lib.common.common import check_file_extension
 
 
-class IE(Package):
-    """Internet Explorer analysis package."""
+class VawTrak(Package):
+    """Internet Explorer / VawTrak analysis package."""
 
     PATHS = [
         ("ProgramFiles", "Internet Explorer", "iexplore.exe"),

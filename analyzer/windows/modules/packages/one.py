@@ -14,9 +14,8 @@ util = Utils()
 class ONE(Package):
     """OneNote analysis package."""
 
-    def __init__(self, options={}, config=None):
-        self.config = config
-        self.options = options
+    def __init__(self, options=None, config=None):
+        super().__init__(options, config)
         # self.options["exclude-apis"] = "memcpy"
         self.options["office"] = 1
         self.options["yarascan"] = 0

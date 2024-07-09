@@ -13,12 +13,6 @@ class DOC(Package):
 
     default_curdir = MSOFFICE_TRUSTED_PATH
 
-    def __init__(self, options=None, config=None):
-        if options is None:
-            options = {}
-        self.config = config
-        self.options = options
-
     PATHS = [
         ("ProgramFiles", "Microsoft Office", "WINWORD.EXE"),
         ("ProgramFiles", "Microsoft Office", "Office*", "WINWORD.EXE"),

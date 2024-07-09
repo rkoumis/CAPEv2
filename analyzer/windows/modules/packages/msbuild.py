@@ -7,12 +7,6 @@ from lib.common.abstracts import Package
 class MSBUILD(Package):
     """msbuild analysis package."""
 
-    def __init__(self, options=None, config=None):
-        if options is None:
-            options = {}
-        self.config = config
-        self.options = options
-
     PATHS = [
         ("SystemRoot", "Microsoft.NET", "Framework", "v4.0.30319", "msbuild.exe"),
     ]

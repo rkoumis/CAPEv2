@@ -18,10 +18,7 @@ class Unpacker_dll(Package):
 
     def __init__(self, options=None, config=None):
         """@param options: options dict."""
-        if options is None:
-            options = {}
-        self.config = config
-        self.options = options
+        super().__init__(options, config)
         self.options["unpacker"] = "1"
         self.options["injection"] = "0"
 

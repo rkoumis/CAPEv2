@@ -11,10 +11,6 @@ from lib.common.common import check_file_extension
 class INF(Package):
     """INF analysis package."""
 
-    def __init__(self, options={}, config=None):
-        self.config = config
-        self.options = options
-
     PATHS = [
         ("SystemRoot", "System32", "cmstp.exe"),
         ("SystemRoot", "SysWOW64", "cmstp.exe"),
