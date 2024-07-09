@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 from lib.common.abstracts import Package
-from lib.common.constants import ARCHIVE_OPTIONS, OPT_FILE, OPT_PASSWORD
+from lib.common.constants import ARCHIVE_OPTIONS, OPT_FILE, OPT_MULTI_PASSWORD, OPT_PASSWORD
 from lib.common.exceptions import CuckooPackageError
 from lib.common.zip_utils import (
     attempt_multiple_passwords,
@@ -47,7 +47,7 @@ class Archive(Package):
     summary = "Look for executables inside an archive."
     description = f"""Use 7z.exe to unpack the archive with the supplied '{OPT_PASSWORD}' option.
     The default password is 'infected.'
-    If the 'enable_multi_password' option is set, the 'password' option can contain
+    If the '{OPT_MULTI_PASSWORD}' option is set, the '{OPT_PASSWORD}' option can contain
     several possible passwords, colon-separated.
     If 7z.exe could not open the archive, try WinRAR.exe.
     If the '{OPT_FILE}' option was given, expect a file of that name to be in the archive,
@@ -57,7 +57,7 @@ class Archive(Package):
     The options 'function' and 'dllloader' will be applied to .DLL execution attempts.
     The option 'arguments' will be applied to a .DLL or a PE executable.
     """
-    option_names = sorted(set(DLL_OPTIONS + ARCHIVE_OPTIONS))
+    option_names = sorted(set(DLL_OPTIONS + ARCHIVE_OPTIONS + (OPT_MULTI_PASSWORD,)))
 
     def start(self, path):
         # 7za and 7r is limited so better install it inside of the vm

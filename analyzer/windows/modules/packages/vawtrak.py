@@ -9,8 +9,8 @@ from lib.common.common import check_file_extension
 from lib.common.constants import OPT_APPDATA, OPT_ARGUMENTS, OPT_RUNASX86
 
 
-class VawTrak(Package):
-    """VawTrak analysis package."""
+class IE(Package):
+    """Internet Explorer analysis package."""
 
     PATHS = [
         ("ProgramFiles", "Internet Explorer", "iexplore.exe"),

@@ -14,8 +14,8 @@ class Shellcode(Package):
 
     summary = "Execute 32-bit Shellcode using loader.exe."
     description = f"""Use 'bin\\loader.exe shellcode [offset] <sample>' to execute 32-bit Shellcode.
-    Use the '{OPT_OFFSET}' option to set the offset.
-    Turn off the '{OPT_PROCDUMP}' option."""
+    Use the option '{OPT_OFFSET}' to set the offset.
+    Set the option '{OPT_PROCDUMP}=0'."""
     option_names = (OPT_OFFSET,)
 
     def __init__(self, options=None, config=None):
