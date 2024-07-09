@@ -18,6 +18,18 @@ class TestAnalysisPackages(unittest.TestCase):
         self.assertTrue(issubclass(cls, Package))
         return cls
 
+    def test_has_summary_description(self):
+        """Ensure each Package has a summary and description."""
+        clazz = Package
+        module = importlib.import_module("modules.packages")
+        subclasses = [cls for name, cls in inspect.getmembers(module) if inspect.isclass(cls) and issubclass(cls, clazz)]
+        self.assertGreater(len(subclasses), 0)
+        for subclass in subclasses:
+            self.assertTrue(hasattr(subclass, "summary"))
+            self.assertTrue(hasattr(subclass, "description"))
+            self.assertGreater(len(subclass.summary), 0)
+            self.assertGreater(len(subclass.description), 0)
+
     def test_choose_package_Shellcode_Unpacker(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Shellcode-Unpacker")
         pkg_class()
@@ -42,9 +54,9 @@ class TestAnalysisPackages(unittest.TestCase):
     def test_Unpacker_dll(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_dll")
         obj = pkg_class()
-        self.assertEqual("function", obj.option_names[0])
-        self.assertEqual("arguments", obj.option_names[1])
-        self.assertEqual("dllloader", obj.option_names[2])
+        self.assertEqual("arguments", obj.option_names[0])
+        self.assertEqual("dllloader", obj.option_names[1])
+        self.assertEqual("function", obj.option_names[2])
 
     def test_Unpacker_js(self):
         pkg_class = self.class_from_analysis_package("modules.packages.Unpacker_js")

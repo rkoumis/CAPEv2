@@ -38,19 +38,19 @@ class ZipCompound(Package):
     summary = "Unpack a .zip archive with the given password and execute the contents appropriately."
     description = f"""Extract the contents of a .zip file.
     Supply '{OPT_PASSWORD}' if the .zip file is encrypted (defaults to blank).
-    *NB*: Either ``file`` option must be set, or a ``__configuration.json`` file must be present in the zip file.
+    *NB*: Either '{OPT_FILE}' option must be set, or a '__configuration.json' file must be present in the zip file.
     Sample json file:
 
-        {
-            "path_to_extract": {
+        {{
+            "path_to_extract": {{
                 "a.exe": "%USERPROFILE%\\Desktop\\a\\b\\c",
                 "folder_b": "%appdata%"
-            },
+            }},
             "target_file":"a.exe"
-        }
+        }}
 
-    If the 'curdir' option is specified, use that as the current directory.
-    Else, if the 'appdata' option is specified, run the executable from the APPDATA directory.
+    If the '{OPT_CURDIR}' option is specified, use that as the current directory.
+    Else, if the '{OPT_APPDATA}' option is specified, run the executable from the APPDATA directory.
     The execution method is chosen based on the filename extension.
     If executing a .dll file, then options 'function', 'arguments' and 'dllloader' will take effect.
     """
