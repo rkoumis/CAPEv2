@@ -124,6 +124,8 @@ DYNAMIC_ARCH_DETERMINATION = web_conf.general.dynamic_arch_determination
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_find
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
+
 if repconf.elasticsearchdb.enabled:
     from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index
 
@@ -2344,9 +2346,9 @@ class _Database:
             if not sample:
                 if repconf.mongodb.enabled:
                     tasks = mongo_find(
-                        "analysis",
+                        ANALYSIS_COLL,
                         {f"CAPE.payloads.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                        {"CAPE.payloads": 1, "_id": 0, "info.id": 1},
+                        {"CAPE.payloads": 1, ID_KEY: 0, INFO_ID_KEY: 1},
                     )
                 elif repconf.elasticsearchdb.enabled:
                     tasks = [
@@ -2382,9 +2384,9 @@ class _Database:
                     # we can't filter more if query isn't sha256
                     if repconf.mongodb.enabled:
                         tasks = mongo_find(
-                            "analysis",
+                            ANALYSIS_COLL,
                             {f"{category}.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                            {category: 1, "_id": 0, "info.id": 1},
+                            {category: 1, ID_KEY: 0, INFO_ID_KEY: 1},
                         )
                     elif repconf.elasticsearchdb.enabled:
                         tasks = [
@@ -2436,7 +2438,7 @@ class _Database:
                 # search in Suricata files folder
                 if repconf.mongodb.enabled:
                     tasks = mongo_find(
-                        "analysis", {"suricata.files.sha256": sample_hash}, {"suricata.files.file_info.path": 1, "_id": 0}
+                        ANALYSIS_COLL, {"suricata.files.sha256": sample_hash}, {"suricata.files.file_info.path": 1, ID_KEY: 0}
                     )
                 elif repconf.elasticsearchdb.enabled:
                     tasks = [

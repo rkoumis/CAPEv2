@@ -24,7 +24,6 @@ with suppress(ImportError):
 
     HAVE_PYZIPPER = True
 
-from dev_utils.mongo_hooks import FILE_REF_KEY, FILES_COLL, NORMALIZED_FILE_FIELDS
 from lib.cuckoo.common.config import Config
 from lib.cuckoo.common.integrations.parse_pe import HAVE_PEFILE, IsPEImage, pefile
 from lib.cuckoo.common.objects import File
@@ -51,6 +50,7 @@ from lib.cuckoo.core.database import (
     Task,
 )
 from lib.cuckoo.core.rooter import _load_socks5_operational, vpns
+from modules.reporting.mongodb_constants import FILE_REF_KEY, NORMALIZED_FILE_FIELDS
 
 _current_dir = os.path.abspath(os.path.dirname(__file__))
 CUCKOO_ROOT = os.path.normpath(os.path.join(_current_dir, "..", "..", ".."))
@@ -97,6 +97,7 @@ if dist_conf.distributed.enabled:
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_aggregate, mongo_find, mongo_find_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, FILE_KEY, FILES_COLL, ID_KEY
 
 es_as_db = False
 essearch = False
@@ -260,7 +261,7 @@ def top_asn(date_since: datetime = False, results_limit: int = 20) -> dict:
         aggregation_command[0]["$match"].setdefault("info.started", {"$gte": date_since.isoformat()})
 
     if repconf.mongodb.enabled:
-        data = mongo_aggregate("analysis", aggregation_command)
+        data = mongo_aggregate(ANALYSIS_COLL, aggregation_command)
     else:
         data = False
 
@@ -305,7 +306,7 @@ def top_detections(date_since: datetime = False, results_limit: int = 20) -> dic
         aggregation_command[0]["$match"].setdefault("info.started", {"$gte": date_since.isoformat()})
 
     if repconf.mongodb.enabled:
-        data = mongo_aggregate("analysis", aggregation_command)
+        data = mongo_aggregate(ANALYSIS_COLL, aggregation_command)
     elif repconf.elasticsearchdb.enabled:
         # ToDo update to new format
         q = {
@@ -366,7 +367,7 @@ def get_stats_per_category(category: str, date_since):
         },
         {"$limit": 20},
     ]
-    return mongo_aggregate("analysis", aggregation_command)
+    return mongo_aggregate(ANALYSIS_COLL, aggregation_command)
 
 
 def statistics(s_days: int) -> dict:
@@ -846,7 +847,7 @@ def category_all_files(task_id, category, base_path):
         category = "CAPE.payloads"
     if repconf.mongodb.enabled:
         analysis = mongo_find_one(
-            "analysis", {"info.id": int(task_id)}, {f"{category}.{FILE_REF_KEY}": 1, "_id": 0}, sort=[("_id", -1)]
+            ANALYSIS_COLL, {"info.id": int(task_id)}, {f"{category}.{FILE_REF_KEY}": 1, "_id": 0}, sort=[("_id", -1)]
         )
     # if es_as_db:
     #    # ToDo missed category
@@ -1124,17 +1125,17 @@ def perform_search(term, value, search_limit=False, user_id=False, privs=False, 
         else:
             search_terms = [{search_term: query_val} for search_term in search_term_map[term]]
             if term in hash_searches:
-                # For analyses where files have been stored in the "files" collection, search
+                # For analyses where files have been stored in the FILES_COLL collection, search
                 # there for the _id (i.e. sha256) of documents matching the given hash. As a
                 # special case, we don't need to do that query if the requested hash type is
-                # "sha256" since that's what's stored in the "file_refs" key.
+                # FILE_KEY ("sha256") since that's what's stored in the "file_refs" key.
                 # We do all this in addition to search the old keys for backwards-compatibility
                 # with documents that do not use this mechanism for storing file data.
-                if term == "sha256":
+                if term == FILE_KEY:
                     file_refs = [query_val]
                 else:
-                    file_docs = mongo_find(FILES_COLL, {hash_searches[term]: query_val}, {"_id": 1})
-                    file_refs = [doc["_id"] for doc in file_docs]
+                    file_docs = mongo_find(FILES_COLL, {hash_searches[term]: query_val}, {ID_KEY: 1})
+                    file_refs = [doc[ID_KEY] for doc in file_docs]
                 if file_refs:
                     if len(file_refs) > 1:
                         query = {"$in": file_refs}
@@ -1149,11 +1150,11 @@ def perform_search(term, value, search_limit=False, user_id=False, privs=False, 
         if "target.file.sha256" in projection:
             projection = dict(**projection)
             projection[f"target.file.{FILE_REF_KEY}"] = 1
-        retval = list(mongo_find("analysis", mongo_search_query, projection, limit=search_limit))
+        retval = list(mongo_find(ANALYSIS_COLL, mongo_search_query, projection, limit=search_limit))
         for doc in retval:
             target_file = doc.get("target", {}).get("file", {})
-            if FILE_REF_KEY in target_file and "sha256" not in target_file:
-                target_file["sha256"] = target_file.pop(FILE_REF_KEY)
+            if FILE_REF_KEY in target_file and FILE_KEY not in target_file:
+                target_file[FILE_KEY] = target_file.pop(FILE_REF_KEY)
         return retval
 
     if es_as_db:

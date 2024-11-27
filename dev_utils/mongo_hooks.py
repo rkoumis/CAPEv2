@@ -14,13 +14,9 @@ from dev_utils.mongodb import (
     mongo_update_many,
     mongo_update_one,
 )
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, FILE_KEY, FILE_REF_KEY, FILES_COLL, ID_KEY, TASK_IDS_KEY
 
 log = logging.getLogger(__name__)
-
-FILES_COLL = "files"
-FILE_KEY = "sha256"
-TASK_IDS_KEY = "_task_ids"
-FILE_REF_KEY = "file_ref"
 
 
 def normalize_file(file_dict, task_id):
@@ -65,12 +61,12 @@ def normalize_file(file_dict, task_id):
         except KeyError:
             pass
 
-    new_dict["_id"] = key
+    new_dict[ID_KEY] = key
     file_dict[FILE_REF_KEY] = key
-    return UpdateOne({"_id": key}, {"$set": new_dict, "$addToSet": {TASK_IDS_KEY: task_id}}, upsert=True, hint=[("_id", 1)])
+    return UpdateOne({ID_KEY: key}, {"$set": new_dict, "$addToSet": {TASK_IDS_KEY: task_id}}, upsert=True, hint=[(ID_KEY, 1)])
 
 
-@mongo_hook((mongo_insert_one, mongo_update_one), "analysis")
+@mongo_hook((mongo_insert_one, mongo_update_one), ANALYSIS_COLL)
 def normalize_files(report):
     """Take the detonation-independent file data from various parts of
     the report and extract them out to a separate collection, keeping a
@@ -92,7 +88,7 @@ def normalize_files(report):
     return report
 
 
-@mongo_hook(mongo_find, "analysis")
+@mongo_hook(mongo_find, ANALYSIS_COLL)
 def denormalize_files_from_reports(reports):
     """Pull the file info from the FILES_COLL collection in to associated parts of
     the reports.
@@ -120,8 +116,8 @@ def denormalize_files_from_reports(reports):
     while batch := tuple(itertools.islice(file_ref_iter, batch_size)):
         # Reduce the size of the $in clause when there are large numbers of file refs by
         # making multiple requests, passing batches of refs in.
-        for file_doc in mongo_find(FILES_COLL, {"_id": {"$in": batch}}, {TASK_IDS_KEY: 0}):
-            file_docs[file_doc.pop("_id")] = file_doc
+        for file_doc in mongo_find(FILES_COLL, {ID_KEY: {"$in": batch}}, {TASK_IDS_KEY: 0}):
+            file_docs[file_doc.pop(ID_KEY)] = file_doc
 
     for file_dict in file_dicts:
         if file_dict[FILE_REF_KEY] not in file_docs:
@@ -133,7 +129,7 @@ def denormalize_files_from_reports(reports):
     return reports
 
 
-@mongo_hook(mongo_find_one, "analysis")
+@mongo_hook(mongo_find_one, ANALYSIS_COLL)
 def denormalize_files(report):
     """Pull the file info from the FILES_COLL collection in to associated parts of
     the report.
@@ -142,7 +138,7 @@ def denormalize_files(report):
     return report
 
 
-@mongo_hook(mongo_delete_data, "analysis")
+@mongo_hook(mongo_delete_data, ANALYSIS_COLL)
 def remove_task_references_from_files(task_ids):
     """Remove the given task_ids from the TASK_IDS_KEY field on "files"
     documents that were referenced by those tasks that are being deleted.
@@ -162,11 +158,10 @@ def delete_unused_file_docs():
     return mongo_delete_many(FILES_COLL, {TASK_IDS_KEY: {"$size": 0}})
 
 
-NORMALIZED_FILE_FIELDS = ("target.file", "dropped", "CAPE.payloads", "procdump", "procmemory")
-
-
 def collect_file_dicts(report) -> itertools.chain:
-    """Return an iterable containing all of the candidates for files
+    """Collect file dictionaries based on NORMALIZED_FILE_FIELDS.
+
+    Return an iterable containing all the candidates for files
     from various parts of the report to be normalized.
     """
     file_dicts = []
