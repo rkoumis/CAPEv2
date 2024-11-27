@@ -5,6 +5,7 @@ import time
 from typing import Callable, Sequence, Union
 
 from lib.cuckoo.common.config import Config
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, ID_KEY, INFO_ID_KEY
 
 log = logging.getLogger(__name__)
 logging.getLogger("pymongo").setLevel(logging.ERROR)
@@ -112,7 +113,7 @@ def mongo_insert_one(collection: str, doc):
 @graceful_auto_reconnect
 def mongo_find(collection: str, query, projection=False, sort=None, limit=None):
     if sort is None:
-        sort = [("_id", -1)]
+        sort = [(ID_KEY, -1)]
 
     find_by = functools.partial(getattr(results_db, collection).find, query, sort=sort)
     if projection:
@@ -130,7 +131,7 @@ def mongo_find(collection: str, query, projection=False, sort=None, limit=None):
 @graceful_auto_reconnect
 def mongo_find_one(collection: str, query, projection=False, sort=None):
     if sort is None:
-        sort = [("_id", -1)]
+        sort = [(ID_KEY, -1)]
     if projection:
         result = getattr(results_db, collection).find_one(query, projection, sort=sort)
     else:
@@ -177,7 +178,7 @@ def mongo_collection_names() -> list:
 @graceful_auto_reconnect
 def mongo_find_one_and_update(collection, query, update, projection=None):
     if projection is None:
-        projection = {"_id": 1}
+        projection = {ID_KEY: 1}
     return getattr(results_db, collection).find_one_and_update(query, update, projection)
 
 
@@ -193,21 +194,21 @@ def mongo_delete_data(task_ids: Union[int, Sequence[int]]):
 
         analyses_tmp = []
         found_task_ids = []
-        tasks = mongo_find("analysis", {"info.id": {"$in": task_ids}}, {"behavior.processes.calls": 1, "info.id": 1})
+        tasks = mongo_find(ANALYSIS_COLL, {INFO_ID_KEY: {"$in": task_ids}}, {"behavior.processes.calls": 1, INFO_ID_KEY: 1})
 
         for task in tasks or []:
             for process in task.get("behavior", {}).get("processes", []):
                 if process.get("calls"):
-                    mongo_delete_many("calls", {"_id": {"$in": process["calls"]}})
+                    mongo_delete_many(CALLS_COLL, {ID_KEY: {"$in": process["calls"]}})
             analyses_tmp.append(task["_id"])
             task_id = task.get("info", {}).get("id", None)
             if task_id is not None:
                 found_task_ids.append(task_id)
 
         if analyses_tmp:
-            mongo_delete_many("analysis", {"_id": {"$in": analyses_tmp}})
+            mongo_delete_many(ANALYSIS_COLL, {ID_KEY: {"$in": analyses_tmp}})
             if found_task_ids:
-                for hook in hooks[mongo_delete_data]["analysis"]:
+                for hook in hooks[mongo_delete_data][ANALYSIS_COLL]:
                     hook(found_task_ids)
     except Exception as e:
         log.error(e, exc_info=True)
