@@ -53,6 +53,7 @@ from lib.cuckoo.core.database import TASK_FAILED_ANALYSIS, TASK_RUNNING, Databas
 from lib.cuckoo.core.log import init_logger
 from lib.cuckoo.core.plugins import import_package, import_plugin, list_plugins
 from lib.cuckoo.core.rooter import rooter, socks5s, vpns
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, FILES_COLL, INFO_ID_KEY, TASK_IDS_KEY
 
 log = logging.getLogger()
 
@@ -117,7 +118,7 @@ def check_webgui_mongo():
         # Create an index based on the info.id dict key. Increases overall scalability
         # with large amounts of data.
         # Note: Silently ignores the creation if the index already exists.
-        mongo_create_index("analysis", "info.id", name="info.id_1")
+        mongo_create_index(ANALYSIS_COLL, INFO_ID_KEY, name="info.id_1")
         # mongo_create_index([("target.file.sha256", TEXT)], name="target_sha256")
         # We performs a lot of SHA256 hash lookup so we need this index
         # mongo_create_index(
@@ -125,7 +126,7 @@ def check_webgui_mongo():
         #     [("target.file.sha256", TEXT), ("dropped.sha256", TEXT), ("procdump.sha256", TEXT), ("CAPE.payloads.sha256", TEXT)],
         #     name="ALL_SHA256",
         # )
-        mongo_create_index("files", [("_task_ids", 1)])
+        mongo_create_index(FILES_COLL, [(TASK_IDS_KEY, 1)])
 
     elif repconf.elasticsearchdb.enabled:
         # ToDo add check

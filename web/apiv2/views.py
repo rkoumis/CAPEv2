@@ -98,6 +98,7 @@ if reporting_conf.compression.compressiontool.strip() == "7zip":
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_delete_data, mongo_find, mongo_find_one, mongo_find_one_and_update
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
 
 es_as_db = False
 if repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
@@ -900,8 +901,8 @@ def tasks_view(request, task_id):
 
     if repconf.mongodb.enabled:
         rtmp = mongo_find_one(
-            "analysis",
-            {"info.id": int(task.id)},
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task.id)},
             {
                 "info": 1,
                 "virustotal_summary": 1,
@@ -916,9 +917,9 @@ def tasks_view(request, task_id):
                 "suri_http_cnt": 1,
                 "suri_file_cnt": 1,
                 "trid": 1,
-                "_id": 0,
+                ID_KEY: 0,
             },
-            sort=[("_id", -1)],
+            sort=[(ID_KEY, -1)],
         )
 
     rtmp = None
@@ -1303,7 +1304,7 @@ def tasks_iocs(request, task_id, detail=None):
 
     buf = {}
     if repconf.mongodb.get("enabled") and not buf:
-        buf = mongo_find_one("analysis", {"info.id": int(task_id)}, {"behavior.calls": 0})
+        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"behavior.calls": 0})
     if es_as_db and not buf:
         tmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
         if tmp:
@@ -1749,9 +1750,9 @@ def tasks_rollingsuri(request, window=60):
     dummy_id = ObjectId.from_datetime(gen_time)
     result = list(
         mongo_find(
-            "analysis",
-            {"suricata.alerts": {"$exists": True}, "_id": {"$gte": dummy_id}},
-            {"suricata.alerts": 1, "info.id": 1},
+            ANALYSIS_COLL,
+            {"suricata.alerts": {"$exists": True}, ID_KEY: {"$gte": dummy_id}},
+            {"suricata.alerts": 1, INFO_ID_KEY: 1},
         )
     )
     resp = []
@@ -1781,21 +1782,21 @@ def tasks_rollingshrike(request, window=60, msgfilter=None):
     dummy_id = ObjectId.from_datetime(gen_time)
     if msgfilter:
         result = mongo_find(
-            "analysis",
+            ANALYSIS_COLL,
             {
                 "info.shrike_url": {"$exists": True, "$ne": None},
-                "_id": {"$gte": dummy_id},
+                ID_KEY: {"$gte": dummy_id},
                 "info.shrike_msg": {"$regex": msgfilter, "$options": "-1"},
             },
-            {"info.id": 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
-            sort=[("_id", -1)],
+            {INFO_ID_KEY: 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
+            sort=[(ID_KEY, -1)],
         )
     else:
         result = mongo_find(
-            "analysis",
-            {"info.shrike_url": {"$exists": True, "$ne": None}, "_id": {"$gte": dummy_id}},
-            {"info.id": 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
-            sort=[("_id", -1)],
+            ANALYSIS_COLL,
+            {"info.shrike_url": {"$exists": True, "$ne": None}, ID_KEY: {"$gte": dummy_id}},
+            {INFO_ID_KEY: 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
+            sort=[(ID_KEY, -1)],
         )
 
     resp = []
@@ -2213,7 +2214,7 @@ def tasks_config(request, task_id, cape_name=False):
 
     buf = {}
     if repconf.mongodb.get("enabled"):
-        buf = mongo_find_one("analysis", {"info.id": int(task_id)}, {"CAPE.configs": 1}, sort=[("_id", -1)])
+        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"CAPE.configs": 1}, sort=[(ID_KEY, -1)])
     if es_as_db and not buf:
         tmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
         if len(tmp) > 1:
@@ -2259,7 +2260,7 @@ def post_processing(request, category, task_id):
         content = json.loads(content)
         if not content:
             return Response({"error": True, "msg": "Missed content data or category"})
-        _ = mongo_find_one_and_update("analysis", {"info.id": int(task_id)}, {"$set": {category: content}})
+        _ = mongo_find_one_and_update(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"$set": {category: content}})
         resp = {"error": False, "msg": "Added under the key {}".format(category)}
     else:
         resp = {"error": True, "msg": "Missed content data or category"}

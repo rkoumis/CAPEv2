@@ -43,6 +43,7 @@ log = logging.getLogger(__name__)
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_find_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
 
 if repconf.elasticsearchdb.enabled:
     from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index
@@ -303,7 +304,7 @@ def static_config_lookup(file_path, sha256=False):
 
     if repconf.mongodb.enabled:
         document_dict = mongo_find_one(
-            "analysis", {"target.file.sha256": sha256}, {"CAPE.configs": 1, "info.id": 1, "_id": 0}, sort=[("_id", -1)]
+            ANALYSIS_COLL, {"target.file.sha256": sha256}, {"CAPE.configs": 1, INFO_ID_KEY: 1, ID_KEY: 0}, sort=[(ID_KEY, -1)]
         )
     elif repconf.elasticsearchdb.enabled:
         document_dict = es.search(

@@ -141,6 +141,7 @@ if enabledconf["mongodb"]:
     from bson.objectid import ObjectId
 
     from dev_utils.mongodb import mongo_aggregate, mongo_delete_data, mongo_find, mongo_find_one, mongo_update_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, FILE_KEY, FILE_REF_KEY, ID_KEY, INFO, INFO_ID_KEY
 
 es_as_db = False
 essearch = False
@@ -227,10 +228,10 @@ def get_analysis_info(db, id=-1, task=None):
 
     if enabledconf["mongodb"]:
         rtmp = mongo_find_one(
-            "analysis",
-            {"info.id": int(new["id"])},
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(new["id"])},
             {
-                "info": 1,
+                INFO: 1,
                 "target.file.virustotal.summary": 1,
                 "url.virustotal.summary": 1,
                 "malscore": 1,
@@ -244,9 +245,9 @@ def get_analysis_info(db, id=-1, task=None):
                 "suri_http_cnt": 1,
                 "suri_file_cnt": 1,
                 "trid": 1,
-                "_id": 0,
+                ID_KEY: 0,
             },
-            sort=[("_id", -1)],
+            sort=[(ID_KEY, -1)],
         )
 
     if es_as_db:
@@ -600,16 +601,16 @@ def load_files(request, task_id, category):
         if enabledconf["mongodb"]:
             if category in ("behavior", "debugger", "strace"):
                 data = mongo_find_one(
-                    "analysis",
-                    {"info.id": int(task_id)},
-                    {"behavior.processes": 1, "behavior.processtree": 1, "detections2pid": 1, "info.tlp": 1, "_id": 0},
+                    ANALYSIS_COLL,
+                    {INFO_ID_KEY: int(task_id)},
+                    {"behavior.processes": 1, "behavior.processtree": 1, "detections2pid": 1, "info.tlp": 1, ID_KEY: 0},
                 )
                 if category == "debugger":
                     data["debugger"] = data["behavior"]
                 if category == "strace":
                     data["strace"] = data["behavior"]
             elif category == "tracee":
-                data = mongo_find_one("analysis", {"info.id": int(task_id)}, {category: 1, "info.tlp": 1, "_id": 0})
+                data = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {category: 1, "info.tlp": 1, ID_KEY: 0})
                 tmp = data["tracee"]
                 data["tracee"] = {}
                 data["tracee"]["rawData"] = tmp
@@ -683,12 +684,12 @@ def load_files(request, task_id, category):
                 ]
             elif category == "network":
                 data = mongo_find_one(
-                    "analysis",
-                    {"info.id": int(task_id)},
-                    {category: 1, "info.tlp": 1, "cif": 1, "suricata": 1, "pcapng": 1, "_id": 0},
+                    ANALYSIS_COLL,
+                    {INFO_ID_KEY: int(task_id)},
+                    {category: 1, "info.tlp": 1, "cif": 1, "suricata": 1, "pcapng": 1, ID_KEY: 0},
                 )
             else:
-                data = mongo_find_one("analysis", {"info.id": int(task_id)}, {category: 1, "info.tlp": 1, "_id": 0})
+                data = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {category: 1, "info.tlp": 1, ID_KEY: 0})
         elif enabledconf["elasticsearchdb"]:
             if category in ("behavior", "debugger"):
                 data = elastic_handler.search(
@@ -785,9 +786,9 @@ def fetch_signature_call_data(task_id, requested_calls):
     if enabledconf["mongodb"]:
         # First, get the list of ObjectID's for call chunks for each process.
         process_data = mongo_find_one(
-            "analysis",
-            {"info.id": task_id},
-            {"behavior.processes.process_id": 1, "behavior.processes.calls": 1, "_id": 0},
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: task_id},
+            {"behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
         )
     elif es_as_db:
         process_data = es.search(
@@ -811,9 +812,9 @@ def fetch_signature_call_data(task_id, requested_calls):
                 chunk_id = process_data_by_pid[pid][chunk_idx]
                 if enabledconf["mongodb"]:
                     call_data = mongo_find_one(
-                        "calls",
+                        CALLS_COLL,
                         {"_id": chunk_id},
-                        {"calls": 1, "_id": 0},
+                        {"calls": 1, ID_KEY: 0},
                     )
                 elif es_as_db:
                     call_data = es.search(
@@ -867,9 +868,9 @@ def chunk(request, task_id, pid, pagenum):
     if is_ajax:
         if enabledconf["mongodb"]:
             record = mongo_find_one(
-                "analysis",
-                {"info.id": int(task_id), "behavior.processes.process_id": pid},
-                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, "_id": 0},
+                ANALYSIS_COLL,
+                {INFO_ID_KEY: int(task_id), "behavior.processes.process_id": pid},
+                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
             )
 
         if es_as_db:
@@ -898,7 +899,7 @@ def chunk(request, task_id, pid, pagenum):
         if pagenum >= 0 and pagenum < len(process["calls"]):
             objectid = process["calls"][pagenum]
             if enabledconf["mongodb"]:
-                chunk = mongo_find_one("calls", {"_id": ObjectId(objectid)})
+                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: ObjectId(objectid)})
             if es_as_db:
                 chunk = es.search(index=get_calls_index(), body={"query": {"match": {"_id": objectid}}})["hits"]["hits"][0][
                     "_source"
@@ -929,9 +930,9 @@ def filtered_chunk(request, task_id, pid, category, apilist, caller, tid):
         # Search calls related to your PID.
         if enabledconf["mongodb"]:
             record = mongo_find_one(
-                "analysis",
-                {"info.id": int(task_id), "behavior.processes.process_id": int(pid)},
-                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, "_id": 0},
+                ANALYSIS_COLL,
+                {INFO_ID_KEY: int(task_id), "behavior.processes.process_id": int(pid)},
+                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
             )
         if es_as_db:
             record = es.search(
@@ -970,7 +971,7 @@ def filtered_chunk(request, task_id, pid, category, apilist, caller, tid):
         # Populate dict, fetching data from all calls and selecting only appropriate category/APIs.
         for call in process["calls"]:
             if enabledconf["mongodb"]:
-                chunk = mongo_find_one("calls", {"_id": call})
+                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: call})
             if es_as_db:
                 chunk = es.search(index=get_calls_index(), body={"query": {"match": {"_id": call}}})["hits"]["hits"][0]["_source"]
             for call in chunk["calls"]:
@@ -1189,10 +1190,10 @@ def gen_moloch_from_antivirus(virustotal):
 def antivirus(request, task_id):
     if enabledconf["mongodb"]:
         rtmp = mongo_find_one(
-            "analysis",
-            {"info.id": int(task_id)},
-            {"target.file.virustotal": 1, "url.virustotal": 1, "info.category": 1, "_id": 0},
-            sort=[("_id", -1)],
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task_id)},
+            {"target.file.virustotal": 1, "url.virustotal": 1, "info.category": 1, ID_KEY: 0},
+            sort=[(ID_KEY, -1)],
         )
     elif es_as_db:
         rtmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["virustotal", "info.category"])[
@@ -1230,7 +1231,7 @@ def antivirus(request, task_id):
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def surialert(request, task_id):
     if enabledconf["mongodb"]:
-        report = mongo_find_one("analysis", {"info.id": int(task_id)}, {"suricata.alerts": 1, "_id": 0}, sort=[("_id", -1)])
+        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.alerts": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
     elif es_as_db:
         report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.alerts"])["hits"][
             "hits"
@@ -1260,10 +1261,10 @@ def surialert(request, task_id):
 def shrike(request, task_id):
     if enabledconf["mongodb"]:
         shrike = mongo_find_one(
-            "analysis",
-            {"info.id": int(task_id)},
-            {"info.shrike_url": 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_refer": 1, "_id": 0},
-            sort=[("_id", -1)],
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task_id)},
+            {"info.shrike_url": 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_refer": 1, ID_KEY: 0},
+            sort=[(ID_KEY, -1)],
         )
     elif es_as_db:
         shrike = es.search(
@@ -1288,7 +1289,7 @@ def shrike(request, task_id):
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def surihttp(request, task_id):
     if enabledconf["mongodb"]:
-        report = mongo_find_one("analysis", {"info.id": int(task_id)}, {"suricata.http": 1, "_id": 0}, sort=[("_id", -1)])
+        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.http": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
     elif es_as_db:
         report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.http"])["hits"][
             "hits"
@@ -1318,7 +1319,7 @@ def surihttp(request, task_id):
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def suritls(request, task_id):
     if enabledconf["mongodb"]:
-        report = mongo_find_one("analysis", {"info.id": int(task_id)}, {"suricata.tls": 1, "_id": 0}, sort=[("_id", -1)])
+        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.tls": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
     elif es_as_db:
         report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.tls"])["hits"][
             "hits"
@@ -1349,7 +1350,7 @@ def suritls(request, task_id):
 def surifiles(request, task_id):
     if enabledconf["mongodb"]:
         report = mongo_find_one(
-            "analysis", {"info.id": int(task_id)}, {"info.id": 1, "suricata.files": 1, "_id": 0}, sort=[("_id", -1)]
+            ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {INFO_ID_KEY: 1, "suricata.files": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)]
         )
     elif es_as_db:
         report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.files"])["hits"][
@@ -1421,7 +1422,7 @@ def search_behavior(request, task_id):
 
         # Fetch anaylsis report
         if enabledconf["mongodb"]:
-            record = mongo_find_one("analysis", {"info.id": int(task_id)}, {"behavior.processes": 1, "_id": 0})
+            record = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"behavior.processes": 1, ID_KEY: 0})
         if es_as_db:
             esquery = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]
             esidx = esquery["_index"]
@@ -1437,7 +1438,7 @@ def search_behavior(request, task_id):
             process_results = []
 
             if enabledconf["mongodb"]:
-                chunks = mongo_find("calls", {"_id": {"$in": process["calls"]}})
+                chunks = mongo_find(CALLS_COLL, {ID_KEY: {"$in": process["calls"]}})
             if es_as_db:
                 # I don't believe ES has a similar function to MongoDB's $in
                 # so we'll just iterate the call list and query appropriately
@@ -1500,16 +1501,16 @@ def report(request, task_id):
     report = {}
     if enabledconf["mongodb"]:
         report = mongo_find_one(
-            "analysis",
-            {"info.id": int(task_id)},
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task_id)},
             {"dropped": 0, "CAPE.payloads": 0, "procdump": 0, "procmemory": 0, "behavior.processes": 0, "network": 0, "memory": 0},
-            sort=[("_id", -1)],
+            sort=[(ID_KEY, -1)],
         )
         network_report = mongo_find_one(
-            "analysis",
-            {"info.id": int(task_id)},
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task_id)},
             {"network.domains": 1, "network.dns": 1, "network.hosts": 1},
-            sort=[("_id", -1)],
+            sort=[(ID_KEY, -1)],
         )
         report = split_signature_calls(report)
 
@@ -1546,15 +1547,15 @@ def report(request, task_id):
             try:
                 report[value] = list(
                     mongo_aggregate(
-                        "analysis",
+                        ANALYSIS_COLL,
                         [
-                            {"$match": {"info.id": int(task_id)}},
+                            {"$match": {INFO_ID_KEY: int(task_id)}},
                             {
                                 "$project": {
-                                    "_id": 0,
+                                    ID_KEY: 0,
                                     f"{value}_size": {
                                         "$add": [
-                                            {"$size": {"$ifNull": [f"${key}.{subkey}", []]}} for subkey in ("sha256", "file_ref")
+                                            {"$size": {"$ifNull": [f"${key}.{subkey}", []]}} for subkey in (FILE_KEY, FILE_REF_KEY)
                                         ]
                                     },
                                 },
@@ -1577,7 +1578,7 @@ def report(request, task_id):
 
     try:
         if enabledconf["mongodb"]:
-            tmp_data = list(mongo_find("analysis", {"info.id": int(task_id), "memory": {"$exists": True}}))
+            tmp_data = list(mongo_find(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id), "memory": {"$exists": True}}))
             if tmp_data:
                 report["memory"] = tmp_data[0]["_id"] or 0
         elif es_as_db:
@@ -2016,7 +2017,7 @@ def procdump(request, task_id, process_id, start, end, zipped=False):
     tmp_file_path = None
     response = False
     if enabledconf["mongodb"]:
-        analysis = mongo_find_one("analysis", {"info.id": int(task_id)}, {"procmemory": 1, "_id": 0}, sort=[("_id", -1)])
+        analysis = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"procmemory": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
     if es_as_db:
         analysis = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]["_source"]
 
@@ -2341,10 +2342,10 @@ def pcapstream(request, task_id, conntuple):
 
     if enabledconf["mongodb"]:
         conndata = mongo_find_one(
-            "analysis",
-            {"info.id": int(task_id)},
-            {"network.sorted.tcp": 1, "network.sorted.udp": 1, "network.sorted_pcap_sha256": 1, "_id": 0},
-            sort=[("_id", -1)],
+            ANALYSIS_COLL,
+            {INFO_ID_KEY: int(task_id)},
+            {"network.sorted.tcp": 1, "network.sorted.udp": 1, "network.sorted_pcap_sha256": 1, ID_KEY: 0},
+            sort=[(ID_KEY, -1)],
         )
 
     if es_as_db:
@@ -2390,7 +2391,9 @@ def comments(request, task_id):
             return render(request, "error.html", {"error": "No comment provided."})
 
         if enabledconf["mongodb"]:
-            report = mongo_find_one("analysis", {"info.id": int(task_id)}, {"info.comments": 1, "_id": 0}, sort=[("_id", -1)])
+            report = mongo_find_one(
+                ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"info.comments": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)]
+            )
         if es_as_db:
             query = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]
             report = query["_source"]
@@ -2415,7 +2418,7 @@ def comments(request, task_id):
         buf["Status"] = "posted"
         curcomments.insert(0, buf)
         if enabledconf["mongodb"]:
-            mongo_update_one("analysis", {"info.id": int(task_id)}, {"$set": {"info.comments": curcomments}})
+            mongo_update_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"$set": {"info.comments": curcomments}})
         if es_as_db:
             es.update(index=esidx, id=esid, body={"doc": {"info": {"comments": curcomments}}})
         return redirect("report", task_id=task_id)
@@ -2586,7 +2589,7 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
         if not details:
             details = {"msg": "No results"}
     if details:
-        buf = mongo_find_one("analysis", {"info.id": int(task_id)}, {"_id": 1, category: 1})
+        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {ID_KEY: 1, category: 1})
 
         servicedata = {}
         if category == "CAPE":
@@ -2615,7 +2618,7 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
                     servicedata.setdefault(service, details)
 
         if servicedata:
-            mongo_update_one("analysis", {"_id": ObjectId(buf["_id"])}, {"$set": {category: servicedata}})
+            mongo_update_one(ANALYSIS_COLL, {ID_KEY: ObjectId(buf[ID_KEY])}, {"$set": {category: servicedata}})
         del details
 
     return redirect("report", task_id=task_id)

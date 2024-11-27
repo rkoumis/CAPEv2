@@ -59,6 +59,7 @@ if repconf.mongodb.enabled:
     from bson.objectid import ObjectId
 
     from dev_utils.mongodb import mongo_find, mongo_find_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, ID_KEY, INFO_ID_KEY
 
 if repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
     from elasticsearch.exceptions import RequestError as ESRequestError
@@ -389,11 +390,11 @@ def autoprocess(
 
 def _load_report(task_id: int):
     if repconf.mongodb.enabled:
-        analysis = mongo_find_one("analysis", {"info.id": task_id}, sort=[("_id", -1)])
+        analysis = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: task_id}, sort=[(ID_KEY, -1)])
         for process in analysis.get("behavior", {}).get("processes", []):
             calls = [ObjectId(call) for call in process["calls"]]
             process["calls"] = []
-            for call in mongo_find("calls", {"_id": {"$in": calls}}, sort=[("_id", 1)]) or []:
+            for call in mongo_find(CALLS_COLL, {ID_KEY: {"$in": calls}}, sort=[(ID_KEY, 1)]) or []:
                 process["calls"] += call["calls"]
         return analysis
 
