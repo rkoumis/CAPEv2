@@ -1716,6 +1716,23 @@ files = [
 ]
 
 [[package]]
+name = "mongoengine"
+version = "0.29.1"
+description = "MongoEngine is a Python Object-Document Mapper for working with MongoDB."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mongoengine-0.29.1-py3-none-any.whl", hash = "sha256:9302ec407dd60f47f62cc07684d9f6cac87f1e93283c54203851788104d33df4"},
+    {file = "mongoengine-0.29.1.tar.gz", hash = "sha256:3b43abaf2d5f0b7d39efc2b7d9e78f4d4a5dc7ce92b9889ba81a5a9b8dee3cf3"},
+]
+
+[package.dependencies]
+pymongo = ">=3.4,<5.0"
+
+[package.extras]
+test = ["Pillow (>=7.0.0)", "blinker", "coverage", "pytest", "pytest-cov"]
+
+[[package]]
 name = "mongomock"
 version = "4.3.0"
 description = "Fake pymongo stub for testing simple MongoDB-dependent code"
@@ -4111,4 +4128,4 @@ maco = ["maco"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <4.0"
-content-hash = "3567348aed704df1cf4b1dd386da69a9b8448ef7a0ece0f7fe56c818de83d02d"
+content-hash = "d80c2c2c77e9e2230ff203c340e78f72f828b6778fd8308700cd64e045933afb"
