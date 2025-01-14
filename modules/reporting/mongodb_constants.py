@@ -1,5 +1,7 @@
 """Constants for MongoDB"""
 
+DB_ALIAS = "cuckoo"
+
 # Collections:
 
 ANALYSIS_COLL = "analysis"

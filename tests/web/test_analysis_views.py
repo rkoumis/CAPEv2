@@ -3,12 +3,13 @@ import random
 from unittest import mock
 
 import mongomock
-import pymongo
 import pytest
 from django.test import SimpleTestCase
+from mongoengine import connect, disconnect, get_connection
 
 from lib.cuckoo.common.config import ConfigMeta
-from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, DB_ALIAS
+from modules.reporting.mongodb_types import Calls
 
 TEST_DB_NAME = "cuckoo_test"
 
@@ -23,11 +24,12 @@ def mongodb_enabled(custom_conf_path: pathlib.Path):
 
 @pytest.fixture
 def mongodb_mock_client(request):
-    with mongomock.patch(servers=(("127.0.0.1", 27017),)):
-        client = pymongo.MongoClient(host=f"mongodb://127.0.0.1/{TEST_DB_NAME}")
-        request.instance.mongo_client = client
-        with mock.patch("dev_utils.mongodb.conn", new=client):
-            yield
+    connect(db=TEST_DB_NAME, host=f"mongodb://127.0.0.1/{TEST_DB_NAME}", alias=DB_ALIAS, mongo_client_class=mongomock.MongoClient)
+    conn = get_connection(alias=DB_ALIAS)
+    with mock.patch("dev_utils.mongodb.conn", new=conn):
+        request.instance.mongo_client = conn
+        yield
+        disconnect(alias=DB_ALIAS)
 
 
 @pytest.mark.usefixtures("mongodb_enabled", "db", "mongodb_mock_client")
@@ -79,10 +81,10 @@ class TestAnalysisViews(SimpleTestCase):
             },
         }
         database = self.mongo_client[TEST_DB_NAME]
-        calls_coll = database[CALLS_COLL]
-        call = calls_coll.insert_one(calls)
+        call = Calls(**calls)
+        call.save()
         analysis_coll = database[ANALYSIS_COLL]
-        analysis["behavior"]["processes"][0]["calls"] = [call.inserted_id]
+        analysis["behavior"]["processes"][0]["calls"] = [call.id]
         analysis_coll.insert_one(analysis)
         chunk_page = self.client.get(f"/analysis/chunk/{task_id}/{pid}/{chunk}/", headers={"X-Requested-With": "XMLHttpRequest"})
         self.assertEqual(200, chunk_page.status_code, str(chunk_page))

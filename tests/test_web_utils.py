@@ -12,11 +12,12 @@ import httpretty
 import mongomock
 import pymongo
 import pytest
+from mongoengine import connect, disconnect
 
 from lib.cuckoo.common.config import ConfigMeta
 from lib.cuckoo.common.path_utils import path_delete, path_write_file
 from lib.cuckoo.common.web_utils import _download_file, force_int, get_file_content, parse_request_arguments
-from modules.reporting.mongodb_constants import ANALYSIS_COLL
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, DB_ALIAS
 
 TEST_DB_NAME = "cuckoo_test_db"
 
@@ -33,8 +34,10 @@ def mongodb_enabled(custom_conf_path: pathlib.Path):
 def mongodb_mock_client():
     with mongomock.patch(servers=(("127.0.0.1", 27017),)):
         client = pymongo.MongoClient(host=f"mongodb://127.0.0.1/{TEST_DB_NAME}")
+        connect(TEST_DB_NAME, alias=DB_ALIAS, host="mongodb://localhost", mongo_client_class=mongomock.MongoClient)
         with mock.patch("dev_utils.mongodb.conn", new=client):
             yield client
+            disconnect(alias=DB_ALIAS)
 
 
 @pytest.fixture

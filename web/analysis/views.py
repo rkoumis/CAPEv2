@@ -142,6 +142,7 @@ if enabledconf["mongodb"]:
 
     from dev_utils.mongodb import mongo_aggregate, mongo_delete_data, mongo_find, mongo_find_one, mongo_update_one
     from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, FILE_KEY, FILE_REF_KEY, ID_KEY, INFO, INFO_ID_KEY
+    from modules.reporting.mongodb_types import Calls
 
 es_as_db = False
 essearch = False
@@ -899,7 +900,7 @@ def chunk(request, task_id, pid, pagenum):
         if pagenum >= 0 and pagenum < len(process["calls"]):
             objectid = process["calls"][pagenum]
             if enabledconf["mongodb"]:
-                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: ObjectId(objectid)})
+                chunk = Calls.objects.get(id=objectid)
             if es_as_db:
                 chunk = es.search(index=get_calls_index(), body={"query": {"match": {"_id": objectid}}})["hits"]["hits"][0][
                     "_source"
