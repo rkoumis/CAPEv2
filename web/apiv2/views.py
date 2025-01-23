@@ -14,7 +14,6 @@ from wsgiref.util import FileWrapper
 
 import pyzipper
 import requests
-from bson.objectid import ObjectId
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import StreamingHttpResponse
@@ -46,7 +45,6 @@ from lib.cuckoo.common.web_utils import (
     download_from_vt,
     force_int,
     parse_request_arguments,
-    perform_search,
     process_new_dlnexec_task,
     process_new_task_files,
     search_term_map,
@@ -54,6 +52,7 @@ from lib.cuckoo.common.web_utils import (
     validate_task,
 )
 from lib.cuckoo.core.database import TASK_RECOVERED, TASK_RUNNING, Database, Task, _Database
+from lib.cuckoo.core import reporting
 from lib.cuckoo.core.rooter import _load_socks5_operational, vpns
 
 try:
@@ -96,18 +95,8 @@ if reporting_conf.compression.compressiontool.strip() == "7zip":
     SEVENZIP_PATH = reporting_conf.compression.sevenzippath.strip() or "/usr/bin/7z"
 
 
-if repconf.mongodb.enabled:
-    from dev_utils.mongodb import mongo_delete_data, mongo_find, mongo_find_one, mongo_find_one_and_update
-    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
-
-es_as_db = False
-if repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_query_by_info_id
-
-    es_as_db = True
-    es = elastic_handler
-
 db: _Database = Database()
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 
 
 # Conditional decorator for web authentication
@@ -734,7 +723,7 @@ def ext_tasks_search(request):
             del tmp_value
 
         try:
-            records = perform_search(term, value, user_id=request.user.id, privs=request.user.is_staff, web=False)
+            records = reports.search_by_user(term, value, user_id=request.user.id, privs=request.user.is_staff)
         except ValueError:
             if not term:
                 resp = {"error": True, "error_value": "No option provided."}
@@ -745,11 +734,7 @@ def ext_tasks_search(request):
 
         if records:
             for results in records:
-                if repconf.mongodb.enabled:
-                    return_data.append(results)
-                if es_as_db:
-                    return_data.append(results["_source"])
-
+                return_data.append(results)
             resp = {"error": False, "data": return_data}
         else:
             if not return_data:
@@ -899,57 +884,7 @@ def tasks_view(request, task_id):
                     sample = db.view_sample(task.sample_id)
                     entry["sample"] = sample.to_dict()
 
-    if repconf.mongodb.enabled:
-        rtmp = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(task.id)},
-            {
-                "info": 1,
-                "virustotal_summary": 1,
-                "malscore": 1,
-                "detections": 1,
-                "network.pcap_sha256": 1,
-                "mlist_cnt": 1,
-                "f_mlist_cnt": 1,
-                "target.file.clamav": 1,
-                "suri_tls_cnt": 1,
-                "suri_alert_cnt": 1,
-                "suri_http_cnt": 1,
-                "suri_file_cnt": 1,
-                "trid": 1,
-                ID_KEY: 0,
-            },
-            sort=[(ID_KEY, -1)],
-        )
-
-    rtmp = None
-    if es_as_db:
-        rtmp = es.search(
-            index=get_analysis_index(),
-            query=get_query_by_info_id(str(task.id)),
-            _source=[
-                "info",
-                "virustotal_summary",
-                "malscore",
-                "detections",
-                "network.pcap_sha256",
-                "mlist_cnt",
-                "f_mlist_cnt",
-                "target.file.clamav",
-                "suri_tls_cnt",
-                "suri_alert_cnt",
-                "suri_http_cnt",
-                "suri_file_cnt",
-                "trid",
-            ],
-        )["hits"]["hits"]
-        if len(rtmp) > 1:
-            rtmp = rtmp[-1]["_source"]
-        elif len(rtmp) == 1:
-            rtmp = rtmp[0]["_source"]
-        else:
-            pass
-
+    rtmp = reports.summary(int(task.id))
     if rtmp:
         for keyword in (
             "detections",
@@ -1072,7 +1007,7 @@ def tasks_delete(request, task_id, status=False):
         if db.delete_task(task):
             delete_folder(os.path.join(CUCKOO_ROOT, "storage", "analyses", "%s" % task))
             if web_conf.web_reporting.get("enabled", True):
-                mongo_delete_data(task)
+                reports.delete(task)
 
             s_deleted.append(str(task))
         else:
@@ -1302,16 +1237,8 @@ def tasks_iocs(request, task_id, detail=None):
     if rtid:
         task_id = rtid
 
-    buf = {}
-    if repconf.mongodb.get("enabled") and not buf:
-        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"behavior.calls": 0})
-    if es_as_db and not buf:
-        tmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
-        if tmp:
-            buf = tmp[-1]["_source"]
-        else:
-            buf = None
-    if buf is None:
+    buf = reports.get(int(task_id))
+    if not buf:
         resp = {"error": True, "error_value": "Sample not found in database"}
         return Response(resp)
     if repconf.jsondump.get("enabled") and not buf:
@@ -1743,20 +1670,15 @@ def tasks_rollingsuri(request, window=60):
     maxwindow = apiconf.rollingsuri.get("maxwindow")
     if maxwindow > 0:
         if window > maxwindow:
-            resp = {"error": True, "error_value": "The Window You Specified is greater than the configured maximum"}
+            resp = {
+                "error": True,
+                "error_value": "The Window You Specified is greater than the configured maximum",
+            }
             return Response(resp)
 
-    gen_time = datetime.now() - timedelta(minutes=window)
-    dummy_id = ObjectId.from_datetime(gen_time)
-    result = list(
-        mongo_find(
-            ANALYSIS_COLL,
-            {"suricata.alerts": {"$exists": True}, ID_KEY: {"$gte": dummy_id}},
-            {"suricata.alerts": 1, INFO_ID_KEY: 1},
-        )
-    )
+    results = reports.recent_suricata_alerts(minutes=window)
     resp = []
-    for e in result:
+    for e in results:
         for alert in e["suricata"]["alerts"]:
             alert["id"] = e["info"]["id"]
             resp.append(alert)
@@ -2212,17 +2134,7 @@ def tasks_config(request, task_id, cape_name=False):
     if rtid:
         task_id = rtid
 
-    buf = {}
-    if repconf.mongodb.get("enabled"):
-        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"CAPE.configs": 1}, sort=[(ID_KEY, -1)])
-    if es_as_db and not buf:
-        tmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
-        if len(tmp) > 1:
-            buf = tmp[-1]["_source"]
-        elif len(tmp) == 1:
-            buf = tmp[0]["_source"]
-        else:
-            buf = None
+    buf = reports.cape_configs(int(task_id))
     if repconf.jsondump.get("enabled") and not buf:
         jfile = os.path.join(CUCKOO_ROOT, "storage", "analyses", "%s" % task_id, "reports", "report.json")
         if os.path.normpath(jfile).startswith(ANALYSIS_BASE_PATH):
@@ -2294,7 +2206,7 @@ def tasks_delete_many(request):
             if db.delete_task(task_id):
                 delete_folder(os.path.join(CUCKOO_ROOT, "storage", "analyses", "%d" % task_id))
             if delete_mongo:
-                mongo_delete_data(task_id)
+                reports.delete(task_id)
         else:
             response.setdefault(task_id, "not exists")
     response["status"] = "OK"
