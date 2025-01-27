@@ -30,6 +30,18 @@ class MongoDBReports(api.Reports):
         report = self._reports.find_one(filter=query)
         return {} if not report else report
 
+    def behavior(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "behavior.processes": 1,
+            "behavior.processtree": 1,
+            "detections2pid": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
     def delete(self, task_id: int) -> bool:
         query = {_info_id: task_id}
         rslt: pymongo.results.DeleteResult = self._reports.delete_one(filter=query)
