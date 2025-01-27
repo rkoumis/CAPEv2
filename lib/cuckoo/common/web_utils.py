@@ -578,10 +578,6 @@ def download_file(**kwargs):
         memory,
         clock,
         enforce_timeout,
-        shrike_url,
-        shrike_msg,
-        shrike_sid,
-        shrike_refer,
         unique,
         referrer,
         tlp,
@@ -738,10 +734,6 @@ def download_file(**kwargs):
             enforce_timeout=enforce_timeout,
             clock=clock,
             static=static,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
             tlp=tlp,
             tags_tasks=tags_tasks,
             route=route,
@@ -749,7 +741,6 @@ def download_file(**kwargs):
             user_id=kwargs.get("user_id"),
             username=username,
             source_url=kwargs.get("source_url", False),
-            # parent_id=kwargs.get("parent_id"),
         )
 
         try:
@@ -966,10 +957,6 @@ search_term_map = {
     "machinename": "info.machine.name",
     "machinelabel": "info.machine.label",
     "comment": "info.comments.Data",
-    "shrikemsg": "info.shrike_msg",
-    "shrikeurl": "info.shrike_url",
-    "shrikerefer": "info.shrike_refer",
-    "shrikesid": "info.shrike_sid",
     "custom": "info.custom",
     # initial binary
     "target_sha256": ("target.file.sha256", f"target.file.{FILE_REF_KEY}"),
@@ -1213,10 +1200,6 @@ def parse_request_arguments(request, keyword="POST"):
     if "1970" in clock:
         clock = datetime.now().strftime("%m-%d-%Y %H:%M:%S")
     enforce_timeout = force_bool(getattr(request, keyword).get("enforce_timeout", False))
-    shrike_url = getattr(request, keyword).get("shrike_url")
-    shrike_msg = getattr(request, keyword).get("shrike_msg")
-    shrike_sid = getattr(request, keyword).get("shrike_sid")
-    shrike_refer = getattr(request, keyword).get("shrike_refer")
     unique = force_bool(getattr(request, keyword).get("unique", False))
     tlp = getattr(request, keyword).get("tlp")
     lin_options = getattr(request, keyword).get("lin_options", "")
@@ -1245,10 +1228,6 @@ def parse_request_arguments(request, keyword="POST"):
         memory,
         clock,
         enforce_timeout,
-        shrike_url,
-        shrike_msg,
-        shrike_sid,
-        shrike_refer,
         unique,
         referrer,
         tlp,
@@ -1449,7 +1428,6 @@ def submit_task(
     enforce_timeout: bool = False,
     clock: str = None,
     tags: str = None,
-    parent_id: int = None,
     tlp: bool = None,
     distributed: bool = False,
     filename: str = "",
@@ -1475,7 +1453,6 @@ def submit_task(
             "enforce_timeout": enforce_timeout,
             "clock": clock,
             "tags": tags,
-            "parent_id": parent_id,
             "filename": filename,
         }
 
@@ -1497,7 +1474,6 @@ def submit_task(
             platform=platform,
             memory=memory,
             enforce_timeout=enforce_timeout,
-            parent_id=parent_id,
             tlp=tlp,
             filename=filename,
         )
