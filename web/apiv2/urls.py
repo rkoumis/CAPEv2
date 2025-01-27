@@ -69,7 +69,6 @@ urlpatterns = [
     re_path(r"^tasks/get/rollingshrike/(?P<window>\d+)/$", views.tasks_rollingshrike),
     re_path(r"^tasks/get/rollingshrike/(?P<window>\d+)/(?P<msgfilter>[\w$-/:-?{-~!^_`\[\]\s\x5c]+)/$", views.tasks_rollingshrike),
     re_path(r"^tasks/get/latests/(?P<hours>\d+)/$", views.tasks_latest),
-    # re_path(r"^tasks/add/(?P<category>[A-Za-z0-9]+)/(?P<task_id>\d+)/$", views.post_processing),
     re_path(r"^tasks/statistics/(?P<days>\d+)/$", views.statistics_data),
     re_path(r"^exitnodes/$", views.exit_nodes_list),
 ]
