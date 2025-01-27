@@ -2164,23 +2164,6 @@ def tasks_config(request, task_id, cape_name=False):
 
 
 @csrf_exempt
-@api_view(["POST"])
-# should be securized by checking category, this is just an example how easy to extend webgui with external tools
-def post_processing(request, category, task_id):
-    content = request.data.get("content", "")
-    if content and category:
-        content = json.loads(content)
-        if not content:
-            return Response({"error": True, "msg": "Missed content data or category"})
-        _ = mongo_find_one_and_update(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"$set": {category: content}})
-        resp = {"error": False, "msg": "Added under the key {}".format(category)}
-    else:
-        resp = {"error": True, "msg": "Missed content data or category"}
-
-    return Response(resp)
-
-
-@csrf_exempt
 @api_view(["GET"])
 def statistics_data(requests, days):
     resp = {}
