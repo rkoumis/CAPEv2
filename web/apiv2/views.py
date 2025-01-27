@@ -251,10 +251,6 @@ def tasks_create_file(request):
             memory,
             clock,
             enforce_timeout,
-            shrike_url,
-            shrike_msg,
-            shrike_sid,
-            shrike_refer,
             unique,
             referrer,
             tlp,
@@ -391,10 +387,6 @@ def tasks_create_url(request):
             memory,
             clock,
             enforce_timeout,
-            shrike_url,
-            shrike_msg,
-            shrike_sid,
-            shrike_refer,
             unique,
             referrer,
             tlp,
@@ -448,10 +440,6 @@ def tasks_create_url(request):
                 memory=memory,
                 enforce_timeout=enforce_timeout,
                 clock=clock,
-                shrike_url=shrike_url,
-                shrike_msg=shrike_msg,
-                shrike_sid=shrike_sid,
-                shrike_refer=shrike_refer,
                 route=route,
                 cape=cape,
                 tlp=tlp,
@@ -503,10 +491,6 @@ def tasks_create_dlnexec(request):
             memory,
             clock,
             enforce_timeout,
-            shrike_url,
-            shrike_msg,
-            shrike_sid,
-            shrike_refer,
             unique,
             referrer,
             tlp,
@@ -1682,55 +1666,6 @@ def tasks_rollingsuri(request, window=60):
         for alert in e["suricata"]["alerts"]:
             alert["id"] = e["info"]["id"]
             resp.append(alert)
-
-    return Response(resp)
-
-
-@csrf_exempt
-@api_view(["GET"])
-def tasks_rollingshrike(request, window=60, msgfilter=None):
-    window = int(window)
-
-    if not apiconf.rollingshrike.get("enabled"):
-        resp = {"error": True, "error_value": "Rolling Shrike API is disabled"}
-        return Response(resp)
-    maxwindow = apiconf.rollingshrike.get("maxwindow")
-    if maxwindow > 0:
-        if window > maxwindow:
-            resp = {"error": True, "error_value": "The Window You Specified is greater than the configured maximum"}
-            return Response(resp)
-
-    gen_time = datetime.now() - timedelta(minutes=window)
-    dummy_id = ObjectId.from_datetime(gen_time)
-    if msgfilter:
-        result = mongo_find(
-            ANALYSIS_COLL,
-            {
-                "info.shrike_url": {"$exists": True, "$ne": None},
-                ID_KEY: {"$gte": dummy_id},
-                "info.shrike_msg": {"$regex": msgfilter, "$options": "-1"},
-            },
-            {INFO_ID_KEY: 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
-            sort=[(ID_KEY, -1)],
-        )
-    else:
-        result = mongo_find(
-            ANALYSIS_COLL,
-            {"info.shrike_url": {"$exists": True, "$ne": None}, ID_KEY: {"$gte": dummy_id}},
-            {INFO_ID_KEY: 1, "info.shrike_msg": 1, "info.shrike_sid": 1, "info.shrike_url": 1, "info.shrike_refer": 1},
-            sort=[(ID_KEY, -1)],
-        )
-
-    resp = []
-    for e in result:
-        tmp = {}
-        tmp["id"] = e["info"]["id"]
-        tmp["shrike_msg"] = e["info"]["shrike_msg"]
-        tmp["shrike_sid"] = e["info"]["shrike_sid"]
-        tmp["shrike_url"] = e["info"]["shrike_url"]
-        if e["info"].get("shrike_refer"):
-            tmp["shrike_refer"] = e["info"]["shrike_refer"]
-        resp.append(tmp)
 
     return Response(resp)
 

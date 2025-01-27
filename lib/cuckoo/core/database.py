@@ -472,13 +472,6 @@ class Task(Base):
     guest = relationship("Guest", uselist=False, backref=backref("tasks"), cascade="save-update, delete")
     errors = relationship("Error", backref=backref("tasks"), cascade="save-update, delete")
 
-    shrike_url = Column(String(4096), nullable=True)
-    shrike_refer = Column(String(4096), nullable=True)
-    shrike_msg = Column(String(4096), nullable=True)
-    shrike_sid = Column(Integer(), nullable=True)
-
-    # To be removed - Deprecate soon, not used anymore
-    parent_id = Column(Integer(), nullable=True)
     tlp = Column(String(255), nullable=True)
 
     user_id = Column(Integer(), nullable=True)
@@ -1084,11 +1077,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         sample_parent_id=None,
         tlp=None,
         static=False,
@@ -1111,7 +1099,6 @@ class _Database:
         @param memory: toggle full memory dump.
         @param enforce_timeout: toggle full timeout execution.
         @param clock: virtual machine clock time
-        @param parent_id: parent task id
         @param sample_parent_id: original sample in case of archive
         @param static: try static extraction first
         @param tlp: TLP sharing designation
@@ -1187,11 +1174,6 @@ class _Database:
         task.platform = platform
         task.memory = bool(memory)
         task.enforce_timeout = enforce_timeout
-        task.shrike_url = shrike_url
-        task.shrike_msg = shrike_msg
-        task.shrike_sid = shrike_sid
-        task.shrike_refer = shrike_refer
-        task.parent_id = parent_id
         task.tlp = tlp
         task.route = route
         task.cape = cape
@@ -1242,11 +1224,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         sample_parent_id=None,
         tlp=None,
         static=False,
@@ -1269,7 +1246,6 @@ class _Database:
         @param memory: toggle full memory dump.
         @param enforce_timeout: toggle full timeout execution.
         @param clock: virtual machine clock time
-        @param parent_id: parent analysis id
         @param sample_parent_id: sample parent id, if archive
         @param static: try static extraction first
         @param tlp: TLP sharing designation
@@ -1305,11 +1281,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             sample_parent_id=sample_parent_id,
             tlp=tlp,
             source_url=source_url,
@@ -1444,11 +1415,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         static=False,
         source_url=False,
@@ -1618,11 +1584,6 @@ class _Database:
                     enforce_timeout=enforce_timeout,
                     tags=tags,
                     clock=clock,
-                    shrike_url=shrike_url,
-                    shrike_msg=shrike_msg,
-                    shrike_sid=shrike_sid,
-                    shrike_refer=shrike_refer,
-                    parent_id=parent_id,
                     sample_parent_id=sample_parent_id,
                     tlp=tlp,
                     source_url=source_url,
@@ -1657,11 +1618,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         user_id=0,
         username=False,
@@ -1679,11 +1635,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             tlp=tlp,
             user_id=user_id,
             username=username,
@@ -1703,11 +1654,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         static=True,
         user_id=0,
@@ -1739,10 +1685,6 @@ class _Database:
                 memory=memory,
                 enforce_timeout=enforce_timeout,
                 clock=clock,
-                shrike_url=shrike_url,
-                shrike_msg=shrike_msg,
-                shrike_sid=shrike_sid,
-                shrike_refer=shrike_refer,
                 tlp=tlp,
                 static=static,
                 sample_parent_id=sample_parent_id,
@@ -1768,11 +1710,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         route=None,
         cape=False,
@@ -1822,11 +1759,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             tlp=tlp,
             route=route,
             cape=cape,
