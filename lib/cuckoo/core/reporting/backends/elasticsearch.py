@@ -9,6 +9,9 @@ class ElasticsearchReports(api.Reports):
     def get(self, task_id: int) -> dict:
         pass
 
+    def behavior(self, task_id: int) -> dict:
+        pass
+
     def delete(self, task_id: int) -> bool:
         pass
 
