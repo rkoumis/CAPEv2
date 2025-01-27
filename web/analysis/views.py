@@ -34,6 +34,7 @@ from lib.cuckoo.common.constants import ANALYSIS_BASE_PATH, CUCKOO_ROOT
 from lib.cuckoo.common.path_utils import path_exists, path_get_size, path_mkdir, path_read_file, path_safe
 from lib.cuckoo.common.utils import delete_folder, yara_detected
 from lib.cuckoo.common.web_utils import category_all_files, my_rate_minutes, my_rate_seconds, perform_search, rateblock, statistics
+from lib.cuckoo.core import reporting
 from lib.cuckoo.core.database import TASK_PENDING, Database, Task
 from modules.reporting.report_doc import CHUNK_CALL_SIZE
 
@@ -137,22 +138,9 @@ for cfile in ("reporting", "processing", "auxiliary", "web", "distributed"):
             else:
                 enabledconf[item] = False
 
-if enabledconf["mongodb"]:
-    from bson.objectid import ObjectId
-
-    from dev_utils.mongodb import mongo_aggregate, mongo_delete_data, mongo_find, mongo_find_one, mongo_update_one
-    from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, FILE_KEY, FILE_REF_KEY, ID_KEY, INFO, INFO_ID_KEY
-
-es_as_db = False
 essearch = False
-if enabledconf["elasticsearchdb"]:
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_calls_index, get_query_by_info_id
-
-    essearch = Config("reporting").elasticsearchdb.searchonly
-    if not essearch:
-        es_as_db = True
-
-    es = elastic_handler
+if enabledconf["elasticsearchdb"] and Config("reporting").elasticsearchdb.searchonly:
+    essearch = True
 
 DISABLED_WEB = True
 # if elif else won't work here
@@ -160,6 +148,7 @@ if enabledconf["mongodb"] or enabledconf["elasticsearchdb"]:
     DISABLED_WEB = False
 
 db = Database()
+reports: reporting.api.Reports = reporting.init_reports(reporting_cfg)
 
 anon_not_viewable_func_list = (
     "file",
@@ -224,61 +213,9 @@ def get_analysis_info(db, id=-1, task=None):
         machine = os.path.basename(machine)
         new.update({"machine": machine})
 
-    rtmp = False
-
-    if enabledconf["mongodb"]:
-        rtmp = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(new["id"])},
-            {
-                INFO: 1,
-                "target.file.virustotal.summary": 1,
-                "url.virustotal.summary": 1,
-                "malscore": 1,
-                "detections": 1,
-                "network.pcap_sha256": 1,
-                "mlist_cnt": 1,
-                "f_mlist_cnt": 1,
-                "target.file.clamav": 1,
-                "suri_tls_cnt": 1,
-                "suri_alert_cnt": 1,
-                "suri_http_cnt": 1,
-                "suri_file_cnt": 1,
-                "trid": 1,
-                ID_KEY: 0,
-            },
-            sort=[(ID_KEY, -1)],
-        )
-
-    if es_as_db:
-        rtmp = es.search(
-            index=get_analysis_index(),
-            query=get_query_by_info_id(str(new["id"])),
-            _source=[
-                "info",
-                "target.file.virustotal.summary",
-                "url.virustotal.summary",
-                "malscore",
-                "detections",
-                "network.pcap_sha256",
-                "mlist_cnt",
-                "f_mlist_cnt",
-                "target.file.clamav",
-                "suri_tls_cnt",
-                "suri_alert_cnt",
-                "suri_http_cnt",
-                "suri_file_cnt",
-                "trid",
-            ],
-        )["hits"]["hits"]
-        if len(rtmp) > 1:
-            rtmp = rtmp[-1]["_source"]
-        elif len(rtmp) == 1:
-            rtmp = rtmp[0]["_source"]
-        else:
-            pass
-
+    rtmp = reports.summary(int(new["id"]))
     if rtmp:
+        # TODO swap the keyword lookups for schema-centric behaviors
         for keyword in (
             "detections",
             "mlist_cnt",
@@ -595,11 +532,7 @@ def load_files(request, task_id, category):
         # Search calls related to your PID.
         if enabledconf["mongodb"]:
             if category in ("behavior", "debugger", "strace"):
-                data = mongo_find_one(
-                    ANALYSIS_COLL,
-                    {INFO_ID_KEY: int(task_id)},
-                    {"behavior.processes": 1, "behavior.processtree": 1, "detections2pid": 1, "info.tlp": 1, ID_KEY: 0},
-                )
+                data = reports.behavior(int(task_id))
                 if category == "debugger":
                     data["debugger"] = data["behavior"]
                 if category == "strace":
@@ -2484,9 +2417,7 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
         "xlsdeobf",
         "strings",
         "floss",
-    ) and not getattr(
-        on_demand_config_mapper.get(service, {}), service
-    ).get("on_demand"):
+    ) and not getattr(on_demand_config_mapper.get(service, {}), service).get("on_demand"):
         return render(request, "error.html", {"error": "Not supported/enabled service on demand"})
 
     # Self Extracted support folder
