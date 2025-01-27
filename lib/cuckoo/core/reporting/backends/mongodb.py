@@ -7,7 +7,7 @@ import pymongo.results
 
 from lib.cuckoo.common import config
 from lib.cuckoo.common.exceptions import CuckooOperationalError
-from lib.cuckoo.core.reporting import api
+from lib.cuckoo.core.reporting import api, schema
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class MongoDBReports(api.Reports):
         # there's no well-defined representation of iocs data yet; defer to full get
         return self.get(task_id)
 
-    def summary(self, task_id: int) -> dict:
+    def summary(self, task_id: int) -> schema.Summary:
         query = {_info_id: task_id}
         projection = {
             _id: 0,
@@ -74,7 +74,7 @@ class MongoDBReports(api.Reports):
             "trid": 1,
         }
         report = self._reports.find_one(filter=query, projection=projection)
-        return {} if not report else report
+        return None if not report else schema.Summary(**report)
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         pass

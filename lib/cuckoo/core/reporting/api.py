@@ -1,3 +1,6 @@
+from lib.cuckoo.core.reporting import schema
+
+
 class Reports:
     """Interface to report backends."""
 
@@ -25,7 +28,7 @@ class Reports:
     def iocs(self, task_id: int) -> dict:
         raise NotImplementedError()
 
-    def summary(self, task_id: int) -> dict:
+    def summary(self, task_id: int) -> schema.Summary:
         raise NotImplementedError()
 
     def recent_suricata_alerts(self, minutes=60) -> list:

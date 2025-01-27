@@ -51,8 +51,8 @@ from lib.cuckoo.common.web_utils import (
     statistics,
     validate_task,
 )
-from lib.cuckoo.core.database import TASK_RECOVERED, TASK_RUNNING, Database, Task, _Database
 from lib.cuckoo.core import reporting
+from lib.cuckoo.core.database import TASK_RECOVERED, TASK_RUNNING, Database, Task, _Database
 from lib.cuckoo.core.rooter import _load_socks5_operational, vpns
 
 try:
@@ -82,6 +82,13 @@ repconf = Config("reporting")
 web_conf = Config("web")
 routing_conf = Config("routing")
 reporting_conf = Config("reporting")
+
+TEMPORARY_TO_MAKE_RUFF_HAPPY = True
+if TEMPORARY_TO_MAKE_RUFF_HAPPY:
+    from bson.objectid import ObjectId
+
+    from dev_utils.mongodb import mongo_find, mongo_find_one_and_update
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
 
 zlib_compresion = False
 if repconf.compression.enabled:
