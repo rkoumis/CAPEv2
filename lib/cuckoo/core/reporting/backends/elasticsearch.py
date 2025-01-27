@@ -1,5 +1,5 @@
 from lib.cuckoo.common import config
-from lib.cuckoo.core.reporting import api
+from lib.cuckoo.core.reporting import api, schema
 
 
 class ElasticsearchReports(api.Reports):
@@ -30,7 +30,7 @@ class ElasticsearchReports(api.Reports):
     def iocs(self, task_id: int) -> dict:
         pass
 
-    def summary(self, task_id: int) -> dict:
+    def summary(self, task_id: int) -> schema.Summary:
         pass
 
     def recent_suricata_alerts(self, minutes=60) -> list:
