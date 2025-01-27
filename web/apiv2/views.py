@@ -2120,6 +2120,7 @@ def statistics_data(requests, days):
 @api_view(["POST"])
 def tasks_delete_many(request):
     response = {}
+    # TODO make "delete_mongo" "delete_report"
     delete_mongo = request.POST.get("delete_mongo", True)
     for task_id in request.POST.get("ids", "").split(",") or []:
         task_id = int(task_id)
