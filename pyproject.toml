@@ -121,6 +121,7 @@ ignore = ["E402","E501"]
 exclude = [
     "./analyzer/linux/dbus_next",
 ]
+line-length = 132
 
 [tool.black]
 line-length = 132
