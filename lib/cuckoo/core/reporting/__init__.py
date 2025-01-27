@@ -7,7 +7,7 @@ from .backends import mongodb, elasticsearch, null
 
 class Backend(enum.Enum):
     MONGODB = enum.auto()
-    ELASTICSEARCH = enum.auto
+    ELASTICSEARCH = enum.auto()
     NONE = enum.auto()
 
 
