@@ -17,3 +17,11 @@ class Summary(BaseModel):
     suri_http_cnt: Optional[int]
     suri_file_cnt: Optional[int]
     trid: Optional[int]
+
+
+class Info(BaseModel):
+    ...
+
+
+class AnalysisConfigs(BaseModel):
+    ...

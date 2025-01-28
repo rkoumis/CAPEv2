@@ -1,15 +1,22 @@
 import logging
+from datetime import datetime, timedelta
+from typing import Optional
 
 import pymongo
 import pymongo.collection
 import pymongo.database
 import pymongo.results
+from bson.objectid import ObjectId
 
 from lib.cuckoo.common import config
 from lib.cuckoo.common.exceptions import CuckooOperationalError
 from lib.cuckoo.core.reporting import api, schema
 
 log = logging.getLogger(__name__)
+
+
+# TODO retry logic - graceful_auto_reconnect
+# TODO mongo hooks for files - normalize / denormalize / remove task references / delete unused file docs
 
 
 class MongoDBReports(api.Reports):
@@ -56,8 +63,13 @@ class MongoDBReports(api.Reports):
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         pass
 
-    def cape_configs(self, task_id: int) -> dict:
-        pass
+    def cape_configs(self, task_id: int) -> Optional[schema.AnalysisConfigs]:
+        query = {_info_id: task_id}
+        projection = {
+            "CAPE.configs": 1,
+        }
+        result = self._reports.find_one(filter=query, projection=projection)
+        return None if not result else schema.AnalysisConfigs(**result)
 
     def detections_by_sha256(self, sha256: str) -> dict:
         pass
@@ -66,7 +78,7 @@ class MongoDBReports(api.Reports):
         # there's no well-defined representation of iocs data yet; defer to full get
         return self.get(task_id)
 
-    def summary(self, task_id: int) -> schema.Summary:
+    def summary(self, task_id: int) -> Optional[schema.Summary]:
         query = {_info_id: task_id}
         projection = {
             _id: 0,
@@ -89,7 +101,15 @@ class MongoDBReports(api.Reports):
         return None if not report else schema.Summary(**report)
 
     def recent_suricata_alerts(self, minutes=60) -> list:
-        pass
+        gen_time = datetime.now() - timedelta(minutes=minutes)
+        dummy_id = ObjectId.from_datetime(gen_time)
+        result = list(
+            self._reports.find(
+                filter={"suricata.alerts": {"$exists": True}, "_id": {"$gte": dummy_id}},
+                projection={"suricata.alerts": 1, "info.id": 1},
+            )
+        )
+        return result
 
 
 # Temporarily duped with mongodb_constants
