@@ -68,6 +68,17 @@ except ImportError:
     print("Missed dependency: poetry install")
     HAVE_PYZIPPER = False
 
+TEMPORARY_TO_MAKE_RUFF_HAPPY = True
+if TEMPORARY_TO_MAKE_RUFF_HAPPY:
+    from bson.objectid import ObjectId
+
+    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_calls_index, get_query_by_info_id
+    from dev_utils.mongodb import mongo_aggregate, mongo_delete_data, mongo_find, mongo_find_one, mongo_update_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, FILE_KEY, FILE_REF_KEY, ID_KEY, INFO_ID_KEY
+
+    es_as_db = False
+    es = elastic_handler
+
 TASK_LIMIT = 25
 
 processing_cfg = Config("processing")
@@ -2409,15 +2420,9 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
     # 4. reload page
     """
 
-    if service not in (
-        "bingraph",
-        "flare_capa",
-        "vba2graph",
-        "virustotal",
-        "xlsdeobf",
-        "strings",
-        "floss",
-    ) and not getattr(on_demand_config_mapper.get(service, {}), service).get("on_demand"):
+    if service not in ("bingraph", "flare_capa", "vba2graph", "virustotal", "xlsdeobf", "strings", "floss",) and not getattr(
+        on_demand_config_mapper.get(service, {}), service
+    ).get("on_demand"):
         return render(request, "error.html", {"error": "Not supported/enabled service on demand"})
 
     # Self Extracted support folder
