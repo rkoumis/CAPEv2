@@ -153,13 +153,12 @@ essearch = False
 if enabledconf["elasticsearchdb"] and Config("reporting").elasticsearchdb.searchonly:
     essearch = True
 
-DISABLED_WEB = True
-# if elif else won't work here
-if enabledconf["mongodb"] or enabledconf["elasticsearchdb"]:
-    DISABLED_WEB = False
-
 db = Database()
 reports: reporting.api.Reports = reporting.init_reports(reporting_cfg)
+
+DISABLED_WEB = True
+if reporting.enabled():
+    DISABLED_WEB = False
 
 anon_not_viewable_func_list = (
     "file",
