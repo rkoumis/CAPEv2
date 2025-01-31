@@ -38,3 +38,18 @@ class Reports:
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         raise NotImplementedError()
+
+    def dropped(self, task_id: int) -> dict:
+        raise NotImplementedError()
+
+    def memory(self, task_id: int) -> dict:
+        raise NotImplementedError()
+
+    def network(self, task_id: int) -> dict:
+        raise NotImplementedError()
+
+    def procdump(self, task_id: int) -> dict:
+        raise NotImplementedError()
+
+    def procmemory(self, task_id: int) -> dict:
+        raise NotImplementedError()
