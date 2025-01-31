@@ -98,7 +98,14 @@ class MongoDBReports(api.Reports):
             "trid": 1,
         }
         report = self._reports.find_one(filter=query, projection=projection)
-        return None if not report else schema.Summary(**report)
+        if report:
+            # Rearrange some data for populating the Summary object
+            report["vt_file_summary"] = report.get("target", {}).get("file", {}).get("virustotal", {}).get("summary")
+            report["vt_url_summary"] = report.get("url", {}).get("virustotal", {}).get("summary")
+            report["pcap_sha256"] = report.get("network", {}).get("pcap_sha256")
+            report["clamav"] = report.get("target", {}).get("file", {}).get("clamav")
+            return schema.Summary(**report)
+        return None
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         gen_time = datetime.now() - timedelta(minutes=minutes)
