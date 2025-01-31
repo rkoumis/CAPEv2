@@ -79,3 +79,18 @@ class ElasticsearchReports(api.Reports):
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         pass
+
+    def dropped(self, task_id: int) -> dict:
+        pass
+
+    def memory(self, task_id: int) -> dict:
+        pass
+
+    def network(self, task_id: int) -> dict:
+        pass
+
+    def procdump(self, task_id: int) -> dict:
+        pass
+
+    def procmemory(self, task_id: int) -> dict:
+        pass

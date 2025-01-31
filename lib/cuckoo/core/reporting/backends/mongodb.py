@@ -118,6 +118,58 @@ class MongoDBReports(api.Reports):
         )
         return result
 
+    def dropped(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "dropped": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
+    def memory(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "memory": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
+    def network(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "network": 1,
+            "suricata": 1,
+            "pcapng": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
+    def procdump(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "procdump": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
+    def procmemory(self, task_id: int) -> dict:
+        query = {_info_id: task_id}
+        projection = {
+            _id: 0,
+            "procmemory": 1,
+            _info: 1,
+        }
+        report = self._reports.find_one(filter=query, projection=projection)
+        return None if not report else report
+
 
 # Temporarily duped with mongodb_constants
 _analysis_coll = "analysis"
