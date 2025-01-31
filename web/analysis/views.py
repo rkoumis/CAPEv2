@@ -523,185 +523,92 @@ def load_files(request, task_id, category):
     @param task_id: cuckoo task id
     """
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
-    if is_ajax and category in (
+    categories = {
         "CAPE",
-        "dropped",
         "behavior",
+        "dropped",
         "strace",
         "debugger",
+        "memory",
         "network",
         "procdump",
         "procmemory",
-        "memory",
         "tracee",
-    ):
-        data = {}
-        debugger_logs = {}
-        bingraph_dict_content = {}
-        vba2graph_dict_content = {}
-        # Search calls related to your PID.
-        if enabledconf["mongodb"]:
-            if category in ("behavior", "debugger", "strace"):
-                data = reports.behavior(int(task_id))
-                if category == "debugger":
-                    data["debugger"] = data["behavior"]
-                if category == "strace":
-                    data["strace"] = data["behavior"]
-            elif category == "tracee":
-                data = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {category: 1, "info.tlp": 1, ID_KEY: 0})
-                tmp = data["tracee"]
-                data["tracee"] = {}
-                data["tracee"]["rawData"] = tmp
-                with open("/opt/CAPEv2/data/linux/linux-syscalls.json", "r") as f:
-                    data["tracee"]["syscalls_decoded"] = json.load(f)
-                    data["tracee"]["syscalls_decoded"]["syscalls"].extend(
-                        [
-                            {"name": "stdio_over_socket", "cat": "SIGNATURISED"},
-                            {"name": "k8s_api_connection", "cat": "SIGNATURISED"},
-                            {"name": "aslr_inspection", "cat": "SIGNATURISED"},
-                            {"name": "proc_mem_code_injection", "cat": "SIGNATURISED"},
-                            {"name": "docker_abuse", "cat": "SIGNATURISED"},
-                            {"name": "scheduled_task_mod", "cat": "SIGNATURISED"},
-                            {"name": "ld_preload", "cat": "SIGNATURISED"},
-                            {"name": "cgroup_notify_on_release", "cat": "SIGNATURISED"},
-                            {"name": "default_loader_mod", "cat": "SIGNATURISED"},
-                            {"name": "sudoers_modification", "cat": "SIGNATURISED"},
-                            {"name": "sched_debug_recon", "cat": "SIGNATURISED"},
-                            {"name": "system_request_key_mod", "cat": "SIGNATURISED"},
-                            {"name": "cgroup_release_agent", "cat": "SIGNATURISED"},
-                            {"name": "rcd_modification", "cat": "SIGNATURISED"},
-                            {"name": "core_pattern_modification", "cat": "SIGNATURISED"},
-                            {"name": "proc_kcore_read", "cat": "SIGNATURISED"},
-                            {"name": "proc_mem_access", "cat": "SIGNATURISED"},
-                            {"name": "hidden_file_created", "cat": "SIGNATURISED"},
-                            {"name": "anti_debugging", "cat": "SIGNATURISED"},
-                            {"name": "ptrace_code_injection", "cat": "SIGNATURISED"},
-                            {"name": "process_vm_write_inject", "cat": "SIGNATURISED"},
-                            {"name": "disk_mount", "cat": "SIGNATURISED"},
-                            {"name": "dynamic_code_loading", "cat": "SIGNATURISED"},
-                            {"name": "fileless_execution", "cat": "SIGNATURISED"},
-                            {"name": "illegitimate_shell", "cat": "SIGNATURISED"},
-                            {"name": "kernel_module_loading", "cat": "SIGNATURISED"},
-                            {"name": "k8s_cert_theft", "cat": "SIGNATURISED"},
-                            {"name": "proc_fops_hooking", "cat": "SIGNATURISED"},
-                            {"name": "syscall_hooking", "cat": "SIGNATURISED"},
-                            {"name": "dropped_executable", "cat": "SIGNATURISED"},
-                            {"name": "sched_debug_recon", "cat": "SIGNATURISED"},
-                            {"name": "sched_process_exec", "cat": "SIGNATURISED"},
-                            {"name": "security_inode_unlink", "cat": "SIGNATURISED"},
-                            {"name": "security_bpf_prog", "cat": "SIGNATURISED"},
-                            {"name": "security_socket_connect", "cat": "SIGNATURISED"},
-                            {"name": "security_socket_accept", "cat": "SIGNATURISED"},
-                            {"name": "security_socket_bind", "cat": "SIGNATURISED"},
-                            {"name": "security_sb_mount", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_icmp", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_icmpv6", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_dns_request", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_dns_response", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_http_request", "cat": "SIGNATURISED"},
-                            {"name": "net_packet_http_response", "cat": "SIGNATURISED"},
-                            {"name": "process_vm_readv", "cat": "SIGNATURISED"},
-                            {"name": "process_vm_writev", "cat": "SIGNATURISED"},
-                            {"name": "finit_module", "cat": "SIGNATURISED"},
-                            {"name": "memfd_create", "cat": "SIGNATURISED"},
-                        ]
-                    )
-                data["tracee"]["syscalls"] = json.dumps(data["tracee"]["syscalls_decoded"])
-                data["tracee"]["cats"] = [
-                    "SIGNATURISED",
-                    "kernel",
-                    "fs",
-                    "mm",
-                    "net",
-                    "ipc",
-                    "security",
-                    "drivers",
-                    "io_uring",
-                    "crypto",
-                    "block",
-                ]
-            elif category == "network":
-                data = mongo_find_one(
-                    ANALYSIS_COLL,
-                    {INFO_ID_KEY: int(task_id)},
-                    {category: 1, "info.tlp": 1, "cif": 1, "suricata": 1, "pcapng": 1, ID_KEY: 0},
-                )
-            else:
-                data = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {category: 1, "info.tlp": 1, ID_KEY: 0})
-        elif enabledconf["elasticsearchdb"]:
-            if category in ("behavior", "debugger"):
-                data = elastic_handler.search(
-                    index=get_analysis_index(),
-                    query=get_query_by_info_id(task_id),
-                    _source=["behavior.processes", "behavior.processtree", "info.tlp"],
-                )["hits"]["hits"][0]["_source"]
+    }
+    if not is_ajax or category not in categories:
+        raise PermissionDenied
 
-                if category == "debugger":
-                    data["debugger"] = data["behavior"]
-                if category == "strace":
-                    data["strace"] = data["behavior"]
-            elif category == "network":
-                data = elastic_handler.search(
-                    index=get_analysis_index(),
-                    query=get_query_by_info_id(task_id),
-                    _source=[category, "suricata", "cif", "info.tlp"],
-                )["hits"]["hits"][0]["_source"]
-            else:
-                data = elastic_handler.search(
-                    index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=[category, "info.tlp"]
-                )["hits"]["hits"][0]["_source"]
+    page = "analysis/{}/index.html".format(category)
+    ajax_response = {}
+    data = {}
+    debugger_logs = {}
+    bingraph_dict_content = {}
+    vba2graph_dict_content = {}
+    sha256_blocks = []
+    task_id: int = int(task_id)
 
-        sha256_blocks = []
-        if data:
-            if category == "CAPE":
-                sha256_blocks = data.get("CAPE", {}).get("payloads", [])
-            if category in ("dropped", "procdump"):
-                sha256_blocks = data.get(category, [])
-
-        if (enabledconf["vba2graph"] or enabledconf["bingraph"]) and sha256_blocks:
-            for block in sha256_blocks or []:
-                if not block.get("sha256"):
-                    continue
-                if enabledconf["bingraph"]:
-                    bingraph_dict_content = _load_file(task_id, block["sha256"], bingraph_dict_content, name="bingraph")
-                if enabledconf["vba2graph"]:
-                    vba2graph_dict_content = _load_file(task_id, block["sha256"], vba2graph_dict_content, name="vba2graph")
-
-        if category == "debugger":
+    match category:
+        case "CAPE":
+            data = reports.behavior(task_id)
+            sha256_blocks = data.get("CAPE", {}).get("payloads", [])
+        case "behavior":
+            data = reports.behavior(task_id)
+            ajax_response["detections2pid"] = data.get("detections2pid", {})
+        case "dropped":
+            data = reports.dropped(task_id)
+            sha256_blocks = data.get(category, [])
+        case "strace":
+            data = reports.behavior(task_id)
+            data["strace"] = data["behavior"]
+        case "debugger":
+            data = reports.behavior(task_id)
+            data["debugger"] = data["behavior"]
             debugger_logs = _load_file(task_id, "", debugger_logs, name="debugger")
-
-        # ES isn't supported
-        page = "analysis/{}/index.html".format(category)
-
-        ajax_response = {
-            category: data.get(category, {}),
-            "tlp": data.get("info").get("tlp", ""),
-            "id": task_id,
-            "graphs": {
-                "bingraph": {"enabled": enabledconf["bingraph"], "content": bingraph_dict_content},
-                "vba2graph": {"enabled": enabledconf["vba2graph"], "content": vba2graph_dict_content},
-            },
-            "config": enabledconf,
-            "tab_name": category,
-            "on_demand": on_demand_conf,
-        }
-
-        if category == "debugger":
             ajax_response["debugger_logs"] = debugger_logs
-        elif category == "network":
-            ajax_response["domainlookups"] = {i["domain"]: i["ip"] for i in ajax_response.get("network", {}).get("domains", {})}
+        case "memory":
+            data = reports.memory(task_id)
+        case "network":
+            data = reports.network(task_id)
+            ajax_response["domainlookups"] = {i["domain"]: i["ip"] for i in data.get("network", {}).get("domains", {})}
             ajax_response["suricata"] = data.get("suricata", {})
-            ajax_response["cif"] = data.get("cif", [])
             ajax_response["pcapng"] = data.get("pcapng", {})
             tls_path = os.path.join(ANALYSIS_BASE_PATH, "analyses", str(task_id), "tlsdump", "tlsdump.log")
             if _path_safe(tls_path):
                 ajax_response["tlskeys_exists"] = _path_safe(tls_path)
-        elif category == "behavior":
-            ajax_response["detections2pid"] = data.get("detections2pid", {})
-        return render(request, page, ajax_response)
+        case "procdump":
+            data = reports.procdump(task_id)
+            sha256_blocks = data.get(category, [])
+        case "procmemory":
+            data = reports.procmemory(task_id)
+        case "tracee":
+            data = reports.behavior(task_id)
+            tmp = data["tracee"]
+            data["tracee"] = {}
+            data["tracee"]["rawData"] = tmp
+            # TODO bring back tracee data from JSON syscalls
+            raise NotImplementedError("TODO")
 
-    else:
-        raise PermissionDenied
+    if (enabledconf["vba2graph"] or enabledconf["bingraph"]) and sha256_blocks:
+        for block in sha256_blocks or []:
+            if not block.get("sha256"):
+                continue
+            if enabledconf["bingraph"]:
+                bingraph_dict_content = _load_file(task_id, block["sha256"], bingraph_dict_content, name="bingraph")
+            if enabledconf["vba2graph"]:
+                vba2graph_dict_content = _load_file(task_id, block["sha256"], vba2graph_dict_content, name="vba2graph")
+
+    ajax_response[category] = data.get(category, {})
+    ajax_response["tlp"] = data.get("info").get("tlp", "")
+    ajax_response["id"] = task_id
+    ajax_response["graphs"] = {
+        "bingraph": {"enabled": enabledconf["bingraph"], "content": bingraph_dict_content},
+        "vba2graph": {"enabled": enabledconf["vba2graph"], "content": vba2graph_dict_content},
+    }
+    ajax_response["config"] = enabledconf
+    ajax_response["tab_name"] = category
+    ajax_response["on_demand"] = on_demand_conf
+
+    return render(request, page, ajax_response)
 
 
 def fetch_signature_call_data(task_id, requested_calls):
