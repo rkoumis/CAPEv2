@@ -54,5 +54,31 @@ class Summary(BaseModel):
     trid: Optional[int]
 
 
+class Behavior(BaseModel):
+    info: Optional[Info]
+    detections2pid: Optional[dict]
+    processes: Optional[list]
+    process_tree: Optional[list]
+
+
+class Domain(BaseModel):
+    ip: Optional[str]
+    domain: Optional[str]
+
+
+class Network(BaseModel):
+    info: Optional[Info]
+    network: Optional[dict]
+    domains: Optional[List[Domain]]
+    suricata: Optional[list]
+    pcapng: Optional[list]
+
+
+class CAPE(BaseModel):
+    info: Optional[Info]
+    payloads: Optional[list]
+    configs: Optional[list]
+
+
 class AnalysisConfigs(BaseModel):
     ...

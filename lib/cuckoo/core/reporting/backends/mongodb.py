@@ -37,7 +37,7 @@ class MongoDBReports(api.Reports):
         report = self._reports.find_one(filter=query)
         return {} if not report else report
 
-    def behavior(self, task_id: int) -> dict:
+    def behavior(self, task_id: int) -> schema.Behavior:
         query = {_info_id: task_id}
         projection = {
             _id: 0,
