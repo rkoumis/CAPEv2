@@ -1169,41 +1169,13 @@ def split_signature_calls(report):
 @ratelimit(key="ip", rate=my_rate_minutes, block=rateblock)
 def report(request, task_id):
     network_report = False
-    report = {}
-    if enabledconf["mongodb"]:
-        report = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(task_id)},
-            {"dropped": 0, "CAPE.payloads": 0, "procdump": 0, "procmemory": 0, "behavior.processes": 0, "network": 0, "memory": 0},
-            sort=[(ID_KEY, -1)],
-        )
-        network_report = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(task_id)},
-            {"network.domains": 1, "network.dns": 1, "network.hosts": 1},
-            sort=[(ID_KEY, -1)],
-        )
-        report = split_signature_calls(report)
-
-    if es_as_db:
-        query = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]
-        report = query["_source"]
-        # Extract out data for Admin tab in the analysis page
-        network_report = es.search(
-            index=get_analysis_index(),
-            query=get_query_by_info_id(task_id),
-            _source=["network.domains", "network.dns", "network.hosts"],
-        )["hits"]["hits"][0]["_source"]
-
-        # Extract out data for Admin tab in the analysis page
-        esdata = {"index": query["_index"], "id": query["_id"]}
-        report["es"] = esdata
+    task_id = int(task_id)
+    report = reports.get(task_id)
     if not report:
         if DISABLED_WEB:
-            msg = "You need to enable Mongodb/ES to be able to use WEBGUI to see the analysis"
+            msg = "You need to enable a reporting backend"
         else:
             msg = "The specified analysis does not exist or not finished yet."
-
         return render(request, "error.html", {"error": msg})
 
     if isinstance(report.get("CAPE"), dict) and report.get("CAPE", {}).get("configs", {}):
