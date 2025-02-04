@@ -708,81 +708,62 @@ def filtered_chunk(request, task_id, pid, category, apilist, caller, tid):
     @param category: call category type
     @param apilist: comma-separated list of APIs to include, if preceded by ! specifies to exclude the list
     """
+    pid = int(pid)
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
-    if is_ajax:
-        # Search calls related to your PID.
-        if enabledconf["mongodb"]:
-            record = mongo_find_one(
-                ANALYSIS_COLL,
-                {INFO_ID_KEY: int(task_id), "behavior.processes.process_id": int(pid)},
-                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
-            )
-        if es_as_db:
-            record = es.search(
-                index=get_analysis_index(),
-                body={
-                    "query": {
-                        "bool": {"must": [{"match": {"behavior.processes.process_id": pid}}, {"match": {"info.id": task_id}}]}
-                    }
-                },
-                _source=["info.machine.platform", "behavior.processes.process_id", "behavior.processes.calls"],
-            )["hits"]["hits"][0]["_source"]
-
-        if not record:
-            raise PermissionDenied
-
-        # Extract embedded document related to your process from response collection.
-        process = None
-        for pdict in record["behavior"]["processes"]:
-            if pdict["process_id"] == int(pid):
-                process = pdict
-
-        if not process:
-            raise PermissionDenied
-
-        # Create empty process dict for AJAX view.
-        filtered_process = {"process_id": pid, "calls": []}
-
-        exclude = False
-        apilist = apilist.strip()
-        if len(apilist) and apilist[0] == "!":
-            exclude = True
-        apilist = apilist.lstrip("!")
-        apis = apilist.split(",")
-        apis[:] = [s.strip().lower() for s in apis if len(s.strip())]
-
-        # Populate dict, fetching data from all calls and selecting only appropriate category/APIs.
-        for call in process["calls"]:
-            if enabledconf["mongodb"]:
-                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: call})
-            if es_as_db:
-                chunk = es.search(index=get_calls_index(), body={"query": {"match": {"_id": call}}})["hits"]["hits"][0]["_source"]
-            for call in chunk["calls"]:
-                # filter by call or tid
-                if caller != "null" or tid != "0":
-                    if caller in ("null", call["caller"]) and tid in ("0", call["thread_id"]):
-                        filtered_process["calls"].append(call)
-                elif category in ("all", call["category"]):
-                    if len(apis) > 0:
-                        add_call = -1
-                        for api in apis:
-                            if api in call["api"].lower():
-                                if exclude:
-                                    add_call = 0
-                                else:
-                                    add_call = 1
-                                break
-                        if (exclude and add_call != 0) or (not exclude and add_call == 1):
-                            filtered_process["calls"].append(call)
-                    else:
-                        filtered_process["calls"].append(call)
-
-        if record["info"]["machine"]["platform"] == "linux":
-            return render(request, "analysis/strace/_chunk.html", {"chunk": filtered_process})
-        else:
-            return render(request, "analysis/behavior/_chunk.html", {"chunk": filtered_process})
-    else:
+    if not is_ajax:
         raise PermissionDenied
+
+    # Search calls related to your PID.
+    # TODO need an API for this
+    calls = reports.calls_by_pid(task_id, pid)
+    if not calls:
+        raise PermissionDenied
+    behavior = reports.behavior(task_id)
+
+    # Extract embedded document related to your process from response collection.
+    process = None
+    for pdict in behavior.processes:
+        if pdict.process_id == pid:
+            process = pdict
+            break
+    if not process:
+        raise PermissionDenied
+
+    # Create empty process dict for AJAX view.
+    filtered_process = {"process_id": pid, "calls": []}
+
+    exclude = False
+    apilist = apilist.strip()
+    if len(apilist) and apilist[0] == "!":
+        exclude = True
+    apilist = apilist.lstrip("!")
+    apis = apilist.split(",")
+    apis[:] = [s.strip().lower() for s in apis if len(s.strip())]
+
+    # Populate dict, fetching data from all calls and selecting only appropriate category/APIs.
+    for call in process.calls:
+        # filter by call or tid
+        if caller != "null" or tid != "0":
+            if caller in ("null", call["caller"]) and tid in ("0", call["thread_id"]):
+                filtered_process["calls"].append(call)
+        elif category in ("all", call["category"]):
+            if len(apis) > 0:
+                add_call = -1
+                for api in apis:
+                    if api in call["api"].lower():
+                        if exclude:
+                            add_call = 0
+                        else:
+                            add_call = 1
+                        break
+                if (exclude and add_call != 0) or (not exclude and add_call == 1):
+                    filtered_process["calls"].append(call)
+            else:
+                filtered_process["calls"].append(call)
+
+    if behavior.info.machine.platform == "linux":
+        return render(request, "analysis/strace/_chunk.html", {"chunk": filtered_process})
+    return render(request, "analysis/behavior/_chunk.html", {"chunk": filtered_process})
 
 
 def gen_moloch_from_suri_http(suricata):
