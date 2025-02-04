@@ -1221,17 +1221,9 @@ def report(request, task_id):
             except Exception as e:
                 print(e)
 
-    try:
-        if enabledconf["mongodb"]:
-            tmp_data = list(mongo_find(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id), "memory": {"$exists": True}}))
-            if tmp_data:
-                report["memory"] = tmp_data[0]["_id"] or 0
-        elif es_as_db:
-            report["memory"] = len(
-                es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["memory"])["hits"]["hits"]
-            )
-    except Exception as e:
-        print(e)
+    # TODO need an API for this
+    memory = reports.memory(task_id)
+    report["memory"] = len(memory) if memory else 0
 
     reports_exist = False
     # check if we allow dl reports only to specific users
