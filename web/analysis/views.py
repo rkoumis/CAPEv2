@@ -952,23 +952,8 @@ def gen_moloch_from_antivirus(virustotal):
 @require_safe
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def antivirus(request, task_id):
-    if enabledconf["mongodb"]:
-        rtmp = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(task_id)},
-            {"target.file.virustotal": 1, "url.virustotal": 1, "info.category": 1, ID_KEY: 0},
-            sort=[(ID_KEY, -1)],
-        )
-    elif es_as_db:
-        rtmp = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["virustotal", "info.category"])[
-            "hits"
-        ]["hits"]
-        if len(rtmp) == 0:
-            rtmp = None
-        else:
-            rtmp = rtmp[0]["_source"]
-    else:
-        rtmp = None
+    task_id = int(task_id)
+    rtmp = reports.get(task_id)
     if not rtmp:
         return render(request, "error.html", {"error": "The specified analysis does not exist"})
 
