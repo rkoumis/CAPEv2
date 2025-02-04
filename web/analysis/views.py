@@ -668,59 +668,35 @@ def signature_calls(request, task_id):
 def chunk(request, task_id, pid, pagenum):
     try:
         pid, pagenum = int(pid), int(pagenum) - 1
+        task_id = int(task_id)
     except Exception:
         raise PermissionDenied
 
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
-    if is_ajax:
-        if enabledconf["mongodb"]:
-            record = mongo_find_one(
-                ANALYSIS_COLL,
-                {INFO_ID_KEY: int(task_id), "behavior.processes.process_id": pid},
-                {"info.machine.platform": 1, "behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
-            )
-
-        if es_as_db:
-            record = es.search(
-                index=get_analysis_index(),
-                body={
-                    "query": {
-                        "bool": {"must": [{"match": {"behavior.processes.process_id": pid}}, {"match": {"info.id": task_id}}]}
-                    }
-                },
-                _source=["info.machine.platform", "behavior.processes.process_id", "behavior.processes.calls"],
-            )["hits"]["hits"][0]["_source"]
-
-        if not record:
-            raise PermissionDenied
-
-        process = None
-        for pdict in record["behavior"]["processes"]:
-            if pdict["process_id"] == pid:
-                process = pdict
-                break
-
-        if not process:
-            raise PermissionDenied
-
-        if pagenum >= 0 and pagenum < len(process["calls"]):
-            objectid = process["calls"][pagenum]
-            if enabledconf["mongodb"]:
-                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: ObjectId(objectid)})
-            if es_as_db:
-                chunk = es.search(index=get_calls_index(), body={"query": {"match": {"_id": objectid}}})["hits"]["hits"][0][
-                    "_source"
-                ]
-
-        else:
-            chunk = dict(calls=[])
-
-        if record["info"].get("machine", {}).get("platform", "") == "linux":
-            return render(request, "analysis/strace/_chunk.html", {"chunk": chunk})
-        else:
-            return render(request, "analysis/behavior/_chunk.html", {"chunk": chunk})
-    else:
+    if not is_ajax:
         raise PermissionDenied
+
+    behavior = reports.behavior(task_id)
+    if not behavior:
+        raise PermissionDenied
+
+    process = None
+    for pdict in behavior.processes:
+        if pdict["process_id"] == pid:
+            process = pdict
+            break
+
+    if not process:
+        raise PermissionDenied
+
+    if 0 <= pagenum < len(process["calls"]):
+        _chunk = process["calls"][pagenum]
+    else:
+        _chunk = dict(calls=[])
+
+    if behavior.info.machine.platform == "linux":
+        return render(request, "analysis/strace/_chunk.html", {"chunk": _chunk})
+    return render(request, "analysis/behavior/_chunk.html", {"chunk": _chunk})
 
 
 @require_safe
