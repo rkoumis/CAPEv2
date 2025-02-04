@@ -1,55 +1,55 @@
 import abc
 import datetime
-from typing import Any, List, Optional
+from typing import Any, List
 
-from pydantic import BaseModel as PydanticBaseModel, ConfigDict
-from pydantic import Field
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import ConfigDict, Field
 
 
 class BaseModel(PydanticBaseModel, abc.ABC):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
 class Machine(BaseModel):
-    id: Optional[int]
-    status: Optional[str]
-    name: Optional[str]
-    label: Optional[str]
-    platform: Optional[str]
-    manager: Optional[str]
-    started_on: Optional[datetime.datetime]
-    shutdown_on: Optional[datetime.datetime]
+    id: int | None
+    status: str | None
+    name: str | None
+    label: str | None
+    platform: str | None
+    manager: str | None
+    started_on: datetime.datetime | None
+    shutdown_on: datetime.datetime | None
 
 
 class Info(BaseModel):
-    id: Optional[int]
-    version: Optional[str]
-    started: Optional[datetime.datetime]
-    ended: Optional[datetime.datetime]
-    duration: Optional[int]
-    category: Optional[str]
-    machine: Optional[Machine]
-    package: Optional[str]
-    timeout: Optional[bool]
-    tlp: Optional[str]
-    user_id: Optional[int]
+    id: int | None
+    version: str | None
+    started: datetime.datetime | None
+    ended: datetime.datetime | None
+    duration: int | None
+    category: str | None
+    machine: Machine | None
+    package: str | None
+    timeout: bool | None
+    tlp: str | None
+    user_id: int | None
 
 
 class Summary(BaseModel):
-    info: Optional[Info]
-    vt_file_summary: Optional[str]
-    vt_url_summary: Optional[str]
-    malscore: Optional[float]
-    detections: Optional[List[dict]]
-    pcap_sha256: Optional[str]
-    mlist_cnt: Optional[int]
-    f_mlist_cnt: Optional[int]
-    clamav: Optional[List[str]]
-    suri_tls_cnt: Optional[int]
-    suri_alert_cnt: Optional[int]
-    suri_http_cnt: Optional[int]
-    suri_file_cnt: Optional[int]
-    trid: Optional[int]
+    info: Info | None
+    vt_file_summary: str | None
+    vt_url_summary: str | None
+    malscore: float | None
+    detections: List[dict] | None
+    pcap_sha256: str | None
+    mlist_cnt: int | None
+    f_mlist_cnt: int | None
+    clamav: List[str] | None
+    suri_tls_cnt: int | None
+    suri_alert_cnt: int | None
+    suri_http_cnt: int | None
+    suri_file_cnt: int | None
+    trid: int | None
 
 
 class BehaviorProcessCall(BaseModel):
@@ -58,40 +58,40 @@ class BehaviorProcessCall(BaseModel):
 
 class BehaviorProcess(BaseModel):
     process_id: int
-    process_name: Optional[str]
-    parent_id: Optional[int]
-    module_path: Optional[str]
-    first_seen: Optional[datetime.datetime]
-    calls: Optional[list[BehaviorProcessCall]]
-    threads: Optional[list[str]]
-    environ: Optional[dict[str, str]]
-    file_activities: Optional[dict[str, Any]]
+    process_name: str | None
+    parent_id: int | None
+    module_path: str | None
+    first_seen: datetime.datetime | None
+    calls: list[BehaviorProcessCall] | None
+    threads: list[str] | None
+    environ: dict[str, str] | None
+    file_activities: dict[str, Any] | None
 
 
 class Behavior(BaseModel):
-    info: Optional[Info]
-    detections2pid: Optional[dict]
-    processes: Optional[list[BehaviorProcess]]
-    process_tree: Optional[list]
+    info: Info | None
+    detections2pid: dict | None
+    processes: list[BehaviorProcess] | None
+    process_tree: list | None
 
 
 class Domain(BaseModel):
-    ip: Optional[str]
-    domain: Optional[str]
+    ip: str | None
+    domain: str | None
 
 
 class Network(BaseModel):
-    info: Optional[Info]
-    network: Optional[dict]
-    domains: Optional[List[Domain]]
-    suricata: Optional[list]
-    pcapng: Optional[list]
+    info: Info | None
+    network: dict | None
+    domains: List[Domain] | None
+    suricata: list | None
+    pcapng: list | None
 
 
 class CAPE(BaseModel):
-    info: Optional[Info]
-    payloads: Optional[list]
-    configs: Optional[list]
+    info: Info | None
+    payloads: list | None
+    configs: list | None
 
 
 class AnalysisConfigs(BaseModel):
