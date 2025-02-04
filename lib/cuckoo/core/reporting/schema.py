@@ -41,11 +41,11 @@ class Summary(BaseModel):
     vt_file_summary: str | None = None
     vt_url_summary: str | None = None
     malscore: float | None = None
-    detections: List[dict] | None = None
+    detections: List[dict] = []
     pcap_sha256: str | None = None
     mlist_cnt: int | None = None
     f_mlist_cnt: int | None = None
-    clamav: List[str] | None = None
+    clamav: List[str] = []
     suri_tls_cnt: int | None = None
     suri_alert_cnt: int | None = None
     suri_http_cnt: int | None = None
@@ -63,15 +63,15 @@ class Behavior(BaseModel):
         parent_id: int | None = None
         module_path: str | None = None
         first_seen: datetime.datetime | None = None
-        calls: list[Behavior.ProcessCall] | None = None
-        threads: list[str] | None = None
+        calls: list[Behavior.ProcessCall] = []
+        threads: list[str] = []
         environ: dict[str, str] | None = None
         file_activities: dict[str, Any] | None = None
 
     info: Info | None = None
     detections2pid: dict | None = None
-    processes: list[Behavior.Process] | None = None
-    process_tree: list | None = None
+    processes: list[Behavior.Process]
+    process_tree: list = []
 
 
 class Domain(BaseModel):
@@ -82,15 +82,34 @@ class Domain(BaseModel):
 class Network(BaseModel):
     info: Info | None = None
     network: dict | None = None
-    domains: List[Domain] | None = None
-    suricata: list | None = None
-    pcapng: list | None = None
+    domains: List[Domain] = []
+    suricata: list = []
+    pcapng: list = []
 
 
 class CAPE(BaseModel):
     info: Info | None = None
-    payloads: list | None = None
-    configs: list | None = None
+    payloads: list = []
+    configs: list = []
+
+
+class Call(BaseModel):
+    class Argument(BaseModel):
+        name: str
+        value: str
+        pretty_value: str | None = None
+
+    id: int
+    timestamp: datetime.datetime | None = None
+    thread_id: int | None = None
+    caller: str | None = None
+    parentcaller: str | None = None
+    category: str | None = None
+    api: str | None = None
+    status: bool = False
+    return_code: str | None = None
+    arguments: list[Call.Argument] = []
+    repeated: int = 0
 
 
 class AnalysisConfigs(BaseModel):
