@@ -628,53 +628,15 @@ def fetch_signature_call_data(task_id, requested_calls):
     except (AttributeError, KeyError, TypeError, ValueError):
         raise BadRequest
 
-    if enabledconf["mongodb"]:
-        # First, get the list of ObjectID's for call chunks for each process.
-        process_data = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: task_id},
-            {"behavior.processes.process_id": 1, "behavior.processes.calls": 1, ID_KEY: 0},
-        )
-    elif es_as_db:
-        process_data = es.search(
-            index=get_analysis_index(),
-            body={"query": {"bool": {"must": [{"match": {"info.id": task_id}}]}}},
-            _source=["behavior.processes.process_id", "behavior.processes.calls"],
-        )["hits"]["hits"][0]["_source"]
-    else:
+    if reporting.disabled():
         return HttpResponse()
 
+    behavior = reports.behavior(task_id)
     # Organize it for quick lookup by PID.
-    process_data_by_pid = {proc["process_id"]: proc["calls"] for proc in process_data["behavior"]["processes"]}
+    by_pid = {proc["process_id"]: proc["calls"] for proc in behavior.processes}
 
-    calls_to_return = []
-    try:
-        # For each of the requested calls, look it up based on the ObjectID
-        # referenced from the appropriate chunk in the process's calls and the
-        # index within that chunk.
-        for pid, chunk_ids in sorted(requested_calls_by_pid.items()):
-            for chunk_idx, call_idxs in sorted(chunk_ids.items()):
-                chunk_id = process_data_by_pid[pid][chunk_idx]
-                if enabledconf["mongodb"]:
-                    call_data = mongo_find_one(
-                        CALLS_COLL,
-                        {"_id": chunk_id},
-                        {"calls": 1, ID_KEY: 0},
-                    )
-                elif es_as_db:
-                    call_data = es.search(
-                        index=get_calls_index(),
-                        body={"query": {"bool": {"must": [{"match": {"_id": chunk_id}}]}}},
-                        _source=["calls"],
-                    )["hits"]["hits"][0]["_source"]
-                else:
-                    return HttpResponse()
-
-                for call_idx in sorted(call_idxs):
-                    calls_to_return.append(call_data["calls"][call_idx])
-    except (KeyError, IndexError):
-        raise BadRequest("Unable to find requested call.")
-
+    # TODO need an API for this
+    calls_to_return = reports.calls(task_id)
     return calls_to_return
 
 
