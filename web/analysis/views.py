@@ -1066,95 +1066,80 @@ def surifiles(request, task_id):
 @csrf_exempt
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def search_behavior(request, task_id):
-    if request.method == "POST":
-        query = request.POST.get("search")
-        results = []
-        search_pid = None
-        search_tid = None
-        search_apicall = None
-        search_argname = None
-        search_procname = None
-
-        match = re.search(r"pid=(?P<search_pid>\d+)", query)
-        if match:
-            search_pid = int(match.group("search_pid"))
-        match = re.search(r"tid=(?P<search_tid>\d+)", query)
-        if match:
-            search_tid = match.group("search_tid")
-        match = re.search(r"apicall=(?P<search_apicall>[A-Za-z]+)", query)
-        if match:
-            search_apicall = match.group("search_apicall")
-        match = re.search(r"argname=(?P<search_argname>[A-Za-z]+)", query)
-        if match:
-            search_argname = match.group("search_argname")
-        match = re.search(r"procname=(?P<search_procname>[A-Za-z0-9\.\-]+)", query)
-        if match:
-            search_procname = match.group("search_procname")
-
-        if search_pid:
-            query = query.replace("pid=" + str(search_pid), "")
-        if search_tid:
-            query = query.replace("tid=" + search_tid, "")
-        if search_apicall:
-            query = query.replace("apicall=" + search_apicall, "")
-        if search_argname:
-            query = query.replace("argname=" + search_argname, "")
-        if search_procname:
-            query = query.replace("procname=" + search_procname, "")
-
-        query = query.strip()
-
-        query = re.compile(re.escape(query))
-
-        # Fetch anaylsis report
-        if enabledconf["mongodb"]:
-            record = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"behavior.processes": 1, ID_KEY: 0})
-        if es_as_db:
-            esquery = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]
-            esidx = esquery["_index"]
-            record = esquery["_source"]
-
-        # Loop through every process
-        for process in record["behavior"]["processes"]:
-            if search_procname and process["process_name"].lower() != search_procname.lower():
-                continue
-            if search_pid and process["process_id"] != search_pid:
-                continue
-
-            process_results = []
-
-            if enabledconf["mongodb"]:
-                chunks = mongo_find(CALLS_COLL, {ID_KEY: {"$in": process["calls"]}})
-            if es_as_db:
-                # I don't believe ES has a similar function to MongoDB's $in
-                # so we'll just iterate the call list and query appropriately
-                chunks = []
-                for callitem in process["calls"]:
-                    data = es.search(index=esidx, oc_type="calls", q="_id: %s" % callitem)["hits"]["hits"][0]["_source"]
-                    chunks.append(data)
-
-            for chunk in chunks:
-                for call in chunk.get("calls", []):
-                    if search_tid and call["thread_id"] != search_tid:
-                        continue
-                    if search_apicall and call["api"] != search_apicall:
-                        continue
-
-                    # TODO: ES can speed this up instead of parsing with Python regex.
-
-                    for argument in call["arguments"]:
-                        if search_argname and argument["name"] != search_argname:
-                            continue
-                        if query.search(argument["value"]):
-                            process_results.append(call)
-                            break
-
-            if len(process_results) > 0:
-                results.append({"process": process, "signs": process_results})
-
-        return render(request, "analysis/behavior/_search_results.html", {"results": results})
-    else:
+    if request.method != "POST":
         raise PermissionDenied
+
+    task_id = int(task_id)
+    query = request.POST.get("search")
+    results = []
+    search_pid = None
+    search_tid = None
+    search_apicall = None
+    search_argname = None
+    search_procname = None
+
+    match = re.search(r"pid=(?P<search_pid>\d+)", query)
+    if match:
+        search_pid = int(match.group("search_pid"))
+    match = re.search(r"tid=(?P<search_tid>\d+)", query)
+    if match:
+        search_tid = match.group("search_tid")
+    match = re.search(r"apicall=(?P<search_apicall>[A-Za-z]+)", query)
+    if match:
+        search_apicall = match.group("search_apicall")
+    match = re.search(r"argname=(?P<search_argname>[A-Za-z]+)", query)
+    if match:
+        search_argname = match.group("search_argname")
+    match = re.search(r"procname=(?P<search_procname>[A-Za-z0-9\.\-]+)", query)
+    if match:
+        search_procname = match.group("search_procname")
+
+    if search_pid:
+        query = query.replace("pid=" + str(search_pid), "")
+    if search_tid:
+        query = query.replace("tid=" + search_tid, "")
+    if search_apicall:
+        query = query.replace("apicall=" + search_apicall, "")
+    if search_argname:
+        query = query.replace("argname=" + search_argname, "")
+    if search_procname:
+        query = query.replace("procname=" + search_procname, "")
+
+    query = query.strip()
+
+    query = re.compile(re.escape(query))
+
+    # Fetch anaylsis report
+    behavior = reports.behavior(task_id)
+    # Loop through every process
+    for process in behavior.processes:
+        if search_procname and process.process_name.lower() != search_procname.lower():
+            continue
+        if search_pid and process.process_id != search_pid:
+            continue
+
+        process_results = []
+
+        for call in process.calls:
+            # TODO expand the call schema to thread, API, args, etc.
+            if search_tid and call["thread_id"] != search_tid:
+                continue
+            if search_apicall and call["api"] != search_apicall:
+                continue
+
+            # TODO: ES can speed this up instead of parsing with Python regex.
+
+            for argument in call["arguments"]:
+                if search_argname and argument["name"] != search_argname:
+                    continue
+                if query.search(argument["value"]):
+                    process_results.append(call)
+                    break
+
+        if len(process_results) > 0:
+            results.append({"process": process, "signs": process_results})
+
+    return render(request, "analysis/behavior/_search_results.html", {"results": results})
 
 
 def split_signature_calls(report):
