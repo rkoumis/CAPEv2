@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 import datetime
 from typing import Any, List
@@ -62,14 +63,14 @@ class Behavior(BaseModel):
         parent_id: int | None = None
         module_path: str | None = None
         first_seen: datetime.datetime | None = None
-        calls: "list[Behavior.ProcessCall] | None" = None
+        calls: list[Behavior.ProcessCall] | None = None
         threads: list[str] | None = None
         environ: dict[str, str] | None = None
         file_activities: dict[str, Any] | None = None
 
     info: Info | None = None
     detections2pid: dict | None = None
-    processes: "list[Behavior.Process] | None" = None
+    processes: list[Behavior.Process] | None = None
     process_tree: list | None = None
 
 
