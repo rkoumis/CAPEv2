@@ -1,9 +1,9 @@
 import abc
 import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel as PydanticBaseModel, ConfigDict
-from pydantic import Extra
+from pydantic import Field
 
 
 class BaseModel(PydanticBaseModel, abc.ABC):
@@ -52,10 +52,26 @@ class Summary(BaseModel):
     trid: Optional[int]
 
 
+class BehaviorProcessCall(BaseModel):
+    oid: str = Field(serialization_alias="$oid")
+
+
+class BehaviorProcess(BaseModel):
+    process_id: int
+    process_name: Optional[str]
+    parent_id: Optional[int]
+    module_path: Optional[str]
+    first_seen: Optional[datetime.datetime]
+    calls: Optional[list[BehaviorProcessCall]]
+    threads: Optional[list[str]]
+    environ: Optional[dict[str, str]]
+    file_activities: Optional[dict[str, Any]]
+
+
 class Behavior(BaseModel):
     info: Optional[Info]
     detections2pid: Optional[dict]
-    processes: Optional[list]
+    processes: Optional[list[BehaviorProcess]]
     process_tree: Optional[list]
 
 
