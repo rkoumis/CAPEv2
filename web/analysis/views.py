@@ -225,7 +225,7 @@ def get_analysis_info(db, id=-1, task=None):
 
     rtmp = reports.summary(int(new["id"]))
     if rtmp:
-        # TODO swap the keyword lookups for schema-centric behaviors
+        # TODO(njb) swap the keyword lookups for schema-centric behaviors
         for keyword in (
             "detections",
             "mlist_cnt",
@@ -585,7 +585,7 @@ def load_files(request, task_id, category):
             tmp = data["tracee"]
             data["tracee"] = {}
             data["tracee"]["rawData"] = tmp
-            # TODO bring back tracee data from JSON syscalls
+            # TODO(njb) bring back tracee data from JSON syscalls
             raise NotImplementedError("TODO")
 
     if (enabledconf["vba2graph"] or enabledconf["bingraph"]) and sha256_blocks:
@@ -1361,6 +1361,7 @@ def report(request, task_id):
     for key, value in (("dropped", "dropped"), ("procdump", "procdump"), ("CAPE.payloads", "CAPE"), ("procmemory", "procmemory")):
         if enabledconf["mongodb"]:
             try:
+                # TODO(njb) come back to this (aggregations) and ES equiv below
                 report[value] = list(
                     mongo_aggregate(
                         ANALYSIS_COLL,
@@ -1384,6 +1385,7 @@ def report(request, task_id):
 
         elif es_as_db:
             try:
+                # TODO(njb) come back to this
                 report[value] = len(
                     es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=[f"{key}.sha256"])["hits"][
                         "hits"
@@ -1859,6 +1861,7 @@ def procdump(request, task_id, process_id, start, end, zipped=False):
 
     file_name = f"{process_id}_{int(start, 16):x}.dmp"
     with open(dumpfile, "rb") as file_item:
+        # TODO(njb) swap the keyword lookups for schema-centric behaviors
         for proc in analysis.get("procmemory", []) or []:
             if proc["pid"] == int(process_id):
                 s = BytesIO()
@@ -2045,6 +2048,7 @@ def search(request, searched=""):
         term_only, value_only = term, value
 
         try:
+            # TODO(njb) perform_search needs to return records w/ canonical ids for below
             records = perform_search(term, value, user_id=request.user.id, privs=request.user.is_staff)
         except ValueError:
             if term:
@@ -2171,6 +2175,7 @@ def pcapstream(request, task_id, conntuple):
         return render(request, "standalone_error.html", {"error": "The specified analysis does not exist"})
 
     try:
+        # TODO(njb) replace conndata key lookups with schema attributes
         if proto == "udp":
             connlist = conndata["network"]["sorted"]["udp"]
         else:
