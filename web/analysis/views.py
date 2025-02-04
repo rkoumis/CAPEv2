@@ -972,129 +972,95 @@ def antivirus(request, task_id):
 
     rtmp.setdefault("file", {}).setdefault("virustotal", rtmp["virustotal"])
     del rtmp["virustotal"]
-
     return render(request, "analysis/antivirus.html", rtmp)
 
 
 @require_safe
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def surialert(request, task_id):
-    if enabledconf["mongodb"]:
-        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.alerts": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
-    elif es_as_db:
-        report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.alerts"])["hits"][
-            "hits"
-        ]
-        if len(report) == 0:
-            report = None
-        else:
-            report = report[0]["_source"]
-    else:
-        report = None
+    # TODO(njb) this function is nearly identical to others w/ the exception of
+    # the rendered template. DRY
+    task_id = int(task_id)
+    report = reports.get(task_id)
     if not report:
         return render(request, "error.html", {"error": "The specified analysis does not exist"})
 
+    # TODO replace reports.get() above with a Suricata-aware schema or
+    # make suricata an attribute of the schema
     suricata = report["suricata"]
 
     if settings.MOLOCH_ENABLED:
         if settings.MOLOCH_BASE[-1] != "/":
             settings.MOLOCH_BASE += "/"
-
         suricata = gen_moloch_from_suri_alerts(suricata)
 
-    return render(request, "analysis/surialert.html", {"suricata": report["suricata"], "config": enabledconf})
+    return render(request, "analysis/surialert.html", {"suricata": suricata, "config": enabledconf})
 
 
 @require_safe
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def surihttp(request, task_id):
-    if enabledconf["mongodb"]:
-        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.http": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
-    elif es_as_db:
-        report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.http"])["hits"][
-            "hits"
-        ]
-        if len(report) == 0:
-            report = None
-        else:
-            report = report[0]["_source"]
-    else:
-        report = None
-
+    # TODO(njb) this function is nearly identical to others w/ the exception of
+    # the rendered template. DRY
+    task_id = int(task_id)
+    report = reports.get(task_id)
     if not report:
         return render(request, "error.html", {"error": "The specified analysis does not exist"})
 
+    # TODO replace reports.get() above with a Suricata-aware schema or
+    # make suricata an attribute of the schema
     suricata = report["suricata"]
 
     if settings.MOLOCH_ENABLED:
         if settings.MOLOCH_BASE[-1] != "/":
             settings.MOLOCH_BASE += "/"
-
         suricata = gen_moloch_from_suri_http(suricata)
 
-    return render(request, "analysis/surihttp.html", {"analysis": report["suricata"], "config": enabledconf})
+    return render(request, "analysis/surihttp.html", {"analysis": suricata, "config": enabledconf})
 
 
 @require_safe
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def suritls(request, task_id):
-    if enabledconf["mongodb"]:
-        report = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"suricata.tls": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
-    elif es_as_db:
-        report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.tls"])["hits"][
-            "hits"
-        ]
-        if len(report) == 0:
-            report = None
-        else:
-            report = report[0]["_source"]
-    else:
-        report = None
-
+    # TODO(njb) this function is nearly identical to others w/ the exception of
+    # the rendered template. DRY
+    task_id = int(task_id)
+    report = reports.get(task_id)
     if not report:
         return render(request, "error.html", {"error": "The specified analysis does not exist"})
 
+    # TODO replace reports.get() above with a Suricata-aware schema or
+    # make suricata an attribute of the schema
     suricata = report["suricata"]
 
     if settings.MOLOCH_ENABLED:
         if settings.MOLOCH_BASE[-1] != "/":
             settings.MOLOCH_BASE += "/"
-
         suricata = gen_moloch_from_suri_tls(suricata)
 
-    return render(request, "analysis/suritls.html", {"analysis": report["suricata"], "config": enabledconf})
+    return render(request, "analysis/suritls.html", {"analysis": suricata, "config": enabledconf})
 
 
 @require_safe
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def surifiles(request, task_id):
-    if enabledconf["mongodb"]:
-        report = mongo_find_one(
-            ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {INFO_ID_KEY: 1, "suricata.files": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)]
-        )
-    elif es_as_db:
-        report = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), _source=["suricata.files"])["hits"][
-            "hits"
-        ]
-        if len(report) == 0:
-            report = None
-        else:
-            report = report[0]["_source"]
-    else:
-        report = None
-
+    # TODO(njb) this function is nearly identical to others w/ the exception of
+    # the rendered template. DRY
+    task_id = int(task_id)
+    report = reports.get(task_id)
     if not report:
         return render(request, "error.html", {"error": "The specified analysis does not exist"})
 
+    # TODO replace reports.get() above with a Suricata-aware schema or
+    # make suricata an attribute of the schema
     suricata = report["suricata"]
 
     if settings.MOLOCH_ENABLED:
         if settings.MOLOCH_BASE[-1] != "/":
             settings.MOLOCH_BASE += "/"
-
         suricata = gen_moloch_from_suri_file_info(suricata)
 
-    return render(request, "analysis/surifiles.html", {"analysis": report["suricata"], "config": enabledconf})
+    return render(request, "analysis/surifiles.html", {"analysis": suricata, "config": enabledconf})
 
 
 @csrf_exempt
