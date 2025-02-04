@@ -11,45 +11,45 @@ class BaseModel(PydanticBaseModel, abc.ABC):
 
 
 class Machine(BaseModel):
-    id: int | None
-    status: str | None
-    name: str | None
-    label: str | None
-    platform: str | None
-    manager: str | None
-    started_on: datetime.datetime | None
-    shutdown_on: datetime.datetime | None
+    id: int | None = None
+    status: str | None = None
+    name: str | None = None
+    label: str | None = None
+    platform: str | None = None
+    manager: str | None = None
+    started_on: datetime.datetime | None = None
+    shutdown_on: datetime.datetime | None = None
 
 
 class Info(BaseModel):
-    id: int | None
-    version: str | None
-    started: datetime.datetime | None
-    ended: datetime.datetime | None
-    duration: int | None
-    category: str | None
-    machine: Machine | None
-    package: str | None
-    timeout: bool | None
-    tlp: str | None
-    user_id: int | None
+    id: int | None = None
+    version: str | None = None
+    started: datetime.datetime | None = None
+    ended: datetime.datetime | None = None
+    duration: int | None = None
+    category: str | None = None
+    machine: Machine | None = None
+    package: str | None = None
+    timeout: bool | None = None
+    tlp: str | None = None
+    user_id: int | None = None
 
 
 class Summary(BaseModel):
-    info: Info | None
-    vt_file_summary: str | None
-    vt_url_summary: str | None
-    malscore: float | None
-    detections: List[dict] | None
-    pcap_sha256: str | None
-    mlist_cnt: int | None
-    f_mlist_cnt: int | None
-    clamav: List[str] | None
-    suri_tls_cnt: int | None
-    suri_alert_cnt: int | None
-    suri_http_cnt: int | None
-    suri_file_cnt: int | None
-    trid: int | None
+    info: Info | None = None
+    vt_file_summary: str | None = None
+    vt_url_summary: str | None = None
+    malscore: float | None = None
+    detections: List[dict] | None = None
+    pcap_sha256: str | None = None
+    mlist_cnt: int | None = None
+    f_mlist_cnt: int | None = None
+    clamav: List[str] | None = None
+    suri_tls_cnt: int | None = None
+    suri_alert_cnt: int | None = None
+    suri_http_cnt: int | None = None
+    suri_file_cnt: int | None = None
+    trid: int | None = None
 
 
 class BehaviorProcessCall(BaseModel):
@@ -58,40 +58,40 @@ class BehaviorProcessCall(BaseModel):
 
 class BehaviorProcess(BaseModel):
     process_id: int
-    process_name: str | None
-    parent_id: int | None
-    module_path: str | None
-    first_seen: datetime.datetime | None
-    calls: list[BehaviorProcessCall] | None
-    threads: list[str] | None
-    environ: dict[str, str] | None
-    file_activities: dict[str, Any] | None
+    process_name: str | None = None
+    parent_id: int | None = None
+    module_path: str | None = None
+    first_seen: datetime.datetime | None = None
+    calls: list[BehaviorProcessCall] | None = None
+    threads: list[str] | None = None
+    environ: dict[str, str] | None = None
+    file_activities: dict[str, Any] | None = None
 
 
 class Behavior(BaseModel):
-    info: Info | None
-    detections2pid: dict | None
-    processes: list[BehaviorProcess] | None
-    process_tree: list | None
+    info: Info | None = None
+    detections2pid: dict | None = None
+    processes: list[BehaviorProcess] | None = None
+    process_tree: list | None = None
 
 
 class Domain(BaseModel):
-    ip: str | None
-    domain: str | None
+    ip: str | None = None
+    domain: str | None = None
 
 
 class Network(BaseModel):
-    info: Info | None
-    network: dict | None
-    domains: List[Domain] | None
-    suricata: list | None
-    pcapng: list | None
+    info: Info | None = None
+    network: dict | None = None
+    domains: List[Domain] | None = None
+    suricata: list | None = None
+    pcapng: list | None = None
 
 
 class CAPE(BaseModel):
-    info: Info | None
-    payloads: list | None
-    configs: list | None
+    info: Info | None = None
+    payloads: list | None = None
+    configs: list | None = None
 
 
 class AnalysisConfigs(BaseModel):
