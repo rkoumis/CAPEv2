@@ -1936,19 +1936,14 @@ def pcapstream(request, task_id, conntuple):
     src, sport, dst, dport, proto = conntuple.split(",")
     sport, dport = int(sport), int(dport)
 
-    if enabledconf["mongodb"]:
-        conndata = mongo_find_one(
-            ANALYSIS_COLL,
-            {INFO_ID_KEY: int(task_id)},
-            {"network.sorted.tcp": 1, "network.sorted.udp": 1, "network.sorted_pcap_sha256": 1, ID_KEY: 0},
-            sort=[(ID_KEY, -1)],
-        )
-
-    if es_as_db:
-        conndata = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]["_source"]
-
+    task_id = int(task_id)
+    conndata = reports.network(task_id)
     if not conndata:
-        return render(request, "standalone_error.html", {"error": "The specified analysis does not exist"})
+        return render(
+            request,
+            "standalone_error.html",
+            {"error": "The specified analysis does not exist"},
+        )
 
     try:
         # TODO(njb) replace conndata key lookups with schema attributes
