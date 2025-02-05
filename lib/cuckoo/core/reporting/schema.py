@@ -109,5 +109,18 @@ class Call(BaseModel):
     repeated: int = 0
 
 
+class ProcMemory(BaseModel):
+    class Chunk(BaseModel):
+        # start, end and size are hexadecimal values
+        start: str
+        end: str
+        size: str
+        offset: int
+
+    class MemoryMap(BaseModel):
+        chunks: list[ProcMemory.Chunk] = []
+    pid: int
+    address_space: list[MemoryMap] = []
+
 class AnalysisConfigs(BaseModel):
     ...
