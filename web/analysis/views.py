@@ -1653,10 +1653,8 @@ def procdump(request, task_id, process_id, start, end, zipped=False):
     tmpdir = None
     tmp_file_path = None
     response = False
-    if enabledconf["mongodb"]:
-        analysis = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"procmemory": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)])
-    if es_as_db:
-        analysis = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]["_source"]
+    task_id = int(task_id)
+    analysis = reports.procmemory(task_id)
 
     dumpfile = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "memory", origname)
 
