@@ -6,12 +6,14 @@ from lib.cuckoo.core.reporting.schema import Behavior, Call
 
 def test_nested_behavior_objects():
     process_id = random.randint(0, 100)
-    process_call = {"oid": "the_process_oid"}
+    call_id = random.randint(0, 100)
+    process_call = {"id": call_id, "oid": "the_process_oid"}
     process = {"process_id": process_id, "calls": [process_call]}
     behavior_dict = {"processes": [process]}
     behavior = Behavior(**behavior_dict)
     assert behavior.processes[0].process_id == process_id
     assert behavior.processes[0].calls[0].oid == "the_process_oid"
+    assert behavior.processes[0].calls[0].id == call_id
 
 
 def test_call_argument_object():

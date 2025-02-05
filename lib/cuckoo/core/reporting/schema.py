@@ -4,7 +4,7 @@ import datetime
 from typing import Any, List
 
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict
 
 
 class BaseModel(PydanticBaseModel, abc.ABC):
