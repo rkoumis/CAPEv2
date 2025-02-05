@@ -90,7 +90,7 @@ def gen_rnd_data(func, lower, upper, arg_name=None):
 
 
 if not os.environ.get("GEN_DATA"):
-    import utils_pretty_print_funcs_data as data
+    from . import utils_pretty_print_funcs_data as data
 else:
     try:
         path_delete("CAPEv2/tests/utils_pretty_print_funcs_data.py")

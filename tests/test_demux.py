@@ -6,7 +6,7 @@ import pathlib
 import tempfile
 
 import pytest
-from tcr_misc import get_sample
+from .tcr_misc import get_sample
 
 from lib.cuckoo.common import demux
 
