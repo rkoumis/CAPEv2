@@ -1920,57 +1920,13 @@ def remove(request, task_id):
     if not enabledconf["delete"] and not request.user.is_staff:
         return render(request, "success_simple.html", {"message": "buy a lot of whiskey to admin ;)"})
 
-    if enabledconf["mongodb"]:
-        mongo_delete_data(int(task_id))
-        analyses_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id)
-        if path_exists(analyses_path):
-            delete_folder(analyses_path)
+    if reports.delete(task_id):
         message = "Task(s) deleted."
-    if es_as_db:
-        analyses = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
-        if len(analyses) > 1:
-            message = "Multiple tasks with this ID deleted."
-        elif len(analyses) == 1:
-            message = "Task deleted."
-        if len(analyses) > 0:
-            for analysis in analyses:
-                esidx = analysis["_index"]
-                esid = analysis["_id"]
-                # Check if behavior exists
-                if analysis["_source"]["behavior"]:
-                    for process in analysis["_source"]["behavior"]["processes"]:
-                        for call in process["calls"]:
-                            es.delete(
-                                index=esidx,
-                                doc_type="calls",
-                                id=call,
-                            )
-                # Delete the analysis results
-                es.delete(
-                    index=esidx,
-                    doc_type="analysis",
-                    id=esid,
-                )
-    elif essearch:
-        # remove es search data
-        analyses = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"]
-        if len(analyses) > 1:
-            message = "Multiple tasks with this ID deleted."
-        elif len(analyses) == 1:
-            message = "Task deleted."
-        if len(analyses) > 0:
-            for analysis in analyses:
-                esidx = analysis["_index"]
-                esid = analysis["_id"]
-                # Delete the analysis results
-                es.delete(
-                    index=esidx,
-                    doc_type="analysis",
-                    id=esid,
-                )
+    else:
+        message = "Task(s) not found."
 
-    db.delete_task(task_id)
-
+    # BUG return value from delete_task is ignored
+    _ = db.delete_task(task_id)
     return render(request, "success_simple.html", {"message": message})
 
 
