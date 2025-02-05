@@ -1977,45 +1977,36 @@ def pcapstream(request, task_id, conntuple):
 
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def comments(request, task_id):
-    if request.method == "POST" and settings.COMMENTS:
-        comment = request.POST.get("commentbox", "")
-        if not comment:
-            return render(request, "error.html", {"error": "No comment provided."})
+    if request.method != "POST" or not settings.COMMENTS:
+        return render(request, "error.html", {"error": "Invalid Method"})
 
-        if enabledconf["mongodb"]:
-            report = mongo_find_one(
-                ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"info.comments": 1, ID_KEY: 0}, sort=[(ID_KEY, -1)]
-            )
-        if es_as_db:
-            query = es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id))["hits"]["hits"][0]
-            report = query["_source"]
-            esid = query["_id"]
-            esidx = query["_index"]
-        if "comments" in report["info"]:
-            curcomments = report["info"]["comments"]
-        else:
-            curcomments = []
-        buf = {}
-        buf["Timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        escape_map = {
-            "&": "&amp;",
-            '"': "&quot;",
-            "'": "&apos;",
-            "<": "&lt;",
-            ">": "&gt;",
-            "\n": "<br />",
-        }
-        buf["Data"] = "".join(escape_map.get(thechar, thechar) for thechar in comment)
-        # status can be posted/removed
-        buf["Status"] = "posted"
-        curcomments.insert(0, buf)
-        if enabledconf["mongodb"]:
-            mongo_update_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {"$set": {"info.comments": curcomments}})
-        if es_as_db:
-            es.update(index=esidx, id=esid, body={"doc": {"info": {"comments": curcomments}}})
-        return redirect("report", task_id=task_id)
+    comment = request.POST.get("commentbox", "")
+    if not comment:
+        return render(request, "error.html", {"error": "No comment provided."})
 
-    return render(request, "error.html", {"error": "Invalid Method"})
+    task_id = int(task_id)
+    report = reports.summary(task_id)
+    if "comments" in report.info:
+        curcomments = report["info"]["comments"]
+    else:
+        curcomments = []
+    buf = {}
+    buf["Timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    escape_map = {
+        "&": "&amp;",
+        '"': "&quot;",
+        "'": "&apos;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\n": "<br />",
+    }
+    buf["Data"] = "".join(escape_map.get(thechar, thechar) for thechar in comment)
+    # status can be posted/removed
+    buf["Status"] = "posted"
+    curcomments.insert(0, buf)
+
+    # TODO need an info update API for this
+    raise NotImplementedError()
 
 
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
