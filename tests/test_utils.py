@@ -5,7 +5,7 @@
 import os
 
 import pytest
-from .tcr_misc import random_string
+from tcr_misc import random_string
 
 from lib.cuckoo.common import utils
 from lib.cuckoo.common.exceptions import CuckooOperationalError
