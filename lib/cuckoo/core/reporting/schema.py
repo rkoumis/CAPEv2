@@ -54,23 +54,20 @@ class Summary(BaseModel):
 
 
 class Behavior(BaseModel):
-    class ProcessCall(BaseModel):
-        oid: str = Field(serialization_alias="$oid")
-
     class Process(BaseModel):
         process_id: int
         process_name: str | None = None
         parent_id: int | None = None
         module_path: str | None = None
         first_seen: datetime.datetime | None = None
-        calls: list[Behavior.ProcessCall] = []
+        calls: list[Call] = []
         threads: list[str] = []
         environ: dict[str, str] | None = None
         file_activities: dict[str, Any] | None = None
 
     info: Info | None = None
     detections2pid: dict | None = None
-    processes: list[Behavior.Process]
+    processes: list[Process]
     process_tree: list = []
 
 
@@ -108,7 +105,7 @@ class Call(BaseModel):
     api: str | None = None
     status: bool = False
     return_code: str | None = None
-    arguments: list[Call.Argument] = []
+    arguments: list[Argument] = []
     repeated: int = 0
 
 
