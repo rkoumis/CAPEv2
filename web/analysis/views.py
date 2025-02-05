@@ -1884,11 +1884,10 @@ def search(request, searched=""):
         analyses = []
         for result in records or []:
             new = None
-            if enabledconf["mongodb"] and enabledconf["elasticsearchdb"] and essearch and not term:
+            # TODO(njb) search use cases here; align with perform_search impl
+            if reporting.enabled() and essearch and not term:
                 new = get_analysis_info(db, id=int(result["_source"]["task_id"]))
-            if enabledconf["mongodb"] and term and "info" in result:
-                new = get_analysis_info(db, id=int(result["info"]["id"]))
-            if es_as_db:
+            elif reporting.enabled():
                 new = get_analysis_info(db, id=int(result["info"]["id"]))
             if not new:
                 continue
@@ -1907,7 +1906,11 @@ def search(request, searched=""):
                 "value_only": value_only,
             },
         )
-    return render(request, "analysis/search.html", {"title": "Search", "analyses": None, "term": None, "error": None})
+    return render(
+        request,
+        "analysis/search.html",
+        {"title": "Search", "analyses": None, "term": None, "error": None},
+    )
 
 
 @require_safe
