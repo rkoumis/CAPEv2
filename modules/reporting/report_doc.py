@@ -20,6 +20,7 @@ CHUNK_CALL_SIZE = 100
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_insert_one
+    from modules.reporting.mongodb_constants import CALLS_COLL
 elif repconf.elasticsearchdb.enabled:
     from elasticsearch.helpers import parallel_bulk
 
@@ -127,7 +128,7 @@ def insert_calls(report, elastic_db=None, mongodb=False):
                 if len(chunk) == CHUNK_CALL_SIZE:
                     to_insert = {"pid": process["process_id"], "calls": chunk}
                     with suppress(Exception):
-                        chunk_id = mongo_insert_one("calls", to_insert).inserted_id
+                        chunk_id = mongo_insert_one(CALLS_COLL, to_insert).inserted_id
 
                     if chunk_id:
                         chunks_ids.append(chunk_id)
@@ -141,7 +142,7 @@ def insert_calls(report, elastic_db=None, mongodb=False):
                 chunk_id = None
                 to_insert = {"pid": process["process_id"], "calls": chunk}
                 with suppress(Exception):
-                    chunk_id = mongo_insert_one("calls", to_insert).inserted_id
+                    chunk_id = mongo_insert_one(CALLS_COLL, to_insert).inserted_id
 
                 if chunk_id:
                     chunks_ids.append(chunk_id)

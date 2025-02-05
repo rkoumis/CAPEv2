@@ -24,6 +24,7 @@ for item in confdata:
 
 if enabledconf["mongodb"]:
     from dev_utils.mongodb import mongo_find, mongo_find_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, INFO, INFO_ID_KEY, TARGET
 
 es_as_db = False
 if enabledconf["elasticsearchdb"]:
@@ -53,7 +54,7 @@ class conditional_login_required:
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def left(request, left_id):
     if enabledconf["mongodb"]:
-        left = mongo_find_one("analysis", {"info.id": int(left_id)}, {"target": 1, "info": 1})
+        left = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(left_id)}, {TARGET: 1, INFO: 1})
     if es_as_db:
         hits = es.search(index=get_analysis_index(), query=get_query_by_info_id(left_id))["hits"]["hits"]
         if hits:
@@ -66,9 +67,9 @@ def left(request, left_id):
     # Select all analyses with same file hash.
     if enabledconf["mongodb"]:
         records = mongo_find(
-            "analysis",
-            {"$and": [{"target.file.md5": left["target"]["file"]["md5"]}, {"info.id": {"$ne": int(left_id)}}]},
-            {"target": 1, "info": 1},
+            ANALYSIS_COLL,
+            {"$and": [{"target.file.md5": left["target"]["file"]["md5"]}, {INFO_ID_KEY: {"$ne": int(left_id)}}]},
+            {TARGET: 1, INFO: 1},
         )
     if es_as_db:
         records = []
@@ -92,7 +93,7 @@ def left(request, left_id):
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def hash(request, left_id, right_hash):
     if enabledconf["mongodb"]:
-        left = mongo_find_one("analysis", {"info.id": int(left_id)}, {"target": 1, "info": 1})
+        left = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(left_id)}, {TARGET: 1, INFO: 1})
     if es_as_db:
         hits = es.search(index=get_analysis_index(), query=get_query_by_info_id(left_id))["hits"]["hits"]
         if hits:
@@ -105,9 +106,9 @@ def hash(request, left_id, right_hash):
     # Select all analyses with same file hash.
     if enabledconf["mongodb"]:
         records = mongo_find(
-            "analysis",
-            {"$and": [{"target.file.md5": left["target"]["file"]["md5"]}, {"info.id": {"$ne": int(left_id)}}]},
-            {"target": 1, "info": 1},
+            ANALYSIS_COLL,
+            {"$and": [{"target.file.md5": left["target"]["file"]["md5"]}, {INFO_ID_KEY: {"$ne": int(left_id)}}]},
+            {TARGET: 1, INFO: 1},
         )
     if es_as_db:
         records = []
@@ -131,8 +132,8 @@ def hash(request, left_id, right_hash):
 @conditional_login_required(login_required, settings.WEB_AUTHENTICATION)
 def both(request, left_id, right_id):
     if enabledconf["mongodb"]:
-        left = mongo_find_one("analysis", {"info.id": int(left_id)}, {"target": 1, "info": 1, "summary": 1})
-        right = mongo_find_one("analysis", {"info.id": int(right_id)}, {"target": 1, "info": 1, "summary": 1})
+        left = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(left_id)}, {TARGET: 1, INFO: 1, "summary": 1})
+        right = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(right_id)}, {TARGET: 1, INFO: 1, "summary": 1})
         # Execute comparison.
         counts = compare.helper_percentages_mongo(left_id, right_id)
         summary_compare = compare.helper_summary_mongo(left_id, right_id)

@@ -291,13 +291,6 @@ auth_only = no
 windowmax = 1440
 rps = 2/s
 
-[rollingshrike]
-enabled = no
-auth_only = no
-#our max query window for rolling logs in minutes
-windowmax = 10080
-rps = 2/s
-
 # Configure the ability to retrieve CAPE extracted config as JSON
 [capeconfig]
 enabled = yes

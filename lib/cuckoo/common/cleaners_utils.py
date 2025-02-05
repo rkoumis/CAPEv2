@@ -55,6 +55,7 @@ if repconf.mongodb.enabled:
         mongo_is_cluster,
         mongo_update_one,
     )
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
 elif repconf.elasticsearchdb.enabled:
     from dev_utils.elasticsearchdb import all_docs, delete_analysis_and_related_calls, get_analysis_index
 
@@ -373,7 +374,7 @@ def cuckoo_clean_failed_url_tasks():
 
     if repconf.mongodb.enabled:
         query = {"info.category": "url", "network.http.0": {"$exists": False}}
-        rtmp = mongo_find("analysis", query, projection={"info.id": 1}, sort=[("_id", -1)], limit=100)
+        rtmp = mongo_find(ANALYSIS_COLL, query, projection={INFO_ID_KEY: 1}, sort=[(ID_KEY, -1)], limit=100)
     elif repconf.elasticsearchdb.enabled:
         rtmp = [
             d["_source"]
@@ -405,7 +406,7 @@ def cuckoo_clean_lower_score(malscore: int):
         return
 
     if repconf.mongodb.enabled:
-        result = list(mongo_find("analysis", {"malscore": {"$lte": malscore}}))
+        result = list(mongo_find(ANALYSIS_COLL, {"malscore": {"$lte": malscore}}))
         id_arr = [entry["info"]["id"] for entry in result]
     elif repconf.elasticsearchdb.enabled:
         id_arr = [
@@ -481,13 +482,15 @@ def cuckoo_clean_before_day(args: dict):
     log.info(("number of matching records %s before suri/custom filter " % len(id_arr)))
     if id_arr and args.get("suricata_zero_alert_filter"):
         result = list(
-            mongo_find("analysis", {"suricata.alerts.alert": {"$exists": False}, "$or": id_arr}, {"info.id": 1, "_id": 0})
+            mongo_find(ANALYSIS_COLL, {"suricata.alerts.alert": {"$exists": False}, "$or": id_arr}, {INFO_ID_KEY: 1, ID_KEY: 0})
         )
         id_arr = [entry["info"]["id"] for entry in result]
     if id_arr and args.get("custom_include_filter"):
         result = list(
             mongo_find(
-                "analysis", {"info.custom": {"$regex": args.get("custom_include_filter")}, "$or": id_arr}, {"info.id": 1, "_id": 0}
+                ANALYSIS_COLL,
+                {"info.custom": {"$regex": args.get("custom_include_filter")}, "$or": id_arr},
+                {INFO_ID_KEY: 1, ID_KEY: 0},
             )
         )
         id_arr = [entry["info"]["id"] for entry in result]
@@ -517,7 +520,7 @@ def cuckoo_clean_sorted_pcap_dump():
     while not done:
         if repconf.mongodb.enabled:
             query = {"network.sorted_pcap_id": {"$exists": True}}
-            rtmp = mongo_find("analysis", query, projection={"info.id": 1}, sort=[("_id", -1)], limit=100)
+            rtmp = mongo_find(ANALYSIS_COLL, query, projection={INFO_ID_KEY: 1}, sort=[(ID_KEY, -1)], limit=100)
         elif repconf.elasticsearchdb.enabled:
             rtmp = [
                 d["_source"]
@@ -537,7 +540,7 @@ def cuckoo_clean_sorted_pcap_dump():
                     try:
                         if repconf.mongodb.enabled:
                             mongo_update_one(
-                                "analysis", {"info.id": int(e["info"]["id"])}, {"$unset": {"network.sorted_pcap_id": ""}}
+                                ANALYSIS_COLL, {INFO_ID_KEY: int(e["info"]["id"])}, {"$unset": {"network.sorted_pcap_id": ""}}
                             )
                         elif repconf.elasticsearchdb.enabled:
                             es.update(index=e["index"], id=e["info"]["id"], body={"network.sorted_pcap_id": ""})

@@ -11,6 +11,7 @@ repconf = Config("reporting")
 
 if repconf.mongodb.enabled:
     from dev_utils.mongodb import mongo_find_one
+    from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, ID_KEY, INFO_ID_KEY
 
 if repconf.elasticsearchdb.enabled:
     from dev_utils.elasticsearchdb import get_analysis_index, get_calls_index, get_query_by_info_id
@@ -58,7 +59,7 @@ def helper_percentages_mongo(tid1, tid2, ignore_categories: set = None) -> dict:
         counts[tid] = {}
 
         pids_calls = mongo_find_one(
-            "analysis", {"info.id": int(tid)}, {"behavior.processes.process_id": 1, "behavior.processes.calls": 1}
+            ANALYSIS_COLL, {INFO_ID_KEY: int(tid)}, {"behavior.processes.process_id": 1, "behavior.processes.calls": 1}
         )
 
         if not pids_calls:
@@ -69,7 +70,7 @@ def helper_percentages_mongo(tid1, tid2, ignore_categories: set = None) -> dict:
             counts[tid][pid] = {}
 
             for coid in pdoc["calls"]:
-                chunk = mongo_find_one("calls", {"_id": coid}, {"calls.category": 1})
+                chunk = mongo_find_one(CALLS_COLL, {ID_KEY: coid}, {"calls.category": 1})
                 category_counts = behavior_categories_percent(chunk["calls"])
                 for cat, count in category_counts.items():
                     if cat in ignore_categories:
@@ -81,8 +82,8 @@ def helper_percentages_mongo(tid1, tid2, ignore_categories: set = None) -> dict:
 
 def helper_summary_mongo(tid1, tid2):
     left_sum, right_sum = None, None
-    left_sum = mongo_find_one("analysis", {"info.id": int(tid1)}, {"behavior.summary": 1})
-    right_sum = mongo_find_one("analysis", {"info.id": int(tid2)}, {"behavior.summary": 1})
+    left_sum = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(tid1)}, {"behavior.summary": 1})
+    right_sum = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(tid2)}, {"behavior.summary": 1})
     return get_similar_summary(left_sum, right_sum) if left_sum and right_sum else {}
 
 
