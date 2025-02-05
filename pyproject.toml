@@ -9,6 +9,7 @@ requires-poetry = ">=2.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4.0"
+python-magic = "0.4.27"
 alembic = "1.9.4"
 gevent = "24.2.1"
 greenlet = "3.0.3"
