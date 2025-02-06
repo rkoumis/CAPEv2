@@ -108,6 +108,9 @@ class Call(BaseModel):
     arguments: list[Argument] = []
     repeated: int = 0
 
+class Calls(BaseModel):
+    calls_: list[Call] = []
+    pid: int
 
 class ProcMemory(BaseModel):
     class Chunk(BaseModel):
