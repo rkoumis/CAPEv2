@@ -135,3 +135,52 @@ class AnalysisConfig(BaseModel):
 
     associated_config_hashes: list[AnalysisConfig.HashGroup] = []
     associated_analysis_hashes: AnalysisConfig.HashGroup | None
+
+class Suricata(BaseModel):
+    class TLS(BaseModel):
+        srcport: int
+        srcip: str
+        dstport: int
+        dstip: str
+        timestamp: datetime.datetime | None = None
+        fingerprint: str | None = None
+        issuerdn: str | None = None
+        version: str | None = None
+        subject: str | None = None
+        sni: str | None = None
+        serial: str | None = None
+        notbefore: datetime.datetime | None = None
+        notafter: datetime.datetime | None = None
+    class DNS(BaseModel):
+        class DNSQuery(BaseModel):
+            type: str
+            id: int
+            rrname: str
+            rrtype: str
+            tx_id: int
+            opcode: int
+        timestamp: datetime.datetime | None = None
+        flow_id: int
+        pcap_cnt: int
+        event_type: str
+        src_ip: str
+        dest_ip: str
+        dest_port: int
+        proto: str | None = None
+        dns: DNSQuery | None = None
+
+    alerts: list[str] = [] # Got any example alerts?
+    tls: list[TLS] = []
+    perf: list[str] = []
+    files: list[str] = []
+    http: list[str] = []
+    dns: list[Suricata.DNS] = []
+    ssh: list[str] = []
+    fileinfo: list[str] = []
+    eve_log_full_path: str | None = None
+    alert_log_full_path: str | None = None
+    tls_log_full_path: str | None = None
+    http_log_full_path: str | None = None
+    file_log_full_path: str | None = None
+    ssh_log_full_path: str | None = None
+    dns_log_full_path: str | None = None
