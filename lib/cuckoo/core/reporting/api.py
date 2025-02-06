@@ -1,5 +1,3 @@
-from typing import Optional
-
 from lib.cuckoo.core.reporting import schema
 
 
@@ -24,7 +22,7 @@ class Reports:
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         raise NotImplementedError()
 
-    def cape_configs(self, task_id: int) -> Optional[schema.AnalysisConfigs]:
+    def cape_configs(self, task_id: int) -> schema.AnalysisConfigs | None:
         raise NotImplementedError()
 
     def detections_by_sha256(self, sha256: str) -> dict:
@@ -33,7 +31,7 @@ class Reports:
     def iocs(self, task_id: int) -> dict:
         raise NotImplementedError()
 
-    def summary(self, task_id: int) -> Optional[schema.Summary]:
+    def summary(self, task_id: int) -> schema.Summary | None:
         raise NotImplementedError()
 
     def recent_suricata_alerts(self, minutes=60) -> list:
