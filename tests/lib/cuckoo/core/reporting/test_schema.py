@@ -44,13 +44,15 @@ def test_analysis_config_object():
     )
     the_family=dict(SomeKey="SomeValue")
     the_dict = dict(
-        associated_config_hashes=[hash_group],
-        associated_analysis_hashes=hash_group,
+        _associated_config_hashes=[hash_group],
+        _associated_analysis_hashes=hash_group,
         SomeFamily=the_family,
     )
     analysis_config = schema.AnalysisConfig(**the_dict)
     assert isinstance(analysis_config, schema.AnalysisConfig)
     assert isinstance(analysis_config.associated_config_hashes[0], schema.AnalysisConfig.HashGroup)
-    assert dict(analysis_config.associated_analysis_hashes) == hash_group
-    expected_keys = "associated_config_hashes", "associated_analysis_hashes", "SomeFamily"
-    assert expected_keys == tuple(dict(analysis_config).keys())
+    assert analysis_config.associated_analysis_hashes.model_dump() == hash_group
+    expected_keys = ["_associated_config_hashes", "_associated_analysis_hashes", "SomeFamily"]
+    assert expected_keys == list(analysis_config.model_dump(by_alias=True).keys())
+    expected_keys = ["associated_config_hashes", "associated_analysis_hashes", "SomeFamily"]
+    assert expected_keys == list(analysis_config.model_dump().keys())

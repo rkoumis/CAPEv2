@@ -4,7 +4,7 @@ import datetime
 from typing import Any, List
 
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 
 class BaseModel(PydanticBaseModel, abc.ABC):
@@ -133,8 +133,8 @@ class AnalysisConfig(BaseModel):
         sha512: str
         sha3_384: str
 
-    associated_config_hashes: list[AnalysisConfig.HashGroup] = []
-    associated_analysis_hashes: AnalysisConfig.HashGroup | None
+    associated_config_hashes: list[AnalysisConfig.HashGroup] = Field(alias="_associated_config_hashes")
+    associated_analysis_hashes: AnalysisConfig.HashGroup | None = Field(alias="_associated_analysis_hashes")
 
 class Suricata(BaseModel):
     class TLS(BaseModel):
