@@ -23,7 +23,7 @@ class Reports:
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         raise NotImplementedError()
 
-    def cape_configs(self, task_id: int) -> schema.AnalysisConfigs | None:
+    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         raise NotImplementedError()
 
     def detections_by_sha256(self, sha256: str) -> dict:

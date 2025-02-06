@@ -38,12 +38,12 @@ class ElasticsearchReports(api.Reports):
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         pass
 
-    def cape_configs(self, task_id: int) -> schema.AnalysisConfigs:
-        tmp = self.es.search(index=get_analysis_index(), query=get_query_by_info_id(str(task_id)))["hits"]["hits"]
-        if len(tmp) >= 1:
-            buf = tmp[-1]["_source"]
-            return schema.AnalysisConfigs(**buf)
-        return None
+    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
+        resp = self.es.search(index=get_analysis_index(), query=get_query_by_info_id(str(task_id)))
+        retval = []
+        for hit in resp["hits"]["hits"]:
+            retval.append(schema.AnalysisConfig(**hit["_source"]))
+        return retval
 
     def detections_by_sha256(self, sha256: str) -> dict:
         pass

@@ -133,8 +133,25 @@ def mongodb_populate_test_data(mongodb_mock_client):
             "started_services": ["startedsvc"],
         },
     }
+    configs = [
+        {
+            "BadMalware": {"domain": [["example.com"]]},
+            "_associated_config_hashes": [
+                {"md5": "a" * 32, "sha1": "a" * 40, "sha256": "a" * 64, "sha512": "a" * 128, "sha3_384": "a" * 96},
+                {"md5": "b" * 32, "sha1": "b" * 40, "sha256": "b" * 64, "sha512": "b" * 128, "sha3_384": "b" * 96},
+            ],
+            "_associated_analysis_hashes": {
+                "md5": "c" * 32,
+                "sha1": "c" * 40,
+                "sha256": "c" * 64,
+                "sha512": "c" * 128,
+                "sha3_384": "c" * 96,
+            },
+        }
+    ]
     analysis = {
         "info": info,
+        "CAPE": {"configs": configs},
         "target": {
             "file": {
                 "virustotal": {

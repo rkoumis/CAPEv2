@@ -12,6 +12,7 @@ from lib.cuckoo.core.reporting.backends import mongodb
 
 getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
 
+
 @pytest.mark.usefixtures("mongodb_config", "mongodb_mock_client")
 class TestMongoDBReportingBackend:
     def test_has_api_methods(self):
@@ -52,6 +53,13 @@ class TestMongoDBReportingBackend:
         assert result.vt_url_summary == "20/30"
         assert result.clamav == []
 
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_cape_configs(self):
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.cape_configs(TEST_TASK_ID)
+        assert isinstance(actual, list)
+        assert all([isinstance(cfg, schema.AnalysisConfig) for cfg in actual])
+        assert len(actual) == 1
 
     def test_calls_no_data(self):
         """Test calls returns an empty list if there is no data."""
@@ -71,7 +79,7 @@ class TestMongoDBReportingBackend:
 
     @pytest.mark.parametrize("pid, expected_count", [(1, 1), (5, 5), (6, 0), ((1, 2, 3), 6)])
     @pytest.mark.usefixtures("mongodb_populate_test_data")
-    def test_calls_by_pid(self, pid:int, expected_count):
+    def test_calls_by_pid(self, pid: int, expected_count):
         """Test calls returns a list of calls filtered by process ID."""
         mongo = mongodb.MongoDBReports(self.cfg)
         actual = mongo.calls(TEST_TASK_ID, pid)

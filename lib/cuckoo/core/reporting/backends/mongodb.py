@@ -67,13 +67,18 @@ class MongoDBReports(api.Reports):
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         pass
 
-    def cape_configs(self, task_id: int) -> Optional[schema.AnalysisConfigs]:
-        query = {_info_id: task_id}
-        projection = {
-            "CAPE.configs": 1,
-        }
-        result = self._analysis_collection.find_one(filter=query, projection=projection)
-        return None if not result else schema.AnalysisConfigs(**result)
+    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
+        result = self._analysis_collection.find_one(
+            filter={_info_id: task_id},
+            projection={
+                "CAPE.configs": 1,
+            },
+        )
+        retval: list[schema.AnalysisConfig] = []
+        if result:
+            configs = result.get("CAPE", {}).get("configs", [])
+            retval.extend([schema.AnalysisConfig(**cfg) for cfg in configs])
+        return retval
 
     def detections_by_sha256(self, sha256: str) -> dict:
         pass
@@ -175,7 +180,7 @@ class MongoDBReports(api.Reports):
         return None if not report else report
 
     def calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
-        analysis_doc = self._analysis_collection.find_one(
+        result = self._analysis_collection.find_one(
             filter={_info_id: task_id},
             projection={
                 _id: 0,
@@ -184,10 +189,10 @@ class MongoDBReports(api.Reports):
         )
 
         retval: list[schema.Call] = []
-        if not analysis_doc:
+        if not result:
             return retval
 
-        processes = analysis_doc.get("behavior", {}).get("processes", {})
+        processes = result.get("behavior", {}).get("processes", {})
         calls = [proc.get("calls", {}) for proc in processes]
         call_ids = list(itertools.chain.from_iterable(calls))
 
