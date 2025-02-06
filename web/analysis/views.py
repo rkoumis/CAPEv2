@@ -2200,6 +2200,7 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
                     servicedata.setdefault(service, details)
 
         if servicedata:
+            # TODO need a (category-specific?) update API for this
             mongo_update_one(ANALYSIS_COLL, {ID_KEY: ObjectId(buf[ID_KEY])}, {"$set": {category: servicedata}})
         del details
 
