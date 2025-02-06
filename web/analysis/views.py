@@ -2221,8 +2221,7 @@ def ban_user(request, user_id: int):
         success = disable_user(user_id)
         if success:
             return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
-        else:
-            return render(request, "error.html", {"error": f"Can't ban user id {user_id}"})
+        return render(request, "error.html", {"error": f"Can't ban user id {user_id}"})
     return render(request, "error.html", {"error": "Nice try! You don't have permission to ban users"})
 
 
@@ -2234,5 +2233,4 @@ def reprocess_task(request, task_id: int):
     error, msg, _ = db.tasks_reprocess(task_id)
     if error:
         return render(request, "error.html", {"error": msg})
-    else:
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
