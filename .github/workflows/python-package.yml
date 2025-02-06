@@ -36,15 +36,47 @@ jobs:
         run: |
           poetry run pip install git+https://github.com/CAPESandbox/pyattck
 
-      - name: Run Ruff
-        run: poetry run ruff check . --line-length 132 --ignore E501,E402
-
       - name: Run unit tests
         run: poetry run python -m pytest
 
-      # see the mypy configuration in pyproject.toml
+  mypy:
+    # see the mypy configuration in pyproject.toml
+    runs-on: ubuntu-22.04 # ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/python-setup/
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Run mypy
         run: poetry run mypy
+
+  ruff:
+    runs-on: ubuntu-22.04 # ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/python-setup/
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Ruff
+        run: poetry run ruff check . --line-length 132 --ignore E501,E402
 
   format:
     runs-on: ubuntu-latest
