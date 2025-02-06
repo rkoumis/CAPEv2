@@ -122,5 +122,13 @@ class ProcMemory(BaseModel):
     pid: int
     address_space: list[MemoryMap] = []
 
-class AnalysisConfigs(BaseModel):
-    ...
+class AnalysisConfig(BaseModel):
+    class HashGroup(BaseModel):
+        md5: str
+        sha1: str
+        sha256: str
+        sha512: str
+        sha3_384: str
+
+    associated_config_hashes: list[AnalysisConfig.HashGroup] = []
+    associated_analysis_hashes: AnalysisConfig.HashGroup | None
