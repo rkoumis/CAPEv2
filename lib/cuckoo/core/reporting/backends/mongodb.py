@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Mapping, Optional, cast, TypeAlias
 
 import pymongo
 import pymongo.collection
@@ -18,23 +18,24 @@ log = logging.getLogger(__name__)
 # TODO retry logic - graceful_auto_reconnect
 # TODO mongo hooks for files - normalize / denormalize / remove task references / delete unused file docs
 
+MongoDoc: TypeAlias = Mapping[str, Any]
 
 class MongoDBReports(api.Reports):
     def __init__(self, cfg: config.Config):
         if not hasattr(cfg, "mongodb"):
             raise CuckooOperationalError("mongodb must be configured")
-        mongodb_cfg: dict = cfg.mongodb
 
-        self._client: pymongo.MongoClient = _pymongo_client(mongodb_cfg)
-        dbname = mongodb_cfg.get("db", "cuckoo")
-        self._database: pymongo.database.Database = self._client[dbname]
-        self._reports: pymongo.collection.Collection = self._database[_analysis_coll]
-
-        _init_pymongo_logging(mongodb_cfg)
+        mongo_cfg = cast(dict[str, str], cfg.mongodb)
+        db_name = mongo_cfg.get("db", "cuckoo")
+        _init_pymongo_logging(mongo_cfg)
+        self._client = _pymongo_client(mongo_cfg)
+        self._database: pymongo.database.Database[MongoDoc] = self._client[db_name]
+        self._analysis_collection = self._database[_analysis_coll]
+        self._calls_collection = self._database[_calls_coll]
 
     def get(self, task_id: int) -> dict:
         query = {_info_id: task_id}
-        report = self._reports.find_one(filter=query)
+        report = self._analysis_collection.find_one(filter=query)
         return {} if not report else report
 
     def behavior(self, task_id: int) -> schema.Behavior:
@@ -46,12 +47,12 @@ class MongoDBReports(api.Reports):
             "detections2pid": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def delete(self, task_id: int) -> bool:
         query = {_info_id: task_id}
-        rslt: pymongo.results.DeleteResult = self._reports.delete_one(filter=query)
+        rslt: pymongo.results.DeleteResult = self._analysis_collection.delete_one(filter=query)
         return True if rslt.deleted_count > 0 else False
 
     def search(self, term, value, limit=False, projection=None) -> list:
@@ -68,7 +69,7 @@ class MongoDBReports(api.Reports):
         projection = {
             "CAPE.configs": 1,
         }
-        result = self._reports.find_one(filter=query, projection=projection)
+        result = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not result else schema.AnalysisConfigs(**result)
 
     def detections_by_sha256(self, sha256: str) -> dict:
@@ -97,7 +98,7 @@ class MongoDBReports(api.Reports):
             "suri_file_cnt": 1,
             "trid": 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         if report:
             # Rearrange some data for populating the Summary object
             report["vt_file_summary"] = report.get("target", {}).get("file", {}).get("virustotal", {}).get("summary")
@@ -111,7 +112,7 @@ class MongoDBReports(api.Reports):
         gen_time = datetime.now() - timedelta(minutes=minutes)
         dummy_id = ObjectId.from_datetime(gen_time)
         result = list(
-            self._reports.find(
+            self._analysis_collection.find(
                 filter={"suricata.alerts": {"$exists": True}, "_id": {"$gte": dummy_id}},
                 projection={"suricata.alerts": 1, "info.id": 1},
             )
@@ -125,7 +126,7 @@ class MongoDBReports(api.Reports):
             "dropped": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def memory(self, task_id: int) -> dict:
@@ -135,7 +136,7 @@ class MongoDBReports(api.Reports):
             "memory": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def network(self, task_id: int) -> dict:
@@ -147,7 +148,7 @@ class MongoDBReports(api.Reports):
             "pcapng": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def procdump(self, task_id: int) -> dict:
@@ -157,7 +158,7 @@ class MongoDBReports(api.Reports):
             "procdump": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def procmemory(self, task_id: int) -> dict:
@@ -167,7 +168,7 @@ class MongoDBReports(api.Reports):
             "procmemory": 1,
             _info: 1,
         }
-        report = self._reports.find_one(filter=query, projection=projection)
+        report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
 
@@ -185,7 +186,7 @@ _task_ids_key = "_task_ids"
 _version = "version"
 
 
-def _pymongo_client(cfg: dict) -> pymongo.MongoClient:
+def _pymongo_client(cfg: dict[str, Any]) -> pymongo.MongoClient[Mapping[str, Any]]:
     return pymongo.MongoClient(
         host=cfg.get("host", "127.0.0.1"),
         port=cfg.get("port", 27017),
@@ -196,7 +197,6 @@ def _pymongo_client(cfg: dict) -> pymongo.MongoClient:
     )
 
 
-def _init_pymongo_logging(cfg: dict) -> None:
-    mongodb_log_level = cfg.get("log_level", "ERROR")
-    level = logging.getLevelName(mongodb_log_level.upper())
-    logging.getLogger("pymongo").setLevel(level)
+def _init_pymongo_logging(cfg: dict[str, str]) -> None:
+    mongodb_log_level = cfg.get("log_level", "ERROR").upper()
+    logging.getLogger("pymongo").setLevel(mongodb_log_level)
