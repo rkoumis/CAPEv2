@@ -109,7 +109,7 @@ class Call(BaseModel):
     repeated: int = 0
 
 class Calls(BaseModel):
-    calls_: list[Call] = []
+    calls: list[Call] = []
     pid: int
 
 class ProcMemory(BaseModel):
