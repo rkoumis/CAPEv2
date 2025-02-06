@@ -12,6 +12,7 @@ from lib.cuckoo.core.reporting.backends import mongodb
 
 TEST_DB_NAME = "cuckoo_test_db"
 TEST_TASK_ID = 42
+TEST_PIDS = range(1, 6)
 
 getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
 
@@ -67,53 +68,53 @@ def mongodb_populate_test_data(mongodb_mock_client):
                     "parentcaller": "0x00401fc1",
                     "category": "process",
                     "api": "SomeApiCall",
-                    "status": bool(_id-1),
+                    "status": bool(_id - 1),
                     "return": "0x00000000",
                     "arguments": [
                         {"name": "SomeArgument", "value": "0xffffffff"},
                     ],
                     "repeated": 0,
                     "id": _id * _pid,
-                } for _id in (1, 2, 3)
+                }
+                for _id in range(1, _pid + 1)
             ],
-        } for _pid in (1, 2)
+        }
+        for _pid in TEST_PIDS
     ]
 
     call_ids = calls_collection.insert_many(calls).inserted_ids
 
-    procs = [{
-        "process_id": 4380,
-        "process_name": "explorer.exe",
-        "parent_id": 4344,
-        "module_path": "C:\\Windows\\explorer.exe",
-        "first_seen": "2024-11-13 16:55:42,645",
-        "calls": call_ids,
-        "threads": [
-            "4340",
-            "1460",
-        ],
-        "environ": {
-            "UserName": "user",
-            "ComputerName": "DESKTOP-DESKTOP",
-            "WindowsPath": "C:\\Windows",
-            "TempPath": "C:\\Users\\user\\AppData\\Local\\Temp\\",
-            "CommandLine": "C:\\Windows\\Explorer.EXE",
-            "RegisteredOwner": "",
-            "RegisteredOrganization": "",
-            "ProductName": "",
-            "SystemVolumeSerialNumber": "ue4m-dzwd",
-            "SystemVolumeGUID": "85fmrfbw-0000-0000-0000-100000000000",
-            "MachineGUID": "",
-            "MainExeBase": "0x7ff702250000",
-            "MainExeSize": "0x004fd000",
-            "Bitness": "64-bit"
-        },
-        "file_activities": {
-            "read_files": [],
-            "write_files": [],
-            "delete_files": []
+    procs = [
+        {
+            "process_id": 4380,
+            "process_name": "explorer.exe",
+            "parent_id": 4344,
+            "module_path": "C:\\Windows\\explorer.exe",
+            "first_seen": "2024-11-13 16:55:42,645",
+            "calls": call_ids,
+            "threads": [
+                "4340",
+                "1460",
+            ],
+            "environ": {
+                "UserName": "user",
+                "ComputerName": "DESKTOP-DESKTOP",
+                "WindowsPath": "C:\\Windows",
+                "TempPath": "C:\\Users\\user\\AppData\\Local\\Temp\\",
+                "CommandLine": "C:\\Windows\\Explorer.EXE",
+                "RegisteredOwner": "",
+                "RegisteredOrganization": "",
+                "ProductName": "",
+                "SystemVolumeSerialNumber": "ue4m-dzwd",
+                "SystemVolumeGUID": "85fmrfbw-0000-0000-0000-100000000000",
+                "MachineGUID": "",
+                "MainExeBase": "0x7ff702250000",
+                "MainExeSize": "0x004fd000",
+                "Bitness": "64-bit",
+            },
+            "file_activities": {"read_files": [], "write_files": [], "delete_files": []},
         }
-    }]
+    ]
     behavior = {
         "processes": procs,
         "anomaly": [],
@@ -129,8 +130,8 @@ def mongodb_populate_test_data(mongodb_mock_client):
             "resolved_apis": ["ResolvedApi"],
             "mutexes": ["mutex"],
             "created_services": ["createdsvc"],
-            "started_services": ["startedsvc"]
-        }
+            "started_services": ["startedsvc"],
+        },
     }
     analysis = {
         "info": info,

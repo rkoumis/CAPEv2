@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from lib.cuckoo.core.reporting import schema
 
 
@@ -52,5 +53,5 @@ class Reports:
     def procmemory(self, task_id: int) -> dict:
         raise NotImplementedError()
 
-    def calls(self, task_id: int) -> list[schema.Call]:
+    def calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         raise NotImplementedError()

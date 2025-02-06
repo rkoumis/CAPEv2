@@ -2,6 +2,7 @@ import itertools
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, cast, TypeAlias
+from collections.abc import Iterable
 
 import pymongo
 import pymongo.collection
@@ -20,6 +21,7 @@ log = logging.getLogger(__name__)
 # TODO mongo hooks for files - normalize / denormalize / remove task references / delete unused file docs
 
 MongoDoc: TypeAlias = Mapping[str, Any]
+
 
 class MongoDBReports(api.Reports):
     def __init__(self, cfg: config.Config):
@@ -172,7 +174,7 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
-    def calls(self, task_id: int) -> list[schema.Call]:
+    def calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         analysis_doc = self._analysis_collection.find_one(
             filter={_info_id: task_id},
             projection={
@@ -188,7 +190,14 @@ class MongoDBReports(api.Reports):
         processes = analysis_doc.get("behavior", {}).get("processes", {})
         calls = [proc.get("calls", {}) for proc in processes]
         call_ids = list(itertools.chain.from_iterable(calls))
-        call_docs = self._calls_collection.find(filter={_id: {"$in": call_ids}}, sort=[(_id, 1)])
+
+        calls_filter: dict[str, Any] = {_id: {"$in": call_ids}}
+        if isinstance(pid, int):
+            calls_filter = {"$and": [calls_filter, {"pid": pid}]}
+        elif isinstance(pid, Iterable):
+            calls_filter = {"$and": [calls_filter, {"pid": {"$in": list(pid)}}]}
+
+        call_docs = self._calls_collection.find(filter=calls_filter, sort=[(_id, 1)])
 
         for doc in call_docs:
             retval.extend([schema.Call(**call) for call in doc.get("calls", [])])

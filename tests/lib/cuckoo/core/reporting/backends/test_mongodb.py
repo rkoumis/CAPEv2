@@ -6,7 +6,7 @@ import random
 import mongomock
 import pytest
 
-from .conftest import TEST_TASK_ID
+from .conftest import TEST_TASK_ID, TEST_PIDS
 from lib.cuckoo.core.reporting import api, schema
 from lib.cuckoo.core.reporting.backends import mongodb
 
@@ -66,5 +66,15 @@ class TestMongoDBReportingBackend:
         mongo = mongodb.MongoDBReports(self.cfg)
         actual = mongo.calls(TEST_TASK_ID)
         assert isinstance(actual, list)
-        assert len(actual) == 6
+        assert len(actual) == sum(TEST_PIDS)
+        assert all([isinstance(call, schema.Call) for call in actual])
+
+    @pytest.mark.parametrize("pid, expected_count", [(1, 1), (5, 5), (6, 0), ((1, 2, 3), 6)])
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_calls_by_pid(self, pid:int, expected_count):
+        """Test calls returns a list of calls filtered by process ID."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.calls(TEST_TASK_ID, pid)
+        assert isinstance(actual, list)
+        assert len(actual) == expected_count
         assert all([isinstance(call, schema.Call) for call in actual])

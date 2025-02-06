@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Optional
 
 from lib.cuckoo.common import config
@@ -95,5 +96,5 @@ class ElasticsearchReports(api.Reports):
     def procmemory(self, task_id: int) -> dict:
         pass
 
-    def calls(self, task_id: int) -> list[schema.Call]:
+    def calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         pass
