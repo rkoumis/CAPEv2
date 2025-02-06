@@ -94,3 +94,6 @@ class ElasticsearchReports(api.Reports):
 
     def procmemory(self, task_id: int) -> dict:
         pass
+
+    def calls(self, task_id: int) -> list[schema.Call]:
+        pass

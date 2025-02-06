@@ -51,3 +51,6 @@ class Reports:
 
     def procmemory(self, task_id: int) -> dict:
         raise NotImplementedError()
+
+    def calls(self, task_id: int) -> list[schema.Call]:
+        raise NotImplementedError()
