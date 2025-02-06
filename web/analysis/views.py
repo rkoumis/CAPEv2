@@ -73,7 +73,7 @@ if TEMPORARY_TO_MAKE_RUFF_HAPPY:
     from bson.objectid import ObjectId
 
     from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_query_by_info_id
-    from dev_utils.mongodb import mongo_aggregate, mongo_find_one, mongo_update_one
+    from dev_utils.mongodb import mongo_aggregate, mongo_update_one
     from modules.reporting.mongodb_constants import ANALYSIS_COLL, FILE_KEY, FILE_REF_KEY, ID_KEY, INFO_ID_KEY
 
     es_as_db = False
@@ -2169,8 +2169,9 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
         details = Floss(path, package, on_demand=True).run()
         if not details:
             details = {"msg": "No results"}
+
     if details:
-        buf = mongo_find_one(ANALYSIS_COLL, {INFO_ID_KEY: int(task_id)}, {ID_KEY: 1, category: 1})
+        buf = reports.get(int(task_id))
 
         servicedata = {}
         if category == "CAPE":
