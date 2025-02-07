@@ -113,5 +113,5 @@ class ElasticsearchReports(api.Reports):
     def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         pass
 
-    def suricata(self, task_id) -> list[schema.Suricata]:
+    def suricata(self, task_id) -> schema.Suricata | None:
         pass

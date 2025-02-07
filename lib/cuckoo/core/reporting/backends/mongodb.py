@@ -234,7 +234,7 @@ class MongoDBReports(api.Reports):
     def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         return self._calls(task_id, pid)
 
-    def suricata(self, task_id) -> list[schema.Suricata]:
+    def suricata(self, task_id) -> schema.Suricata | None:
         pass
 
 

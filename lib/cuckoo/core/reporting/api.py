@@ -70,5 +70,5 @@ class Reports:
     def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         raise NotImplementedError()
 
-    def suricata(self, task_id) -> list[schema.Suricata]:
+    def suricata(self, task_id) -> schema.Suricata | None:
         raise NotImplementedError()
