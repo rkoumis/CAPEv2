@@ -58,14 +58,13 @@ class MongoDBReports(api.Reports):
         rslt: pymongo.results.DeleteResult = self._analysis_collection.delete_one(filter=query)
         return True if rslt.deleted_count > 0 else False
 
-    def search(self, term, value, limit=False, projection=None) -> list:
+    def search(self, term, value, limit: int = 0, projection=None) -> list:
         pass
 
     def search_by_user(self, term, value, user_id=False, privs=False) -> list:
         pass
 
-    def search_by_sha256(self, sha256: str, limit=False) -> list[schema.Info]:
-        pass
+    def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
 
     def search_payloads_by_sha256(self, sha256: str) -> list:
         pass

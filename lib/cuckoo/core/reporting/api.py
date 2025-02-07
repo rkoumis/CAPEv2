@@ -14,13 +14,13 @@ class Reports:
     def delete(self, task_id: int) -> bool:
         raise NotImplementedError()
 
-    def search(self, term, value, limit=False, projection=None) -> list:
+    def search(self, term, value, limit: int = 0, projection=None) -> list:
         raise NotImplementedError()
 
     def search_by_user(self, term, value, user_id=False, privs=False) -> list:
         raise NotImplementedError()
 
-    def search_by_sha256(self, sha256: str, limit=False) -> list[schema.Info]:
+    def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         raise NotImplementedError()
 
     def search_payloads_by_sha256(self, sha256: str) -> list:
