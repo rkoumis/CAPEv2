@@ -104,7 +104,7 @@ class Network(BaseModel):
     class DNS(BaseModel):
         request: str
         type: str
-        answers: list[Any] = []
+        answers: list[dict[str, str]] = []
         first_seen: datetime.datetime
 
     class HTTP(BaseModel):
@@ -125,7 +125,7 @@ class Network(BaseModel):
     irc: list[Any] = []
     dead_hosts: list[Any] = []
     http_ex: list[Any] = []
-    https_ex: list[Any] = []
+    https_ex: list[dict[str, Any]] = []
     smtp_ex: list[Any] = []
 
 
