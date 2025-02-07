@@ -181,6 +181,7 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
+    # TODO(jf) use Network schemas
     def network(self, task_id: int) -> dict:
         query = {_info_id: task_id}
         projection = {
