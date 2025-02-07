@@ -69,20 +69,54 @@ class TestMongoDBReportingBackend:
         assert len(actual) == 0
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
-    def test_calls(self):
+    def test__calls(self):
         """Test calls returns a list of calls."""
         mongo = mongodb.MongoDBReports(self.cfg)
-        actual = mongo.calls(TEST_TASK_ID)
+        actual = mongo._calls(TEST_TASK_ID) # type: ignore
         assert isinstance(actual, list)
         assert len(actual) == sum(TEST_PIDS)
         assert all([isinstance(call, schema.Call) for call in actual])
 
-    @pytest.mark.parametrize("pid, expected_count", [(1, 1), (5, 5), (6, 0), ((1, 2, 3), 6)])
+    @pytest.mark.parametrize("pid, expected_count", [(None, sum(TEST_PIDS)), (1, 1), (5, 5), (6, 0), ((1, 2, 3), 6)])
     @pytest.mark.usefixtures("mongodb_populate_test_data")
-    def test_calls_by_pid(self, pid: int, expected_count):
+    def test__calls(self, pid: int, expected_count):
         """Test calls returns a list of calls filtered by process ID."""
         mongo = mongodb.MongoDBReports(self.cfg)
-        actual = mongo.calls(TEST_TASK_ID, pid)
+        actual = mongo._calls(TEST_TASK_ID, pid) # type: ignore
         assert isinstance(actual, list)
         assert len(actual) == expected_count
         assert all([isinstance(call, schema.Call) for call in actual])
+
+
+    def test_calls(self, monkeypatch):
+        """Test `calls` calls `_calls`."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+
+        call_count = 0
+        def _calls(task_id, pid=None):
+            nonlocal call_count
+            call_count += 1
+            assert isinstance(task_id, int)
+            assert pid is None
+
+        with monkeypatch.context() as m:
+            m.setattr(mongo, "_calls", _calls)
+            mongo.calls(TEST_TASK_ID)
+            assert call_count == 1
+
+    def test_calls_by_pid(self, monkeypatch):
+        """Test `calls_by_pid` calls `_calls`."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+
+        call_count = 0
+        def _calls(task_id, pid=None):
+            nonlocal call_count
+            call_count += 1
+            assert isinstance(task_id, int)
+            assert isinstance(pid, int)
+
+        with monkeypatch.context() as m:
+            m.setattr(mongo, "_calls", _calls)
+            mongo.calls_by_pid(TEST_TASK_ID, 1)
+            assert call_count == 1
+

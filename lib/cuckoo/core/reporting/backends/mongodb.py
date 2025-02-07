@@ -179,7 +179,7 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
-    def calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
+    def _calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         result = self._analysis_collection.find_one(
             filter={_info_id: task_id},
             projection={
@@ -209,6 +209,11 @@ class MongoDBReports(api.Reports):
 
         return retval
 
+    def calls(self, task_id: int) -> list[schema.Call]:
+        return self._calls(task_id)
+
+    def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
+        return self._calls(task_id, pid)
 
 # Temporarily duped with mongodb_constants
 _analysis_coll = "analysis"
