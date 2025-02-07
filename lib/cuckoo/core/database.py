@@ -18,6 +18,8 @@ from typing import Any, List, Optional, Union, cast
 from sflock.abstracts import File as SflockFile
 from sflock.ident import identify as sflock_identify
 
+from lib.cuckoo.core import reporting
+
 from lib.cuckoo.common.cape_utils import static_config_lookup, static_extraction
 from lib.cuckoo.common.colors import red
 from lib.cuckoo.common.config import Config
@@ -116,21 +118,12 @@ sandbox_packages = (
 log = logging.getLogger(__name__)
 conf = Config("cuckoo")
 repconf = Config("reporting")
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 distconf = Config("distributed")
 web_conf = Config("web")
 LINUX_ENABLED = web_conf.linux.enabled
 LINUX_STATIC = web_conf.linux.static_only
 DYNAMIC_ARCH_DETERMINATION = web_conf.general.dynamic_arch_determination
-
-if repconf.mongodb.enabled:
-    from dev_utils.mongodb import mongo_find
-    from modules.reporting.mongodb_constants import ANALYSIS_COLL, ID_KEY, INFO_ID_KEY
-
-if repconf.elasticsearchdb.enabled:
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index
-
-    es = elastic_handler
-
 SCHEMA_VERSION = "c2bd0eb5e69d"
 TASK_BANNED = "banned"
 TASK_PENDING = "pending"
@@ -2228,7 +2221,7 @@ class _Database:
             128: hashlib.sha512,
         }
 
-        sizes_mongo = {
+        sizes_hashes = {
             32: "md5",
             40: "sha1",
             64: "sha256",
@@ -2276,34 +2269,48 @@ class _Database:
                     sample = [path]
 
             if not sample:
-                if repconf.mongodb.enabled:
-                    tasks = mongo_find(
-                        ANALYSIS_COLL,
-                        {f"CAPE.payloads.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                        {"CAPE.payloads": 1, ID_KEY: 0, INFO_ID_KEY: 1},
-                    )
-                elif repconf.elasticsearchdb.enabled:
-                    tasks = [
-                        d["_source"]
-                        for d in es.search(
-                            index=get_analysis_index(),
-                            body={"query": {"match": {f"CAPE.payloads.{sizes_mongo.get(len(sample_hash), '')}": sample_hash}}},
-                            _source=["CAPE.payloads", "info.id"],
-                        )["hits"]["hits"]
-                    ]
-                else:
-                    tasks = []
+                # TODO need a search payloads by hash API
+                task_ids: list[int] = reports.search_payloads_by_hash(sample_hash)
+                for task_id in task_ids:
+                    # TODO need a CAPE-centric API (may want to drop cape_configs?)
+                    cape = reports.cape(task_id)
+                    for payload in cape.payloads:
+                        if payload[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
+                            file_path = os.path.join(CUCKOO_ROOT, "storage",
+                                "analyses",
+                                str(task["info"]["id"]),
+                                folders.get("CAPE"),
+                                block["sha256"],
+                            )
+                            if path_exists(file_path):
+                                sample = [file_path]
+                                break
+                        if sample:
+                            break
 
-                if tasks:
-                    for task in tasks:
-                        for block in task.get("CAPE", {}).get("payloads", []) or []:
-                            if block[sizes_mongo.get(len(sample_hash), "")] == sample_hash:
+                for category in ("dropped", "procdump"):
+                    match category:
+                        case "dropped":
+                            # TODO need a search dropped by hash API
+                            task_ids: list[int] = reports.search_dropped_by_hash(sample_hash)
+                            pass
+                        case "procdump":
+                            # TODO need a search procdump by hash API
+                            task_ids: list[int] = reports.search_procdump_by_hash(sample_hash)
+                            pass
+                        case _:
+                            task_ids: list[int] = []
+
+                    for task_id in task_ids:
+                        task = reports.get(task_id)
+                        for block in task.get(category, []) or []:
+                            if block[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
                                 file_path = os.path.join(
                                     CUCKOO_ROOT,
                                     "storage",
                                     "analyses",
                                     str(task["info"]["id"]),
-                                    folders.get("CAPE"),
+                                    folders.get(category),
                                     block["sha256"],
                                 )
                                 if path_exists(file_path):
@@ -2311,44 +2318,6 @@ class _Database:
                                     break
                         if sample:
                             break
-
-                for category in ("dropped", "procdump"):
-                    # we can't filter more if query isn't sha256
-                    if repconf.mongodb.enabled:
-                        tasks = mongo_find(
-                            ANALYSIS_COLL,
-                            {f"{category}.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                            {category: 1, ID_KEY: 0, INFO_ID_KEY: 1},
-                        )
-                    elif repconf.elasticsearchdb.enabled:
-                        tasks = [
-                            d["_source"]
-                            for d in es.search(
-                                index=get_analysis_index(),
-                                body={"query": {"match": {f"{category}.{sizes_mongo.get(len(sample_hash), '')}": sample_hash}}},
-                                _source=["info.id", category],
-                            )["hits"]["hits"]
-                        ]
-                    else:
-                        tasks = []
-
-                    if tasks:
-                        for task in tasks:
-                            for block in task.get(category, []) or []:
-                                if block[sizes_mongo.get(len(sample_hash), "")] == sample_hash:
-                                    file_path = os.path.join(
-                                        CUCKOO_ROOT,
-                                        "storage",
-                                        "analyses",
-                                        str(task["info"]["id"]),
-                                        folders.get(category),
-                                        block["sha256"],
-                                    )
-                                    if path_exists(file_path):
-                                        sample = [file_path]
-                                        break
-                            if sample:
-                                break
 
             if not sample:
                 # search in temp folder if not found in binaries
@@ -2367,32 +2336,18 @@ class _Database:
                                 break
 
             if not sample:
-                # search in Suricata files folder
-                if repconf.mongodb.enabled:
-                    tasks = mongo_find(
-                        ANALYSIS_COLL, {"suricata.files.sha256": sample_hash}, {"suricata.files.file_info.path": 1, ID_KEY: 0}
-                    )
-                elif repconf.elasticsearchdb.enabled:
-                    tasks = [
-                        d["_source"]
-                        for d in es.search(
-                            index=get_analysis_index(),
-                            body={"query": {"match": {"suricata.files.sha256": sample_hash}}},
-                            _source="suricata.files.file_info.path",
-                        )["hits"]["hits"]
-                    ]
-                else:
-                    tasks = []
-
-                if tasks:
-                    for task in tasks:
-                        for item in task["suricata"]["files"] or []:
-                            file_path = item.get("file_info", {}).get("path", "")
-                            if sample_hash in file_path:
-                                if path_exists(file_path):
-                                    sample = [file_path]
-                                    break
-
+                # search in Suricata files
+                # TODO need a search suricata by hash API
+                task_ids: list[int] = reports.search_suricata_by_hash(sample_hash)
+                for task_id in task_ids:
+                    # TODO need a suricata-specific API
+                    task = reports.suricata(task_id)
+                    for item in task["files"] or []:
+                        file_path = item.get("file_info", {}).get("path", "")
+                        if sample_hash in file_path:
+                            if path_exists(file_path):
+                                sample = [file_path]
+                                break
         return sample
 
     def count_samples(self) -> int:
