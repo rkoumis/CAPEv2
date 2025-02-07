@@ -53,6 +53,11 @@ class Summary(BaseModel):
 
 
 class Behavior(BaseModel):
+    class FileActivities(BaseModel):
+        read_files: list[str] = []
+        write_files: list[str] = []
+        delete_files: list[str] = []
+
     class Process(BaseModel):
         process_id: int
         process_name: str | None = None
@@ -60,13 +65,13 @@ class Behavior(BaseModel):
         module_path: str | None = None
         first_seen: datetime.datetime | None = None
         calls: list[Call] = []
-        threads: list[str] = []
+        threads: list[str] = []  # would list[int] be better?
         environ: dict[str, str] | None = None
-        file_activities: dict[str, Any] | None = None
+        file_activities: Behavior.FileActivities
 
     info: Info | None = None
     detections2pid: dict | None = None
-    processes: list[Process]
+    processes: list[Behavior.Process]
     process_tree: list = []
 
 

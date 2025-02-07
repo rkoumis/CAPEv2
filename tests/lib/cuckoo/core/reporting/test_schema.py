@@ -9,12 +9,22 @@ def test_nested_behavior_objects():
     process_id = random.randint(0, 100)
     call_id = random.randint(0, 100)
     process_call = {"id": call_id, "oid": "the_process_oid"}
-    process = {"process_id": process_id, "calls": [process_call]}
+    process = {
+        "process_id": process_id,
+        "calls": [process_call],
+        "file_activities": {
+            "read_files": ["file1", "file2"],
+            "write_files": [],
+            "delete_files": [],
+        },
+    }
     behavior_dict = {"processes": [process]}
     behavior = schema.Behavior(**behavior_dict)
+    assert isinstance(behavior.processes[0], schema.Behavior.Process)
     assert behavior.processes[0].process_id == process_id
     assert behavior.processes[0].calls[0].oid == "the_process_oid"
     assert behavior.processes[0].calls[0].id == call_id
+    assert behavior.processes[0].file_activities.read_files == ["file1", "file2"]
 
 
 def test_call_argument_object():
@@ -97,5 +107,5 @@ def test_nested_machine():
     }
     the_info = schema.Info(**the_dict)
     assert isinstance(the_info, schema.Info)
-    assert isinstance(the_info.startedn, datetime.datetime)
+    assert isinstance(the_info.started, datetime.datetime)
     assert isinstance(the_info.machine.started_on, datetime.datetime)
