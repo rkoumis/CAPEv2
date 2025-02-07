@@ -1,4 +1,5 @@
 """Tests for the schema definition."""
+import datetime
 import random
 
 from lib.cuckoo.core.reporting import schema
@@ -34,15 +35,16 @@ def test_call_argument_object():
     assert call.arguments[1].value == "value2"
     assert call.arguments[1].pretty_value == "pretty value2"
 
+
 def test_analysis_config_object():
     hash_group = dict(
-        md5 = f"{random.randint(0, 100000000):X}",
-        sha1 = f"{random.randint(0, 100000000):X}",
-        sha256 = f"{random.randint(0, 100000000):X}",
-        sha512 = f"{random.randint(0, 100000000):X}",
-        sha3_384 = f"{random.randint(0, 100000000):X}",
+        md5=f"{random.randint(0, 100000000):X}",
+        sha1=f"{random.randint(0, 100000000):X}",
+        sha256=f"{random.randint(0, 100000000):X}",
+        sha512=f"{random.randint(0, 100000000):X}",
+        sha3_384=f"{random.randint(0, 100000000):X}",
     )
-    the_family=dict(SomeKey="SomeValue")
+    the_family = dict(SomeKey="SomeValue")
     the_dict = dict(
         _associated_config_hashes=[hash_group],
         _associated_analysis_hashes=hash_group,
@@ -56,3 +58,14 @@ def test_analysis_config_object():
     assert expected_keys == list(analysis_config.model_dump(by_alias=True).keys())
     expected_keys = ["associated_config_hashes", "associated_analysis_hashes", "SomeFamily"]
     assert expected_keys == list(analysis_config.model_dump().keys())
+
+
+def test_network_object():
+    """Ensure the DNS first_seen field is populated correctly."""
+    the_dict = {
+        "pcap_sha256": f"{random.randint(0, 100000000):X}",
+        "dns": [{"request": "google.com", "type": "A", "first_seen": 1732561543.679787}],
+    }
+    network = schema.Network(**the_dict)
+    assert isinstance(network, schema.Network)
+    assert isinstance(network.dns[0].first_seen, datetime.datetime)

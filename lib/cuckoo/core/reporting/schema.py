@@ -1,7 +1,7 @@
 from __future__ import annotations
 import abc
 import datetime
-from typing import Any, List
+from typing import Any
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict, Field
@@ -41,11 +41,11 @@ class Summary(BaseModel):
     vt_file_summary: str | None = None
     vt_url_summary: str | None = None
     malscore: float | None = None
-    detections: List[dict] = []
+    detections: list[dict] = []
     pcap_sha256: str | None = None
     mlist_cnt: int | None = None
     f_mlist_cnt: int | None = None
-    clamav: List[str] = []
+    clamav: list[str] = []
     suri_tls_cnt: int | None = None
     suri_alert_cnt: int | None = None
     suri_http_cnt: int | None = None
@@ -77,11 +77,46 @@ class Domain(BaseModel):
 
 
 class Network(BaseModel):
-    info: Info | None = None
-    network: dict | None = None
-    domains: List[Domain] = []
-    suricata: list = []
-    pcapng: list = []
+    class Host(BaseModel):
+        ip: str | None = None
+        hostname: str | None = None
+        country_name: str | None = None
+        asn: str | None = None
+        asn_name: str | None = None
+        inaddrarpa: str | None = None
+
+    class Domain(BaseModel):
+        domain: str | None = None
+        ip: str | None = None
+
+    class Packet(BaseModel):
+        src: str | None = None
+        sport: int | None = None
+        dst: str | None = None
+        dport: int | None = None
+        offset: int = 0
+        time: float = 0.0
+
+    class DNS(BaseModel):
+        request: str
+        type: str
+        answers: list[Any] = []
+        first_seen: datetime.datetime
+
+    pcap_sha256: str | None = None
+    hosts: list[Network.Host] = []
+    domains: list[Network.Domain] = []
+    tcp: list[Network.Packet] = []
+    udp: list[Network.Packet] = []
+    icmp: list[Any] = []
+    http: list[Any] = []
+    dns: list[Network.DNS] = []
+    smtp: list[Any] = []
+    irc: list[Any] = []
+    dead_hosts: list[Any] = []
+    http_ex: list[Any] = []
+    https_ex: list[Any] = []
+    smtp_ex: list[Any] = []
 
 
 class CAPE(BaseModel):
@@ -143,10 +178,10 @@ class AnalysisConfig(BaseModel):
 
 class Suricata(BaseModel):
     class TLS(BaseModel):
-        srcport: int
         srcip: str
-        dstport: int
+        srcport: int
         dstip: str
+        dstport: int
         timestamp: datetime.datetime | None = None
         fingerprint: str | None = None
         issuerdn: str | None = None
@@ -171,6 +206,7 @@ class Suricata(BaseModel):
         pcap_cnt: int
         event_type: str
         src_ip: str
+        src_port: int
         dest_ip: str
         dest_port: int
         proto: str | None = None
