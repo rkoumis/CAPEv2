@@ -20,19 +20,19 @@ class Reports:
     def search_by_user(self, term, value, user_id=False, privs=False) -> list:
         raise NotImplementedError()
 
-    def search_by_sha256(self, sha256: str, limit=False) -> list:
+    def search_by_sha256(self, sha256: str, limit=False) -> list[schema.Info]:
         raise NotImplementedError()
 
-    def search_payloads_by_hash(self, sha256: str) -> list:
+    def search_payloads_by_sha256(self, sha256: str) -> list:
         raise NotImplementedError()
 
-    def search_dropped_by_hash(self, sha256: str) -> list:
+    def search_dropped_by_sha256(self, sha256: str) -> list:
         raise NotImplementedError()
 
-    def search_procdump_by_hash(self, sha256: str) -> list:
+    def search_procdump_by_sha256(self, sha256: str) -> list:
         raise NotImplementedError()
 
-    def search_suricata_by_hash(self, sha256: str) -> list:
+    def search_suricata_by_sha256(self, sha256: str) -> list:
         raise NotImplementedError()
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:

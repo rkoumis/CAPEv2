@@ -35,19 +35,19 @@ class ElasticsearchReports(api.Reports):
     def search_by_user(self, term, value, user_id=False, privs=False) -> list:
         pass
 
-    def search_by_sha256(self, sha256: str, limit=False) -> list:
+    def search_by_sha256(self, sha256: str, limit=False) -> list[schema.Info]:
         pass
 
-    def search_payloads_by_hash(self, sha256: str) -> list:
+    def search_payloads_by_sha256(self, sha256: str) -> list:
         pass
 
-    def search_dropped_by_hash(self, sha256: str) -> list:
+    def search_dropped_by_sha256(self, sha256: str) -> list:
         pass
 
-    def search_procdump_by_hash(self, sha256: str) -> list:
+    def search_procdump_by_sha256(self, sha256: str) -> list:
         pass
 
-    def search_suricata_by_hash(self, sha256: str) -> list:
+    def search_suricata_by_sha256(self, sha256: str) -> list:
         pass
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
