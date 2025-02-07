@@ -11,25 +11,24 @@ class BaseModel(PydanticBaseModel, abc.ABC):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
-class Machine(BaseModel):
-    id: int | None = None
-    status: str | None = None
-    name: str | None = None
-    label: str | None = None
-    platform: str | None = None
-    manager: str | None = None
-    started_on: datetime.datetime | None = None
-    shutdown_on: datetime.datetime | None = None
-
-
 class Info(BaseModel):
+    class Machine(BaseModel):
+        id: int | None = None
+        status: str | None = None
+        name: str | None = None
+        label: str | None = None
+        platform: str | None = None
+        manager: str | None = None
+        started_on: datetime.datetime | None = None
+        shutdown_on: datetime.datetime | None = None
+
     id: int | None = None
     version: str | None = None
     started: datetime.datetime | None = None
     ended: datetime.datetime | None = None
     duration: int | None = None
     category: str | None = None
-    machine: Machine | None = None
+    machine: Info.Machine | None = None
     package: str | None = None
     timeout: bool | None = None
     tlp: str | None = None
@@ -146,7 +145,7 @@ class Call(BaseModel):
     api: str | None = None
     status: bool = False
     return_code: str | None = None
-    arguments: list[Argument] = []
+    arguments: list[Call.Argument] = []
     repeated: int = 0
 
 
@@ -218,8 +217,22 @@ class Suricata(BaseModel):
         proto: str | None = None
         dns: DNSQuery | None = None
 
-    alerts: list[str] = []  # Got any example alerts?
-    tls: list[TLS] = []
+    class Alert(BaseModel):
+        sid: int
+        gid: int
+        rev: int | None = None
+        severity: int
+        srcip: str
+        srcport: int
+        dstip: str
+        dstport: int
+        protocol: str
+        timestamp: datetime.datetime
+        category: str | None = None
+        signature: str
+
+    alerts: list[Suricata.Alert] = []
+    tls: list[Suricata.TLS] = []
     perf: list[str] = []
     files: list[str] = []
     http: list[str] = []

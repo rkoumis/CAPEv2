@@ -82,3 +82,20 @@ def test_network_object():
     assert isinstance(network.dns[0].first_seen, datetime.datetime)
     assert network.dns[0].request == "google.com"
     assert network.http[0].user_agent == "Mozilla/5.0"
+
+
+def test_nested_machine():
+    """Ensure we can populate the Info schema."""
+    the_dict = {
+        "machine": {"started_on": "2025-02-07 17:20:11", "shutdown_on": "2025-02-07 17:20:56"},
+        "version": "2.42",
+        "started": "2025-02-07 17:20:11",
+        "ended": "2025-02-07 17:20:58",
+        "duration": 42,
+        "id": 123456,
+        "category": "file",
+    }
+    the_info = schema.Info(**the_dict)
+    assert isinstance(the_info, schema.Info)
+    assert isinstance(the_info.startedn, datetime.datetime)
+    assert isinstance(the_info.machine.started_on, datetime.datetime)
