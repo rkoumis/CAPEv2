@@ -65,6 +65,14 @@ class MongoDBReports(api.Reports):
         pass
 
     def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        results = self._analysis_collection.find(
+            filter={"target.file.file_ref": sha256}, projection={"_id": 0, "info": 1}, limit=limit
+        )
+        retval: list[schema.Info] = []
+        for result in results:
+            info = result.get("info", {})
+            retval.append(schema.Info(**info))
+        return retval
 
     def search_payloads_by_sha256(self, sha256: str) -> list:
         pass

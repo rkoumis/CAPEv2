@@ -5,14 +5,15 @@ import pathlib
 import mongomock
 import pymongo
 import pytest
+from bson.objectid import ObjectId
 
 from lib.cuckoo.common import config
 from lib.cuckoo.common.config import ConfigMeta
 from lib.cuckoo.core.reporting.backends import mongodb
 
 TEST_DB_NAME = "cuckoo_test_db"
-TEST_TASK_ID = 42
-TEST_PIDS = range(1, 6)
+TEST_TASK_IDS = (42, 43, 44)
+TEST_PIDS = (1, 2, 3, 4, 5)
 
 getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
 
@@ -54,7 +55,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "shutdown_on": "2024-03-29 14:04:20",
     }
     info = {
-        "id": TEST_TASK_ID,
+        "id": 1,
         "machine": machine,
     }
     calls = [
@@ -141,11 +142,11 @@ def mongodb_populate_test_data(mongodb_mock_client):
                 {"md5": "b" * 32, "sha1": "b" * 40, "sha256": "b" * 64, "sha512": "b" * 128, "sha3_384": "b" * 96},
             ],
             "_associated_analysis_hashes": {
-                "md5": "c" * 32,
-                "sha1": "c" * 40,
-                "sha256": "c" * 64,
-                "sha512": "c" * 128,
-                "sha3_384": "c" * 96,
+                "md5": "a" * 32,
+                "sha1": "a" * 40,
+                "sha256": "a" * 64,
+                "sha512": "a" * 128,
+                "sha3_384": "a" * 96,
             },
         }
     ]
@@ -158,6 +159,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
                     "summary": "66/76",
                 },
                 "clamav": [],
+                "file_ref": "a"*64
             },
         },
         "url": {
@@ -181,4 +183,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "ensure_extra_fields": "are_allowed",
     }
 
-    analysis_collection.insert_one(analysis)
+    for task_id in TEST_TASK_IDS:
+        analysis["_id"] = ObjectId()
+        analysis["info"]["id"] = task_id
+        analysis_collection.insert_one(analysis)

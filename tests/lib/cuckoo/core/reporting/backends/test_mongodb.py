@@ -7,7 +7,9 @@ import pytest
 from lib.cuckoo.core.reporting import api, schema
 from lib.cuckoo.core.reporting.backends import mongodb
 
-from .conftest import TEST_PIDS, TEST_TASK_ID, getfunctions
+from .conftest import TEST_PIDS, TEST_TASK_IDS, getfunctions
+
+TEST_TASK_ID = TEST_TASK_IDS[0]
 
 
 @pytest.mark.usefixtures("mongodb_config", "mongodb_mock_client")
@@ -28,10 +30,29 @@ class TestMongoDBReportingBackend:
         assert isinstance(mongo._client, mongomock.MongoClient)
         assert mongo._client.host == "127.0.0.1"
 
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_by_sha256(self):
+        """Test searching by sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        sha256 = "a" * 64
+        actual = mongo.search_by_sha256(sha256)
+        assert len(actual) == len(TEST_TASK_IDS)
+        assert actual[0].id == TEST_TASK_ID
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_by_sha256_with_limit(self):
+        """Test searching by sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        sha256 = "a" * 64
+        limit = 1
+        actual = mongo.search_by_sha256(sha256, limit=limit)
+        assert len(actual) == limit
+        assert actual[0].id == TEST_TASK_ID
+
     def test_nonexistent_summary(self):
         """Ask for a summary that is not present in the MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
-        task_id = random.randint(0, 100000)
+        task_id = random.randint(100, 100000)
         result = mongo.summary(task_id)
         assert result is None
 
@@ -52,6 +73,7 @@ class TestMongoDBReportingBackend:
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_cape_configs(self):
+        """Retrieve analysis configs from MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
         actual = mongo.cape_configs(TEST_TASK_ID)
         assert isinstance(actual, list)
