@@ -8,6 +8,7 @@ import pymongo
 import pymongo.collection
 import pymongo.database
 import pymongo.results
+import pymongo.errors
 from bson.objectid import ObjectId
 
 from lib.cuckoo.common import config
@@ -35,6 +36,13 @@ class MongoDBReports(api.Reports):
         self._database: pymongo.database.Database[MongoDoc] = self._client[db_name]
         self._analysis_collection = self._database[_analysis_coll]
         self._calls_collection = self._database[_calls_coll]
+
+    def ping(self) -> bool:
+        try:
+            self._client.admin.command('ping')
+        except pymongo.errors.ConnectionFailure:
+            return False
+        return True
 
     def get(self, task_id: int) -> dict:
         query = {_info_id: task_id}

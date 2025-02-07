@@ -42,3 +42,11 @@ def init_reports(cfg: config.Config) -> Reports:
         _enabled, _backend = True, Backend.ELASTICSEARCH
         return elasticsearch.ElasticsearchReports(cfg)
     _enabled, _backend = False, null.NullReports(cfg)
+
+
+def responsive(cfg: config.Config) -> bool:
+    if cfg.mongodb.enabled:
+        return mongodb.MongoDBReports(cfg).ping()
+    elif cfg.elasticsearchdb.enabled:
+        return elasticsearch.ElasticsearchReports(cfg).ping()
+    return False

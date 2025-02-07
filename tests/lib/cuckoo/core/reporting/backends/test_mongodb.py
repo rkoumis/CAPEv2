@@ -3,6 +3,7 @@ import random
 
 import mongomock
 import pytest
+import pymongo
 
 from lib.cuckoo.core.reporting import api, schema
 from lib.cuckoo.core.reporting.backends import mongodb
@@ -29,6 +30,20 @@ class TestMongoDBReportingBackend:
         assert isinstance(mongo, mongodb.MongoDBReports)
         assert isinstance(mongo._client, mongomock.MongoClient)
         assert mongo._client.host == "127.0.0.1"
+
+    def test_ping(self):
+        mongo = mongodb.MongoDBReports(self.cfg)
+        result = mongo.ping()
+        assert result is True
+
+    def test_ping_fails(self, monkeypatch):
+        mongo = mongodb.MongoDBReports(self.cfg)
+        def connection_failure(*args, **kwargs):
+            raise pymongo.errors.ConnectionFailure()
+        with monkeypatch.context() as m:
+            m.setattr(mongo._client.admin, "command", connection_failure)
+            result = mongo.ping()
+        assert result is False
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_search_by_sha256(self):

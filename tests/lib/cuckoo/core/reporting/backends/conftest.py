@@ -29,6 +29,16 @@ def mongodb_config(request, custom_conf_path: pathlib.Path):
 
 
 @pytest.fixture
+def elasticsearch_config(request, custom_conf_path: pathlib.Path):
+    with open(custom_conf_path / "reporting.conf", "wt") as fil:
+        print(f"[elasticsearch]\nenabled = yes\ndb = {TEST_DB_NAME}", file=fil)
+    ConfigMeta.refresh()
+    reporting_cfg = config.Config("reporting")
+    request.instance.cfg = reporting_cfg
+    yield reporting_cfg
+
+
+@pytest.fixture
 def mongodb_mock_client(request):
     with mongomock.patch(servers=(("127.0.0.1", 27017),)):
         client = pymongo.MongoClient(host=f"mongodb://127.0.0.1/{TEST_DB_NAME}")

@@ -14,6 +14,9 @@ class ElasticsearchReports(api.Reports):
     def __init__(self, cfg: config.Config):
         self.es = elastic_handler
 
+    def ping(self):
+        return self.es.ping()
+
     def get(self, task_id: int) -> dict:
         tmp = self.es.search(index=get_analysis_index(), query=get_query_by_info_id(str(task_id)))["hits"]["hits"]
         if tmp:
