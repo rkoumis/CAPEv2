@@ -45,6 +45,7 @@ try:
 
     def init_mongo():
         """Initialize MongoDB connection."""
+        # TODO(njb) get rid of this
         global conn
         if conn is not None:
             # Already initialized.
