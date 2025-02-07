@@ -23,6 +23,18 @@ class Reports:
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         raise NotImplementedError()
 
+    def search_payloads_by_hash(self, sha256: str) -> list:
+        raise NotImplementedError()
+
+    def search_dropped_by_hash(self, sha256: str) -> list:
+        raise NotImplementedError()
+
+    def search_procdump_by_hash(self, sha256: str) -> list:
+        raise NotImplementedError()
+
+    def search_suricata_by_hash(self, sha256: str) -> list:
+        raise NotImplementedError()
+
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         raise NotImplementedError()
 
@@ -58,4 +70,6 @@ class Reports:
 
     def calls_by_pid(self, task_id: int, pid:int) -> list[schema.Call]:
         raise NotImplementedError()
+
+    def suricata(self, task_id) -> list[schema.Suricata]:
         raise NotImplementedError()

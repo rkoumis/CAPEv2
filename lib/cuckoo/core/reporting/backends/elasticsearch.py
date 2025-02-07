@@ -38,6 +38,18 @@ class ElasticsearchReports(api.Reports):
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         pass
 
+    def search_payloads_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_dropped_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_procdump_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_suricata_by_hash(self, sha256: str) -> list:
+        pass
+
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         resp = self.es.search(index=get_analysis_index(), query=get_query_by_info_id(str(task_id)))
         retval = []
@@ -101,4 +113,6 @@ class ElasticsearchReports(api.Reports):
 
     def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         pass
+
+    def suricata(self, task_id) -> list[schema.Suricata]:
         pass

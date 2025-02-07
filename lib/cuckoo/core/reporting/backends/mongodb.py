@@ -67,6 +67,18 @@ class MongoDBReports(api.Reports):
     def search_by_sha256(self, sha256: str, limit=False) -> list:
         pass
 
+    def search_payloads_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_dropped_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_procdump_by_hash(self, sha256: str) -> list:
+        pass
+
+    def search_suricata_by_hash(self, sha256: str) -> list:
+        pass
+
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         result = self._analysis_collection.find_one(
             filter={_info_id: task_id},
@@ -214,6 +226,10 @@ class MongoDBReports(api.Reports):
 
     def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         return self._calls(task_id, pid)
+
+    def suricata(self, task_id) -> list[schema.Suricata]:
+        pass
+
 
 # Temporarily duped with mongodb_constants
 _analysis_coll = "analysis"
