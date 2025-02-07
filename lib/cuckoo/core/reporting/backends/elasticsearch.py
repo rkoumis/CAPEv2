@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from typing import Optional
 
 from lib.cuckoo.common import config

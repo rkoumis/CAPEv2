@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from lib.cuckoo.core.reporting import schema
 
 
@@ -68,7 +67,7 @@ class Reports:
     def calls(self, task_id: int) -> list[schema.Call]:
         raise NotImplementedError()
 
-    def calls_by_pid(self, task_id: int, pid:int) -> list[schema.Call]:
+    def calls_by_pid(self, task_id: int, pid: int) -> list[schema.Call]:
         raise NotImplementedError()
 
     def suricata(self, task_id) -> list[schema.Suricata]:
