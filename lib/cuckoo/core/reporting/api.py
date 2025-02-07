@@ -1,3 +1,5 @@
+from typing import Generator
+
 from lib.cuckoo.core.reporting import schema
 
 
@@ -20,6 +22,11 @@ class Reports:
         raise NotImplementedError()
 
     def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        raise NotImplementedError()
+
+    # TODO(jf) implement search by category
+    # (category could be an enum of: file, url, pcap, static
+    def search_by_category(self, category: str, limit: int = 0) -> list[schema.Info]:
         raise NotImplementedError()
 
     def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list:
@@ -46,6 +53,10 @@ class Reports:
     def summary(self, task_id: int) -> schema.Summary | None:
         raise NotImplementedError()
 
+    # TODO(jf) return list/generator of all schema.Summary's known to reporting backends
+    def summaries(self) -> Generator[schema.Summary]:
+        raise NotImplementedError()
+
     def recent_suricata_alerts(self, minutes=60) -> list:
         raise NotImplementedError()
 
@@ -55,7 +66,8 @@ class Reports:
     def memory(self, task_id: int) -> dict:
         raise NotImplementedError()
 
-    def network(self, task_id: int) -> dict:
+    # TODO(jf) return schema.Network in implementations
+    def network(self, task_id: int) -> schema.Network:
         raise NotImplementedError()
 
     def procdump(self, task_id: int) -> dict:
