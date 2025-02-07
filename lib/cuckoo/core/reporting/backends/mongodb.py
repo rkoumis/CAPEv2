@@ -74,17 +74,16 @@ class MongoDBReports(api.Reports):
             retval.append(schema.Info(**info))
         return retval
 
-    def search_payloads_by_sha256(self, sha256: str) -> list:
+    def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list:
         pass
 
-    def search_dropped_by_sha256(self, sha256: str) -> list:
+    def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list:
         pass
 
-    def search_procdump_by_sha256(self, sha256: str) -> list:
+    def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list:
         pass
 
-    def search_suricata_by_sha256(self, sha256: str) -> list[schema.Suricata]:
-        pass
+    def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         result = self._analysis_collection.find_one(
