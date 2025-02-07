@@ -215,33 +215,6 @@ def mongo_drop_database(database: str):
     conn.drop_database(database)
 
 
-def mongo_delete_data(task_ids: Union[int, Sequence[int]]):
-    try:
-        if isinstance(task_ids, int):
-            task_ids = [task_ids]
-
-        analyses_tmp = []
-        found_task_ids = []
-        tasks = mongo_find(ANALYSIS_COLL, {INFO_ID_KEY: {"$in": task_ids}}, {"behavior.processes.calls": 1, INFO_ID_KEY: 1})
-
-        for task in tasks or []:
-            for process in task.get("behavior", {}).get("processes", []):
-                if process.get("calls"):
-                    mongo_delete_many(CALLS_COLL, {ID_KEY: {"$in": process["calls"]}})
-            analyses_tmp.append(task["_id"])
-            task_id = task.get("info", {}).get("id", None)
-            if task_id is not None:
-                found_task_ids.append(task_id)
-
-        if analyses_tmp:
-            mongo_delete_many(ANALYSIS_COLL, {ID_KEY: {"$in": analyses_tmp}})
-            if found_task_ids:
-                for hook in hooks[mongo_delete_data][ANALYSIS_COLL]:
-                    hook(found_task_ids)
-    except Exception as e:
-        log.error(e, exc_info=True)
-
-
 def mongo_is_cluster():
     """Detect if we are connected to a MongoDB cluster."""
     # This is only useful at the moment for clean to prevent destruction of cluster database
