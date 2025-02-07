@@ -61,11 +61,24 @@ def test_analysis_config_object():
 
 
 def test_network_object():
-    """Ensure the DNS first_seen field is populated correctly."""
+    """Ensure the Network object is populated correctly."""
     the_dict = {
         "pcap_sha256": f"{random.randint(0, 100000000):X}",
-        "dns": [{"request": "google.com", "type": "A", "first_seen": 1732561543.679787}],
+        "dns": [
+            {
+                "request": "google.com",
+                "type": "A",
+                "first_seen": 1732561543.679787,
+            },
+        ],
+        "http": [
+            {
+                "user-agent": "Mozilla/5.0",
+            },
+        ],
     }
     network = schema.Network(**the_dict)
     assert isinstance(network, schema.Network)
     assert isinstance(network.dns[0].first_seen, datetime.datetime)
+    assert network.dns[0].request == "google.com"
+    assert network.http[0].user_agent == "Mozilla/5.0"

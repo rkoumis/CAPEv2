@@ -103,13 +103,19 @@ class Network(BaseModel):
         answers: list[Any] = []
         first_seen: datetime.datetime
 
+    class HTTP(BaseModel):
+        host: str | None = None
+        data: str | None = None
+        method: str | None = None
+        user_agent: str = Field(alias="user-agent")
+
     pcap_sha256: str | None = None
     hosts: list[Network.Host] = []
     domains: list[Network.Domain] = []
     tcp: list[Network.Packet] = []
     udp: list[Network.Packet] = []
     icmp: list[Any] = []
-    http: list[Any] = []
+    http: list[Network.HTTP] = []
     dns: list[Network.DNS] = []
     smtp: list[Any] = []
     irc: list[Any] = []
