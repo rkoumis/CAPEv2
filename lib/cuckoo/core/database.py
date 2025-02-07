@@ -2256,7 +2256,7 @@ class _Database:
         }
 
         if task_id:
-            file_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "binary")
+            file_path = os.path.join(get_task_path(task_id), "binary")
             if path_exists(file_path):
                 return [file_path]
 
@@ -2270,7 +2270,7 @@ class _Database:
                 .first()
             )
             if db_sample:
-                path = os.path.join(CUCKOO_ROOT, "storage", "binaries", db_sample.sha256)
+                path = os.path.join(get_task_path(task_id), "binaries", db_sample.sha256)
                 if path_exists(path):
                     return [path]
 
@@ -2297,12 +2297,7 @@ class _Database:
                     cape = reports.cape(task_id)
                     for payload in cape.payloads:
                         if payload[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
-                            file_path = os.path.join(CUCKOO_ROOT, "storage",
-                                "analyses",
-                                str(task["info"]["id"]),
-                                folders.get("CAPE"),
-                                block["sha256"],
-                            )
+                            file_path = os.path.join(get_task_path(task_id), folders.get("CAPE"), block["sha256"])
                             if path_exists(file_path):
                                 sample = [file_path]
                                 break
@@ -2326,14 +2321,7 @@ class _Database:
                         task = reports.get(task_id)
                         for block in task.get(category, []) or []:
                             if block[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
-                                file_path = os.path.join(
-                                    CUCKOO_ROOT,
-                                    "storage",
-                                    "analyses",
-                                    str(task["info"]["id"]),
-                                    folders.get(category),
-                                    block["sha256"],
-                                )
+                                file_path = os.path.join(get_task_path(task_id), folders.get(category), block["sha256"])
                                 if path_exists(file_path):
                                     sample = [file_path]
                                     break
