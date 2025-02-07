@@ -108,9 +108,11 @@ class Call(BaseModel):
     arguments: list[Argument] = []
     repeated: int = 0
 
+
 class Calls(BaseModel):
     calls: list[Call] = []
     pid: int
+
 
 class ProcMemory(BaseModel):
     class Chunk(BaseModel):
@@ -122,8 +124,10 @@ class ProcMemory(BaseModel):
 
     class MemoryMap(BaseModel):
         chunks: list[ProcMemory.Chunk] = []
+
     pid: int
     address_space: list[MemoryMap] = []
+
 
 class AnalysisConfig(BaseModel):
     class HashGroup(BaseModel):
@@ -133,8 +137,9 @@ class AnalysisConfig(BaseModel):
         sha512: str
         sha3_384: str
 
-    associated_config_hashes: list[AnalysisConfig.HashGroup] = Field(alias="_associated_config_hashes")
-    associated_analysis_hashes: AnalysisConfig.HashGroup | None = Field(alias="_associated_analysis_hashes")
+    associated_config_hashes: list[AnalysisConfig.HashGroup] = Field(alias="_associated_config_hashes", default_factory=list)
+    associated_analysis_hashes: AnalysisConfig.HashGroup | None = Field(alias="_associated_analysis_hashes", default_factory=list)
+
 
 class Suricata(BaseModel):
     class TLS(BaseModel):
@@ -151,6 +156,7 @@ class Suricata(BaseModel):
         serial: str | None = None
         notbefore: datetime.datetime | None = None
         notafter: datetime.datetime | None = None
+
     class DNS(BaseModel):
         class DNSQuery(BaseModel):
             type: str
@@ -159,6 +165,7 @@ class Suricata(BaseModel):
             rrtype: str
             tx_id: int
             opcode: int
+
         timestamp: datetime.datetime | None = None
         flow_id: int
         pcap_cnt: int
@@ -169,7 +176,7 @@ class Suricata(BaseModel):
         proto: str | None = None
         dns: DNSQuery | None = None
 
-    alerts: list[str] = [] # Got any example alerts?
+    alerts: list[str] = []  # Got any example alerts?
     tls: list[TLS] = []
     perf: list[str] = []
     files: list[str] = []
