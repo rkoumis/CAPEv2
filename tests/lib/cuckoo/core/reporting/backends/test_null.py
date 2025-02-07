@@ -1,14 +1,11 @@
-import functools
-import inspect
-
 import pytest
 
-from lib.cuckoo.common.exceptions import CuckooOperationalError
 from lib.cuckoo.common import config
+from lib.cuckoo.common.exceptions import CuckooOperationalError
 from lib.cuckoo.core.reporting import api
 from lib.cuckoo.core.reporting.backends import null
 
-getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
+from .conftest import getfunctions
 
 
 class TestNullReportingBackend:

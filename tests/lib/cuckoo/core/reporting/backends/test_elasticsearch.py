@@ -1,11 +1,7 @@
-import functools
-import inspect
-
 from lib.cuckoo.core.reporting import api
 from lib.cuckoo.core.reporting.backends import elasticsearch
 
-getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
-
+from .conftest import getfunctions
 
 class TestMongoDBReportingBackend:
     def test_has_api_methods(self):

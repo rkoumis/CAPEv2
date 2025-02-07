@@ -1,16 +1,13 @@
 import datetime
-import functools
-import inspect
 import random
 
 import mongomock
 import pytest
 
-from .conftest import TEST_TASK_ID, TEST_PIDS
 from lib.cuckoo.core.reporting import api, schema
 from lib.cuckoo.core.reporting.backends import mongodb
 
-getfunctions = functools.partial(inspect.getmembers, predicate=inspect.isfunction)
+from .conftest import TEST_PIDS, TEST_TASK_ID, getfunctions
 
 
 @pytest.mark.usefixtures("mongodb_config", "mongodb_mock_client")
