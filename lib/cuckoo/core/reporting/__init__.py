@@ -41,4 +41,4 @@ def init_reports(cfg: config.Config) -> Reports:
     elif cfg.elasticsearchdb.enabled:
         _enabled, _backend = True, Backend.ELASTICSEARCH
         return elasticsearch.ElasticsearchReports(cfg)
-    _enabled, _backend = False, null.Null(cfg)
+    _enabled, _backend = False, null.NullReports(cfg)
