@@ -70,8 +70,8 @@ class MongoDBReports(api.Reports):
         )
         retval: list[schema.Info] = []
         for result in results:
-            info = result.get("info", {})
-            retval.append(schema.Info(**info))
+            if info := result.get("info"):
+                retval.append(schema.Info(**info))
         return retval
 
     def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list:
