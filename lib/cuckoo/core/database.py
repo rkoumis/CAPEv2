@@ -35,7 +35,12 @@ from lib.cuckoo.common.exceptions import (
 from lib.cuckoo.common.integrations.parse_pe import PortableExecutable
 from lib.cuckoo.common.objects import PCAP, URL, File, Static
 from lib.cuckoo.common.path_utils import path_delete, path_exists
-from lib.cuckoo.common.utils import bytes2str, create_folder, get_options
+from lib.cuckoo.common.utils import (
+    bytes2str,
+    create_folder,
+    get_options,
+    get_task_path,
+)
 
 try:
     from sqlalchemy import (
@@ -504,6 +509,22 @@ class Task(Base):
 
     def __repr__(self):
         return f"<Task({self.id},'{self.target}')>"
+
+    def path(self):
+        """Get the Task's path.
+
+        Note this is only the computed path. The path may not exist. If it does
+        exist, it may not have anything in it.
+
+        @param task_id: task_id
+        @return: path to where the task data will be stored
+
+        For example:
+
+            >>> task.path()
+            '/opt/CAPEv2/storage/analyses/42'
+        """
+        return get_task_path(self.id)
 
 
 class AlembicVersion(Base):
@@ -2349,6 +2370,17 @@ class _Database:
                                 sample = [file_path]
                                 break
         return sample
+
+    def task_path(self, task_id: int = False) -> str:
+        """Get the analysis path for a given task_id.
+
+        Note this is only the computed path. The path may not exist. If it does
+        exist, it may not have anything in it.
+
+        @param task_id: task_id
+        @return: path to where analysis data will be stored
+        """
+        return get_task_path(task_id)
 
     def count_samples(self) -> int:
         """Counts the amount of samples in the database."""
