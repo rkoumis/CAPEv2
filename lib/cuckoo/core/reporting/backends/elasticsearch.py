@@ -47,7 +47,7 @@ class ElasticsearchReports(api.Reports):
     def search_procdump_by_sha256(self, sha256: str) -> list:
         pass
 
-    def search_suricata_by_sha256(self, sha256: str) -> list:
+    def search_suricata_by_sha256(self, sha256: str) -> list[schema.Suricata]:
         pass
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:

@@ -32,7 +32,7 @@ class Reports:
     def search_procdump_by_sha256(self, sha256: str) -> list:
         raise NotImplementedError()
 
-    def search_suricata_by_sha256(self, sha256: str) -> list:
+    def search_suricata_by_sha256(self, sha256: str) -> list[schema.Suricata]:
         raise NotImplementedError()
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
