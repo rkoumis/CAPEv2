@@ -30,7 +30,7 @@ try:
         check_configs,
         check_linux_dist,
         check_tcpdump_permissions,
-        check_webgui_mongo,
+        check_reporting,
         check_working_directory,
         create_structure,
         init_logging,
@@ -79,7 +79,7 @@ def cuckoo_init(quiet=False, debug=False, artwork=False, test=False):
     log.setLevel(level)
     init_logging(level)
 
-    check_webgui_mongo()
+    check_reporting()
     init_modules()
     with Database().session.begin():
         init_tasks()

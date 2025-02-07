@@ -105,7 +105,7 @@ def check_working_directory():
         raise CuckooStartupError(f"Fix permission on tmpfs path: chown cape:cape {cuckoo.tmpfs.path}")
 
 
-def check_webgui_mongo():
+def check_reporting():
     if reporting.disabled():
         return
 
