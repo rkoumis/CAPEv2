@@ -49,6 +49,31 @@ class TestMongoDBReportingBackend:
         assert len(actual) == limit
         assert actual[0].id == TEST_TASK_ID
 
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_suricata_by_sha256(self):
+        """Retrieve suricata object from sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        sha256 = "a" * 64
+        actual = mongo.search_suricata_by_sha256(sha256)
+        assert len(actual) == len(TEST_TASK_IDS)
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_suricata_by_sha256_with_limit(self):
+        """Retrieve suricata object from sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        sha256 = "a" * 64
+        limit = 1
+        actual = mongo.search_suricata_by_sha256(sha256, limit=limit)
+        assert len(actual) == limit
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_suricata_by_sha256_no_results(self):
+        """Retrieve suricata object from sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        sha256 = "z" * 64
+        actual = mongo.search_suricata_by_sha256(sha256)
+        assert len(actual) == 0
+
     def test_nonexistent_summary(self):
         """Ask for a summary that is not present in the MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
@@ -130,3 +155,11 @@ class TestMongoDBReportingBackend:
             m.setattr(mongo, "_calls", _calls)
             mongo.calls_by_pid(TEST_TASK_ID, 1)
             assert call_count == 1
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_suricata(self):
+        """Retrieve suricata object from sha256."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.suricata(TEST_TASK_ID)
+        assert isinstance(actual, schema.Suricata)
+        assert "example.com" in actual.http

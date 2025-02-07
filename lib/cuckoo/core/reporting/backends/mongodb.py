@@ -84,6 +84,14 @@ class MongoDBReports(api.Reports):
         pass
 
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
+        results = self._analysis_collection.find(
+            filter={"target.file.file_ref": sha256}, projection={"_id": 0, "suricata": 1}, limit=limit
+        )
+        retval: list[schema.Info] = []
+        for result in results:
+            if suricata := result.get("suricata"):
+                retval.append(schema.Suricata(**suricata))
+        return retval
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
         result = self._analysis_collection.find_one(
@@ -234,7 +242,11 @@ class MongoDBReports(api.Reports):
         return self._calls(task_id, pid)
 
     def suricata(self, task_id) -> schema.Suricata | None:
-        pass
+        filter = {_info_id: task_id}
+        projection = {"_id": 0, "suricata": 1}
+        result = self._analysis_collection.find_one(filter=filter, projection=projection)
+        if suricata := result.get("suricata"):
+            return schema.Suricata(**suricata)
 
 
 # Temporarily duped with mongodb_constants

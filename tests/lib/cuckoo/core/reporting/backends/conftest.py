@@ -176,6 +176,9 @@ def mongodb_populate_test_data(mongodb_mock_client):
             }
         ],
         "behavior": behavior,
+        "suricata": {
+            "http": ["example.com"]
+        },
         "suri_tls_cnt": 6,
         "suri_alert_cnt": 17,
         "suri_http_cnt": 210,
