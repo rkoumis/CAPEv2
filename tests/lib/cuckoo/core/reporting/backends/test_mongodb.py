@@ -112,6 +112,17 @@ class TestMongoDBReportingBackend:
         assert result.clamav == []
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_summaries(self):
+        """Retrieve Summaries from MongoDB."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        results = mongo.summaries()
+        result_count = 0
+        for result in results:
+            result_count += 1
+            assert isinstance(result, schema.Summary)
+        assert result_count == len(TEST_TASK_IDS)
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_cape_configs(self):
         """Retrieve analysis configs from MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)

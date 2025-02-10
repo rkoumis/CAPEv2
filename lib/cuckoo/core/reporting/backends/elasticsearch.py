@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Generator, Optional
 
 from lib.cuckoo.common import config
 from lib.cuckoo.core.reporting import api, schema
@@ -91,6 +91,9 @@ class ElasticsearchReports(api.Reports):
             return schema.Summary(**rtmp)
         else:
             return None
+
+    def summaries(self) -> Generator[schema.Summary, None, None]:
+        pass
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         pass

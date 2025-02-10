@@ -1,7 +1,7 @@
 import itertools
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, cast, TypeAlias
+from typing import Any, Generator, Mapping, Optional, cast, TypeAlias
 from collections.abc import Iterable
 
 import pymongo
@@ -149,6 +149,17 @@ class MongoDBReports(api.Reports):
             report["clamav"] = report.get("target", {}).get("file", {}).get("clamav")
             return schema.Summary(**report)
         return None
+
+    def summaries(self) -> Generator[schema.Summary, None, None]:
+        tasks = self._analysis_collection.find({}, {_id: 0, _info_id: 1})
+        for task in tasks:
+            task_id = task.get("info", {}).get("id")
+            if task_id is None:
+                continue
+            if summary := self.summary(task_id):
+                yield summary
+            else:
+                continue
 
     def recent_suricata_alerts(self, minutes=60) -> list:
         gen_time = datetime.now() - timedelta(minutes=minutes)

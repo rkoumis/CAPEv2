@@ -53,8 +53,7 @@ class Reports:
     def summary(self, task_id: int) -> schema.Summary | None:
         raise NotImplementedError()
 
-    # TODO(jf) return list/generator of all schema.Summary's known to reporting backends
-    def summaries(self) -> Generator[schema.Summary]:
+    def summaries(self) -> Generator[schema.Summary, None, None]:
         raise NotImplementedError()
 
     def recent_suricata_alerts(self, minutes=60) -> list:
