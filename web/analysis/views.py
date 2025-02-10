@@ -32,7 +32,7 @@ import modules.processing.network as network
 from lib.cuckoo.common.config import Config
 from lib.cuckoo.common.constants import ANALYSIS_BASE_PATH, CUCKOO_ROOT
 from lib.cuckoo.common.path_utils import path_exists, path_get_size, path_mkdir, path_read_file, path_safe
-from lib.cuckoo.common.utils import delete_folder, yara_detected
+from lib.cuckoo.common.utils import delete_folder, yara_detected, get_task_path
 from lib.cuckoo.common.web_utils import category_all_files, my_rate_minutes, my_rate_seconds, perform_search, rateblock, statistics
 from lib.cuckoo.core import reporting
 from lib.cuckoo.core.database import TASK_PENDING, Database, Task
@@ -489,13 +489,13 @@ def pending(request):
 def _load_file(task_id, sha256, existen_details, name):
     filepath = False
     if name == "bingraph":
-        filepath = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "bingraph", sha256 + "-ent.svg")
+        filepath = os.path.join(get_task_path(task_id), "bingraph", sha256 + "-ent.svg")
 
     elif name == "vba2graph":
-        filepath = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "vba2graph", "svg", sha256 + ".svg")
+        filepath = os.path.join(get_task_path(task_id), "vba2graph", "svg", sha256 + ".svg")
 
     elif name == "debugger":
-        debugger_log_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "debugger")
+        debugger_log_path = os.path.join(get_task_path(task_id), "debugger")
         if path_exists(debugger_log_path) and _path_safe(debugger_log_path):
             for log in os.listdir(debugger_log_path):
                 if not log.endswith(".log"):
@@ -1228,11 +1228,11 @@ def report(request, task_id):
     reports_exist = False
     # check if we allow dl reports only to specific users
     if settings.ALLOW_DL_REPORTS_TO_ALL:
-        reporting_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "reports")
+        reporting_path = os.path.join(get_task_path(task_id), "reports")
         if path_exists(reporting_path) and os.listdir(reporting_path):
             reports_exist = True
 
-    debugger_log_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "debugger")
+    debugger_log_path = os.path.join(get_task_path(task_id), "debugger")
     if path_exists(debugger_log_path) and os.listdir(debugger_log_path):
         report["debugger_logs"] = 1
 
@@ -1260,7 +1260,7 @@ def report(request, task_id):
     if report.get("target", {}).get("file", {}).get("sha256"):
         vba2graph = processing_cfg.vba2graph.enabled
         vba2graph_svg_path = os.path.join(
-            CUCKOO_ROOT, "storage", "analyses", str(task_id), "vba2graph", "svg", report["target"]["file"]["sha256"] + ".svg"
+            get_task_path(task_id), "vba2graph", "svg", report["target"]["file"]["sha256"] + ".svg"
         )
 
         if path_exists(vba2graph_svg_path) and _path_safe(vba2graph_svg_path):
@@ -1268,7 +1268,7 @@ def report(request, task_id):
 
     bingraph = reporting_cfg.bingraph.enabled
     bingraph_dict_content = {}
-    bingraph_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "bingraph")
+    bingraph_path = os.path.join(get_task_path(task_id), "bingraph")
     if path_exists(bingraph_path):
         for file in os.listdir(bingraph_path):
             tmp_file = os.path.join(bingraph_path, file)
@@ -1333,7 +1333,7 @@ def report(request, task_id):
             existent_tasks[record["info"]["id"]] = record.get("detections")
 
     # process log per task if enabled:
-    process_log_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "process.log")
+    process_log_path = os.path.join(get_task_path(task_id), "process.log")
     if web_cfg.general.expose_process_log and path_exists(process_log_path) and path_get_size(process_log_path):
         report["process_log"] = path_read_file(process_log_path, mode="text")
 
@@ -1369,7 +1369,7 @@ def report(request, task_id):
 @csrf_exempt
 @api_view(["GET"])
 def file_nl(request, category, task_id, dlfile):
-    base_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id))
+    base_path = get_task_path(task_id)
     path = False
     if category == "screenshot":
         for ext, cd in ((".jpg", "image/jpeg"), (".png", "image/png")):
@@ -1490,64 +1490,64 @@ def file(request, category, task_id, dlfile):
     if category in ("sample", "static", "staticzip"):
         path = os.path.join(CUCKOO_ROOT, "storage", "binaries", file_name)
     elif category in ("dropped", "droppedzip"):
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "files", file_name)
+        path = os.path.join(get_task_path(task_id), "files", file_name)
         # Self Extracted support folder
         if not path_exists(path):
-            path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "selfextracted", file_name)
+            path = os.path.join(get_task_path(task_id), "selfextracted", file_name)
     elif category in ("droppedzipall", "procdumpzipall", "CAPEzipall"):
         if web_cfg.zipped_download.download_all:
             sub_cat = category.replace("zipall", "")
             path = category_all_files(
-                task_id, sub_cat, os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), category_map[sub_cat])
+                task_id, sub_cat, os.path.join(get_task_path(task_id), category_map[sub_cat])
             )
             file_name = f"{task_id}_{category}"
     elif category.startswith("CAPE"):
-        buf = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "CAPE", file_name)
+        buf = os.path.join(get_task_path(task_id), "CAPE", file_name)
         if os.path.isdir(buf):
             dfile = min(os.listdir(buf), key=len)
             path = os.path.join(buf, dfile)
         else:
             path = buf
             if not path_exists(path):
-                path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "selfextracted", file_name)
+                path = os.path.join(get_task_path(task_id), "selfextracted", file_name)
     elif category == "networkzip":
-        buf = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "network", file_name)
+        buf = os.path.join(get_task_path(task_id), "network", file_name)
         path = buf
     elif category.startswith("memdumpzip"):
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "memory", file_name + ".dmp")
+        path = os.path.join(get_task_path(task_id), "memory", file_name + ".dmp")
         file_name += ".dmp"
     elif category in ("pcap", "pcapzip"):
         file_name += ".pcap"
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "dump.pcap")
+        path = os.path.join(get_task_path(task_id), "dump.pcap")
         cd = "application/vnd.tcpdump.pcap"
     elif category == "pcapng":
         file_name += ".pcapng"
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "dump.pcapng")
+        path = os.path.join(get_task_path(task_id), "dump.pcapng")
         cd = "application/vnd.tcpdump.pcap"
     elif category == "debugger_log":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "debugger", str(dlfile) + ".log")
+        path = os.path.join(get_task_path(task_id), "debugger", str(dlfile) + ".log")
     elif category == "rtf":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "rtf_objects", file_name)
+        path = os.path.join(get_task_path(task_id), "rtf_objects", file_name)
     elif category == "usage":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "aux", "usage.svg")
+        path = os.path.join(get_task_path(task_id), "aux", "usage.svg")
         file_name = "usage.svg"
         cd = "image/svg+xml"
     elif category in extmap:
         file_name += extmap[category]
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "memory", file_name)
+        path = os.path.join(get_task_path(task_id), "memory", file_name)
         if not path_exists(path):
             file_name += ".zip"
             path += ".zip"
             cd = "application/zip"
     elif category == "dropped":
-        buf = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "files", file_name)
+        buf = os.path.join(get_task_path(task_id), "files", file_name)
         if os.path.isdir(buf):
             dfile = min(os.listdir(buf), key=len)
             path = os.path.join(buf, dfile)
         else:
             path = buf
     elif category.startswith("procdump"):
-        buf = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "procdump", file_name)
+        buf = os.path.join(get_task_path(task_id), "procdump", file_name)
         if os.path.isdir(buf):
             dfile = min(os.listdir(buf), key=len)
             path = os.path.join(buf, dfile)
@@ -1556,19 +1556,19 @@ def file(request, category, task_id, dlfile):
     # Just for suricata dropped files currently
     elif category == "zip":
         file_name = "files.zip"
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "logs", "files.zip")
+        path = os.path.join(get_task_path(task_id), "logs", "files.zip")
         cd = "application/zip"
     elif category == "suricata":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "logs", "files", file_name)
+        path = os.path.join(get_task_path(task_id), "logs", "files", file_name)
     elif category == "rtf":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "rtf_objects", file_name)
+        path = os.path.join(get_task_path(task_id), "rtf_objects", file_name)
     elif category == "tlskeys":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "tlsdump", "tlsdump.log")
+        path = os.path.join(get_task_path(task_id), "tlsdump", "tlsdump.log")
     # linux sysmon url to download sysmon.data xml
     elif category == "sysmon":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "sysmon", "sysmon.data")
+        path = os.path.join(get_task_path(task_id), "sysmon", "sysmon.data")
     elif category == "evtx":
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "evtx", "evtx.zip")
+        path = os.path.join(get_task_path(task_id), "evtx", "evtx.zip")
         file_name = f"{task_id}_evtx.zip"
         cd = "application/zip"
     elif category == "capeyarazipall":
@@ -1576,7 +1576,7 @@ def file(request, category, task_id, dlfile):
         if reporting.enabled() and web_cfg.zipped_download.download_all:
             path = _file_search_all_files(category.replace("zipall", ""), dlfile)
     elif category == "logszipall":
-        buf = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "logs")
+        buf = os.path.join(get_task_path(task_id), "logs")
         path = []
         for dfile in os.listdir(buf):
             path.append(os.path.join(buf, dfile))
@@ -1609,7 +1609,7 @@ def file(request, category, task_id, dlfile):
             if not isinstance(path, list):
                 path = [path]
             if USE_SEVENZIP:
-                zip_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", f"{task_id}", f"{file_name}.zip")
+                zip_path = os.path.join(get_task_path(task_id), f"{file_name}.zip")
                 sevenZipArgs = [SEVENZIP_PATH, f"-p{settings.ZIP_PWD.decode()}", "a", zip_path]
                 sevenZipArgs.extend(path)
                 try:
@@ -1656,7 +1656,7 @@ def procdump(request, task_id, process_id, start, end, zipped=False):
     task_id = int(task_id)
     analysis = reports.procmemory(task_id)
 
-    dumpfile = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "memory", origname)
+    dumpfile = os.path.join(get_task_path(task_id), "memory", origname)
 
     if not _path_safe(dumpfile):
         return render(request, "error.html", {"error": f"File not found: {os.path.basename(dumpfile)}"})
@@ -1747,7 +1747,7 @@ def filereport(request, task_id, category):
     }
 
     if category in formats:
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "reports", formats[category])
+        path = os.path.join(get_task_path(task_id), "reports", formats[category])
 
         if not _path_safe(path) or not path_exists(path):
             return render(request, "error.html", {"error": f"File not found: {formats[category]}"})
@@ -1764,7 +1764,7 @@ def filereport(request, task_id, category):
 def full_memory_dump_file(request, analysis_number):
     filename = False
     for name in ("memory.dmp", "memory.dmp.zip"):
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(analysis_number), name)
+        path = os.path.join(get_task_path(analysis_number), name)
         if path_exists(path) and _path_safe(path):
             filename = name
             break
@@ -1784,7 +1784,7 @@ def full_memory_dump_file(request, analysis_number):
 def full_memory_dump_strings(request, analysis_number):
     filename = None
     for name in ("memory.dmp.strings", "memory.dmp.strings.zip"):
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(analysis_number), name)
+        path = os.path.join(get_task_path(analysis_number), name)
         if path_exists(path):
             filename = name
             if not _path_safe(ANALYSIS_BASE_PATH):
@@ -1960,7 +1960,7 @@ def pcapstream(request, task_id, conntuple):
 
     try:
         # if we do, build out the path to it
-        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "dump_sorted.pcap")
+        path = os.path.join(get_task_path(task_id), "dump_sorted.pcap")
 
         if not path_exists(path) or not _path_safe(path):
             return render(request, "standalone_error.html", {"error": "The required sorted PCAP does not exist"})
@@ -2023,7 +2023,7 @@ def vtupload(request, category, task_id, filename, dlfile):
                 folder_name = category
 
             if folder_name:
-                path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, folder_name, filename)
+                path = os.path.join(get_task_path(task_id), folder_name, filename)
 
             if not path or not _path_safe(path):
                 return render(request, "error.html", {"error": f"File not found: {os.path.basename(path)}"})
@@ -2105,7 +2105,7 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
         return render(request, "error.html", {"error": "Not supported/enabled service on demand"})
 
     # Self Extracted support folder
-    path = os.path.join(CUCKOO_ROOT, "storage", "analyses", task_id, "selfextracted", sha256)
+    path = os.path.join(get_task_path(task_id), "selfextracted", sha256)
 
     if not path_exists(path):
         extractedfile = False
