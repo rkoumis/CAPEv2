@@ -69,7 +69,6 @@ class Behavior(BaseModel):
         environ: dict[str, str] | None = None
         file_activities: Behavior.FileActivities
 
-    info: Info | None = None
     detections2pid: dict | None = None
     processes: list[Behavior.Process]
     process_tree: list = []
