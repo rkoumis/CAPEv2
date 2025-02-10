@@ -1,19 +1,21 @@
 import itertools
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Generator, Mapping, Optional, cast, TypeAlias
 from collections.abc import Iterable
+from datetime import datetime, timedelta
+from typing import Any, Generator, Mapping, TypeAlias, cast
 
 import pymongo
 import pymongo.collection
 import pymongo.database
-import pymongo.results
 import pymongo.errors
+import pymongo.results
 from bson.objectid import ObjectId
 
 from lib.cuckoo.common import config
 from lib.cuckoo.common.exceptions import CuckooOperationalError
 from lib.cuckoo.core.reporting import api, schema
+
+from ..types import SearchCategories
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +59,7 @@ class MongoDBReports(api.Reports):
 
     def ping(self) -> bool:
         try:
-            self._client.admin.command('ping')
+            self._client.admin.command("ping")
         except pymongo.errors.ConnectionFailure:
             return False
         return True
@@ -65,7 +67,7 @@ class MongoDBReports(api.Reports):
     def get(self, task_id: int) -> dict:
         query = {INFO_ID_FIELD: task_id}
         report = self._analysis_collection.find_one(filter=query)
-        return {} if not report else report
+        return report if isinstance(report, dict) else {}
 
     def behavior(self, task_id: int) -> schema.Behavior | None:
         query = {INFO_ID_FIELD: task_id}
@@ -87,13 +89,8 @@ class MongoDBReports(api.Reports):
         rslt: pymongo.results.DeleteResult = self._analysis_collection.delete_one(filter=query)
         return True if rslt.deleted_count > 0 else False
 
-    def search(self, term, value, limit: int = 0, projection=None) -> list:
-        pass
-
-    def search_by_user(self, term, value, user_id=False, privs=False) -> list:
-        pass
-
-    def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+    def _find_info(self, filter, limit: int = 0) -> list[schema.Info]:
+        """Search for tasks using the specified filter."""
         results = self._analysis_collection.find(
             filter=filter, projection={_ID_FIELD: 0, INFO_FIELD: 1}, limit=limit
         )
@@ -103,13 +100,27 @@ class MongoDBReports(api.Reports):
                 retval.append(schema.Info(**info))
         return retval
 
-    def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search(self, term, value, limit: int = 0, projection=None) -> list[schema.Info]:
         pass
 
-    def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search_by_category(self, category: SearchCategories, limit: int = 0) -> list[schema.Info]:
+        filter={"info.category": category.value}
+        return self._find_info(filter=filter, limit=limit)
+
+    def search_by_user(self, term, value, user_id=False, privs=False, limit: int = 0) -> list[schema.Info]:
         pass
 
-    def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        filter={"target.file.file_ref": sha256}
+        return self._find_info(filter=filter, limit=limit)
+
+    def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        pass
+
+    def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        pass
+
+    def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
@@ -122,25 +133,24 @@ class MongoDBReports(api.Reports):
                 retval.append(schema.Suricata(**suricata))
         return retval
 
+    def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
+        pass
+
+    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig] | None:
+        if result := self._analysis_collection.find_one(
             filter={INFO_ID_FIELD: task_id},
             projection={
                 "CAPE.configs": 1,
             },
-        )
-        retval: list[schema.AnalysisConfig] = []
-        if result:
+        ):
             configs = result.get("CAPE", {}).get("configs", [])
-            retval.extend([schema.AnalysisConfig(**cfg) for cfg in configs])
-        return retval
-
-    def detections_by_sha256(self, sha256: str) -> dict:
-        pass
+            return [schema.AnalysisConfig(**cfg) for cfg in configs]
 
     def iocs(self, task_id: int) -> dict:
         # there's no well-defined representation of iocs data yet; defer to full get
         return self.get(task_id)
 
-    def summary(self, task_id: int) -> Optional[schema.Summary]:
+    def summary(self, task_id: int) -> schema.Summary | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
             _ID_FIELD: 0,
@@ -159,8 +169,7 @@ class MongoDBReports(api.Reports):
             "suri_file_cnt": 1,
             "trid": 1,
         }
-        report = self._analysis_collection.find_one(filter=query, projection=projection)
-        if report:
+        if report := self._analysis_collection.find_one(filter=query, projection=projection):
             # Rearrange some data for populating the Summary object
             report["vt_file_summary"] = report.get("target", {}).get("file", {}).get("virustotal", {}).get("summary")
             report["vt_url_summary"] = report.get("url", {}).get("virustotal", {}).get("summary")
@@ -191,6 +200,9 @@ class MongoDBReports(api.Reports):
         )
         return result
 
+    def detections(self, task_id: int) -> dict:
+        pass
+
     def dropped(self, task_id: int) -> dict:
         query = {INFO_ID_FIELD: task_id}
         projection = {
@@ -211,13 +223,18 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
+    def network(self, task_id: int) -> schema.Network | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
             _ID_FIELD: 0,
             "network": 1,
         }
-        report = self._analysis_collection.find_one(filter=query, projection=projection)
-        return None if not report else report
+        if result := self._analysis_collection.find_one(filter=query, projection=projection):
+            network = result.get("network")
+            return schema.Network(**network) if isinstance(network, dict) else None
+
+    def payloads(self, task_id: int) -> dict:
+        pass
 
     def procdump(self, task_id: int) -> dict:
         query = {INFO_ID_FIELD: task_id}
@@ -229,14 +246,15 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
-    def procmemory(self, task_id: int) -> dict:
+    def procmemory(self, task_id: int) -> schema.ProcMemory | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
             _ID_FIELD: 0,
             "procmemory": 1,
         }
-        report = self._analysis_collection.find_one(filter=query, projection=projection)
-        return None if not report else report
+        if result := self._analysis_collection.find_one(filter=query, projection=projection):
+            procmemory = result.get("procmemory")
+            return schema.ProcMemory(**procmemory) if isinstance(procmemory, dict) else None
 
     def _calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         result = self._analysis_collection.find_one(
@@ -277,6 +295,9 @@ class MongoDBReports(api.Reports):
     def suricata(self, task_id) -> schema.Suricata | None:
         filter = {INFO_ID_FIELD: task_id}
         projection = {_ID_FIELD: 0, "suricata": 1}
+        if result := self._analysis_collection.find_one(filter=filter, projection=projection):
+            suricata = result.get("suricata")
+            return schema.Suricata(**suricata) if isinstance(suricata, dict) else None
 
 
 def _pymongo_client(cfg: dict[str, Any]) -> pymongo.MongoClient[Mapping[str, Any]]:
