@@ -44,7 +44,13 @@ class Reports:
     def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         raise NotImplementedError()
 
+    def cape(self, task_id: int) -> list[schema.CAPE]:
+        raise NotImplementedError()
+
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig] | None:
+        raise NotImplementedError()
+
+    def cape_payloads(self, task_id: int) -> ???:
         raise NotImplementedError()
 
     def iocs(self, task_id: int): # -> schema.IOC | None:
