@@ -129,8 +129,12 @@ class Network(BaseModel):
 
 
 class CAPE(BaseModel):
+    class Payload(BaseModel):
+        name: str
+        path: str
+
     info: Info | None = None
-    payloads: list = []
+    payloads: list[CAPE.Payload] = []
     configs: list = []
 
 
@@ -250,3 +254,53 @@ class Suricata(BaseModel):
     file_log_full_path: str | None = None
     ssh_log_full_path: str | None = None
     dns_log_full_path: str | None = None
+
+
+class IOC(BaseModel):
+    # WIP - more can be done here
+    class Network(BaseModel):
+        tcp_count: int = 0
+        udp_count: int = 0
+        irc_count: int = 0
+        http_count: int = 0
+        dns_count: int = 0
+        smtp_count: int = 0
+        hosts_count: int = 0
+        domains_count: int = 0
+
+    class IDS(BaseModel):
+        totalalerts: int = 0
+        totalfiles: int = 0
+
+    class PE(BaseModel):
+        id_signatures: list[Any] = []
+        timestamp: datetime.datetime | None = None
+        imphash: str | None = None
+        icon_hash: str | None = None
+        icon_fuzzy: str | None = None
+        version_info: str | None = None
+
+    class PDF(BaseModel):
+        pass
+
+    class Office(BaseModel):
+        pass
+
+    class Static(BaseModel):
+        pe: IOC.PE | None = None
+        pdf: IOC.PDF | None = None
+        office: IOC.OFFICE | None = None
+
+    tr_extractor: str | None = None
+    certs: list[Any] = []  # List of what?
+    detections: list[Any] = []  # List of what?
+    malscore: float = 0.0
+    target: dict[Any, Any] = {}  # how's this?
+    network: IOC.Network | None = None
+    ids: IOC.IDS | None = None
+    static: IOC.Static | None = None
+    files: list[IOC.File] | None = None
+    process_tree: list[IOC.ProcessTree] | None = None
+    dropped: list[IOC.Dropped] | None = None
+    trid: Any | None = None  # what type is `trid` ?
+    strings: list[str] = []
