@@ -3,6 +3,8 @@ from typing import Generator, Optional
 from lib.cuckoo.common import config
 from lib.cuckoo.core.reporting import api, schema
 
+from ..types import SearchCategories
+
 try:
     # TODO implement these right here
     from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_query_by_info_id
@@ -31,41 +33,44 @@ class ElasticsearchReports(api.Reports):
     def delete(self, task_id: int) -> bool:
         pass
 
-    def search(self, term, value, limit: int = 0, projection=None) -> list:
+    def search(self, term, value, limit: int = 0, projection=None) -> list[schema.Info]:
         pass
 
-    def search_by_user(self, term, value, user_id=False, privs=False) -> list:
+    def search_by_category(self, category: SearchCategories, limit: int = 0) -> list[schema.Info]:
+        pass
+
+    def search_by_user(self, term, value, user_id=False, privs=False, limit: int = 0) -> list[schema.Info]:
         pass
 
     def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
-    def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
-    def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
-    def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list:
+    def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
         pass
 
-    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
+    def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        pass
+
+    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig] | None:
         resp = self.es.search(index=get_analysis_index(), query=get_query_by_info_id(str(task_id)))
         retval = []
         for hit in resp["hits"]["hits"]:
             retval.append(schema.AnalysisConfig(**hit["_source"]))
         return retval
 
-    def detections_by_sha256(self, sha256: str) -> dict:
-        pass
-
     def iocs(self, task_id: int) -> dict:
         pass
 
-    def summary(self, task_id: int) -> Optional[schema.Summary]:
+    def summary(self, task_id: int) -> schema.Summary | None:
         rtmp = self.es.search(
             index=get_analysis_index(),
             query=get_query_by_info_id(str(task_id)),
@@ -98,19 +103,25 @@ class ElasticsearchReports(api.Reports):
     def recent_suricata_alerts(self, minutes=60) -> list:
         pass
 
+    def detections(self, task_id: int) -> dict:
+        pass
+
     def dropped(self, task_id: int) -> dict:
         pass
 
     def memory(self, task_id: int) -> dict:
         pass
 
-    def network(self, task_id: int) -> dict:
+    def network(self, task_id: int) -> schema.Network:
+        pass
+
+    def payloads(self, task_id: int) -> dict:
         pass
 
     def procdump(self, task_id: int) -> dict:
         pass
 
-    def procmemory(self, task_id: int) -> dict:
+    def procmemory(self, task_id: int) -> schema.ProcMemory | None:
         pass
 
     def calls(self, task_id: int) -> list[schema.Call]:
