@@ -51,8 +51,8 @@ def mongodb_populate_test_data(mongodb_mock_client):
     # TODO find a nicer way to populate mongo with test data
 
     database = mongodb_mock_client[TEST_DB_NAME]
-    analysis_collection = database[mongodb._analysis_coll]
-    calls_collection = database[mongodb._calls_coll]
+    analysis_collection = database[mongodb.ANALYSIS_COLLECTION]
+    calls_collection = database[mongodb.CALLS_COLLECTION]
 
     machine = {
         "id": 28033,

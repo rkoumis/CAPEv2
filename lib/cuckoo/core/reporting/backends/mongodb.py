@@ -23,8 +23,24 @@ log = logging.getLogger(__name__)
 
 MongoDoc: TypeAlias = Mapping[str, Any]
 
+ANALYSIS_COLLECTION = "analysis"
+CALLS_COLLECTION = "calls"
+CUCKOO_COLLECTION = "cuckoo_schema"
+FILES_COLLECTION = "files"
+
+_ID_FIELD = "_id"
+INFO_FIELD = "info"
+INFO_ID_FIELD = f"{INFO_FIELD}.id"
+# _task_ids = "_task_ids"
+# file_key = "sha256"
+# info = "info"
+# info_id = "info.id"
+# target = "target"
+# version = "version"
+
 
 class MongoDBReports(api.Reports):
+
     def __init__(self, cfg: config.Config):
         if not hasattr(cfg, "mongodb"):
             raise CuckooOperationalError("mongodb must be configured")
@@ -34,8 +50,10 @@ class MongoDBReports(api.Reports):
         _init_pymongo_logging(mongo_cfg)
         self._client = _pymongo_client(mongo_cfg)
         self._database: pymongo.database.Database[MongoDoc] = self._client[db_name]
-        self._analysis_collection = self._database[_analysis_coll]
-        self._calls_collection = self._database[_calls_coll]
+        self._analysis_collection = self._database[ANALYSIS_COLLECTION]
+        self._calls_collection = self._database[CALLS_COLLECTION]
+        self._cuckoo_collection = self._database[CUCKOO_COLLECTION]
+        self._files_collection = self._database[FILES_COLLECTION]
 
     def ping(self) -> bool:
         try:
@@ -45,14 +63,14 @@ class MongoDBReports(api.Reports):
         return True
 
     def get(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         report = self._analysis_collection.find_one(filter=query)
         return {} if not report else report
 
     def behavior(self, task_id: int) -> schema.Behavior:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "behavior.processes": 1,
             "behavior.processtree": 1,
             "detections2pid": 1,
@@ -62,7 +80,7 @@ class MongoDBReports(api.Reports):
         return None if not report else report
 
     def delete(self, task_id: int) -> bool:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         rslt: pymongo.results.DeleteResult = self._analysis_collection.delete_one(filter=query)
         return True if rslt.deleted_count > 0 else False
 
@@ -74,11 +92,11 @@ class MongoDBReports(api.Reports):
 
     def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         results = self._analysis_collection.find(
-            filter={"target.file.file_ref": sha256}, projection={"_id": 0, "info": 1}, limit=limit
+            filter=filter, projection={_ID_FIELD: 0, INFO_FIELD: 1}, limit=limit
         )
         retval: list[schema.Info] = []
         for result in results:
-            if info := result.get("info"):
+            if info := result.get(INFO_FIELD):
                 retval.append(schema.Info(**info))
         return retval
 
@@ -93,7 +111,7 @@ class MongoDBReports(api.Reports):
 
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
         results = self._analysis_collection.find(
-            filter={"target.file.file_ref": sha256}, projection={"_id": 0, "suricata": 1}, limit=limit
+            filter={"target.file.file_ref": sha256}, projection={_ID_FIELD: 0, "suricata": 1}, limit=limit
         )
         retval: list[schema.Info] = []
         for result in results:
@@ -101,9 +119,7 @@ class MongoDBReports(api.Reports):
                 retval.append(schema.Suricata(**suricata))
         return retval
 
-    def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig]:
-        result = self._analysis_collection.find_one(
-            filter={_info_id: task_id},
+            filter={INFO_ID_FIELD: task_id},
             projection={
                 "CAPE.configs": 1,
             },
@@ -122,10 +138,10 @@ class MongoDBReports(api.Reports):
         return self.get(task_id)
 
     def summary(self, task_id: int) -> Optional[schema.Summary]:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
-            _info: 1,
+            _ID_FIELD: 0,
+            INFO_FIELD: 1,
             "target.file.virustotal.summary": 1,
             "url.virustotal.summary": 1,
             "malscore": 1,
@@ -151,9 +167,9 @@ class MongoDBReports(api.Reports):
         return None
 
     def summaries(self) -> Generator[schema.Summary, None, None]:
-        tasks = self._analysis_collection.find({}, {_id: 0, _info_id: 1})
+        tasks = self._analysis_collection.find({}, {_ID_FIELD: 0, INFO_ID_FIELD: 1})
         for task in tasks:
-            task_id = task.get("info", {}).get("id")
+            task_id = task.get(INFO_FIELD, {}).get("id")
             if task_id is None:
                 continue
             if summary := self.summary(task_id):
@@ -166,70 +182,64 @@ class MongoDBReports(api.Reports):
         dummy_id = ObjectId.from_datetime(gen_time)
         result = list(
             self._analysis_collection.find(
-                filter={"suricata.alerts": {"$exists": True}, "_id": {"$gte": dummy_id}},
-                projection={"suricata.alerts": 1, "info.id": 1},
+                filter={"suricata.alerts": {"$exists": True}, _ID_FIELD: {"$gte": dummy_id}},
+                projection={"suricata.alerts": 1, INFO_ID_FIELD: 1},
             )
         )
         return result
 
     def dropped(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "dropped": 1,
-            _info: 1,
+            INFO_FIELD: 1,
         }
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def memory(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "memory": 1,
-            _info: 1,
+            INFO_FIELD: 1,
         }
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
-    # TODO(jf) use Network schemas
-    def network(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "network": 1,
-            "suricata": 1,
-            "pcapng": 1,
-            _info: 1,
         }
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def procdump(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "procdump": 1,
-            _info: 1,
+            INFO_FIELD: 1,
         }
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def procmemory(self, task_id: int) -> dict:
-        query = {_info_id: task_id}
+        query = {INFO_ID_FIELD: task_id}
         projection = {
-            _id: 0,
+            _ID_FIELD: 0,
             "procmemory": 1,
-            _info: 1,
         }
         report = self._analysis_collection.find_one(filter=query, projection=projection)
         return None if not report else report
 
     def _calls(self, task_id: int, pid: int | Iterable[int] | None = None) -> list[schema.Call]:
         result = self._analysis_collection.find_one(
-            filter={_info_id: task_id},
+            filter={INFO_ID_FIELD: task_id},
             projection={
-                _id: 0,
+                _ID_FIELD: 0,
                 "behavior.processes.calls": 1,
             },
         )
@@ -242,13 +252,13 @@ class MongoDBReports(api.Reports):
         calls = [proc.get("calls", {}) for proc in processes]
         call_ids = list(itertools.chain.from_iterable(calls))
 
-        calls_filter: dict[str, Any] = {_id: {"$in": call_ids}}
+        calls_filter: dict[str, Any] = {_ID_FIELD: {"$in": call_ids}}
         if isinstance(pid, int):
             calls_filter = {"$and": [calls_filter, {"pid": pid}]}
         elif isinstance(pid, Iterable):
             calls_filter = {"$and": [calls_filter, {"pid": {"$in": list(pid)}}]}
 
-        call_docs = self._calls_collection.find(filter=calls_filter, sort=[(_id, 1)])
+        call_docs = self._calls_collection.find(filter=calls_filter, sort=[(_ID_FIELD, 1)])
 
         for doc in call_docs:
             retval.extend([schema.Call(**call) for call in doc.get("calls", [])])
@@ -262,25 +272,8 @@ class MongoDBReports(api.Reports):
         return self._calls(task_id, pid)
 
     def suricata(self, task_id) -> schema.Suricata | None:
-        filter = {_info_id: task_id}
-        projection = {"_id": 0, "suricata": 1}
-        result = self._analysis_collection.find_one(filter=filter, projection=projection)
-        if suricata := result.get("suricata"):
-            return schema.Suricata(**suricata)
-
-
-# Temporarily duped with mongodb_constants
-_analysis_coll = "analysis"
-_calls_coll = "calls"
-_cuckoo_coll = "cuckoo_schema"
-_files_coll = "files"
-_file_key = "sha256"
-_id = "_id"
-_info = "info"
-_info_id = "info.id"
-_target = "target"
-_task_ids_key = "_task_ids"
-_version = "version"
+        filter = {INFO_ID_FIELD: task_id}
+        projection = {_ID_FIELD: 0, "suricata": 1}
 
 
 def _pymongo_client(cfg: dict[str, Any]) -> pymongo.MongoClient[Mapping[str, Any]]:
