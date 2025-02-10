@@ -1,6 +1,6 @@
 import datetime
-import random
 
+from lib.cuckoo.core.reporting.types import SearchCategories
 import mongomock
 import pytest
 import pymongo
@@ -68,6 +68,7 @@ class TestMongoDBReportingBackend:
         sha256 = "a" * 64
         actual = mongo.search_by_sha256(sha256)
         assert len(actual) == len(TEST_TASK_IDS)
+        assert all([isinstance(hit, schema.Info) for hit in actual])
         assert actual[0].id == TEST_TASK_ID
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
@@ -78,6 +79,7 @@ class TestMongoDBReportingBackend:
         limit = 1
         actual = mongo.search_by_sha256(sha256, limit=limit)
         assert len(actual) == limit
+        assert all([isinstance(hit, schema.Info) for hit in actual])
         assert actual[0].id == TEST_TASK_ID
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
@@ -87,6 +89,8 @@ class TestMongoDBReportingBackend:
         sha256 = "a" * 64
         actual = mongo.search_suricata_by_sha256(sha256)
         assert len(actual) == len(TEST_TASK_IDS)
+        assert all([isinstance(hit, schema.Suricata) for hit in actual])
+        assert len(actual[0].http) > 0
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_search_suricata_by_sha256_with_limit(self):
@@ -96,8 +100,9 @@ class TestMongoDBReportingBackend:
         limit = 1
         actual = mongo.search_suricata_by_sha256(sha256, limit=limit)
         assert len(actual) == limit
+        assert all([isinstance(hit, schema.Suricata) for hit in actual])
+        assert len(actual[0].http) > 0
 
-    @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_search_suricata_by_sha256_no_results(self):
         """Retrieve suricata object from sha256."""
         mongo = mongodb.MongoDBReports(self.cfg)
@@ -105,11 +110,31 @@ class TestMongoDBReportingBackend:
         actual = mongo.search_suricata_by_sha256(sha256)
         assert len(actual) == 0
 
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_by_category(self):
+        """Find tasks of a certain category."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.search_by_category(SearchCategories.FILE)
+        assert len(actual) == len(TEST_TASK_IDS)
+        assert all([isinstance(hit, schema.Info) for hit in actual])
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_search_by_category_with_limit(self):
+        """Find tasks of a certain category."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.search_by_category(SearchCategories.FILE, limit=1)
+        assert len(actual) == 1
+
+    def test_search_by_category_no_data(self):
+        """Ensure empty list is returned if there is no matching data."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.search_by_category(SearchCategories.FILE)
+        assert len(actual) == 0
+
     def test_nonexistent_summary(self):
         """Ask for a summary that is not present in the MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
-        task_id = random.randint(100, 100000)
-        result = mongo.summary(task_id)
+        result = mongo.summary(TEST_TASK_ID)
         assert result is None
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
@@ -139,6 +164,20 @@ class TestMongoDBReportingBackend:
         assert result_count == len(TEST_TASK_IDS)
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
+    def test_network(self):
+        """Retrieve network data from MongoDB"""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.network(TEST_TASK_ID)
+        assert isinstance(actual, schema.Network)
+        assert actual.pcap_sha256 == "PCAP"*16
+
+    def test_network_no_data(self):
+        """Retrieve network data from MongoDB"""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.network(TEST_TASK_ID)
+        assert actual is None
+
+    @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_cape_configs(self):
         """Retrieve analysis configs from MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
@@ -147,12 +186,11 @@ class TestMongoDBReportingBackend:
         assert all([isinstance(cfg, schema.AnalysisConfig) for cfg in actual])
         assert len(actual) == 1
 
-    def test_calls_no_data(self):
-        """Test calls returns an empty list if there is no data."""
+    def test_cape_configs_no_data(self):
+        """Retrieve analysis configs from MongoDB."""
         mongo = mongodb.MongoDBReports(self.cfg)
-        actual = mongo.calls(TEST_TASK_ID)
-        assert isinstance(actual, list)
-        assert len(actual) == 0
+        actual = mongo.cape_configs(TEST_TASK_ID)
+        assert actual is None
 
     @pytest.mark.parametrize("pid, expected_count", [(None, sum(TEST_PIDS)), (1, 1), (5, 5), (6, 0), ((1, 2, 3), 6)])
     @pytest.mark.usefixtures("mongodb_populate_test_data")
@@ -180,6 +218,13 @@ class TestMongoDBReportingBackend:
             m.setattr(mongo, "_calls", _calls)
             mongo.calls(TEST_TASK_ID)
             assert call_count == 1
+
+    def test_calls_no_data(self):
+        """Test calls returns an empty list if there is no data."""
+        mongo = mongodb.MongoDBReports(self.cfg)
+        actual = mongo.calls(TEST_TASK_ID)
+        assert isinstance(actual, list)
+        assert len(actual) == 0
 
     def test_calls_by_pid(self, monkeypatch):
         """Test `calls_by_pid` calls `_calls`."""

@@ -2,6 +2,7 @@ import functools
 import inspect
 import pathlib
 
+from lib.cuckoo.core.reporting import schema
 import mongomock
 import pymongo
 import pytest
@@ -67,6 +68,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
     info = {
         "id": 1,
         "machine": machine,
+        "category": "file"
     }
     calls = [
         {
@@ -160,6 +162,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
             },
         }
     ]
+
     analysis = {
         "info": info,
         "CAPE": {"configs": configs},
@@ -185,6 +188,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
                 ],
             }
         ],
+        "network": schema.Network(pcap_sha256="PCAP"*16).model_dump(),
         "behavior": behavior,
         "suricata": {
             "http": ["example.com"]
