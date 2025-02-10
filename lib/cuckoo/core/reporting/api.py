@@ -9,7 +9,7 @@ class Reports:
     def get(self, task_id: int) -> dict:
         raise NotImplementedError()
 
-    def behavior(self, task_id: int) -> schema.Behavior:
+    def behavior(self, task_id: int) -> schema.Behavior | None:
         raise NotImplementedError()
 
     def delete(self, task_id: int) -> bool:

@@ -67,17 +67,20 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query)
         return {} if not report else report
 
-    def behavior(self, task_id: int) -> schema.Behavior:
+    def behavior(self, task_id: int) -> schema.Behavior | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
             _ID_FIELD: 0,
             "behavior.processes": 1,
             "behavior.processtree": 1,
             "detections2pid": 1,
-            _info: 1,
         }
-        report = self._analysis_collection.find_one(filter=query, projection=projection)
-        return None if not report else report
+        if result := self._analysis_collection.find_one(filter=query, projection=projection):
+            detections2pid = result.get("detections2pid")
+            behavior = result.get("behavior", {})
+            processes = behavior.get("processes")
+            process_tree = behavior.get("processtree")
+            return schema.Behavior(processes=processes, process_tree=process_tree, detections2pid=detections2pid)
 
     def delete(self, task_id: int) -> bool:
         query = {INFO_ID_FIELD: task_id}

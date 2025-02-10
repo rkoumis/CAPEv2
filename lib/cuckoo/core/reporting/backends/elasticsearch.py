@@ -25,7 +25,7 @@ class ElasticsearchReports(api.Reports):
         else:
             return {}
 
-    def behavior(self, task_id: int) -> dict:
+    def behavior(self, task_id: int) -> schema.Behavior | None:
         pass
 
     def delete(self, task_id: int) -> bool:
