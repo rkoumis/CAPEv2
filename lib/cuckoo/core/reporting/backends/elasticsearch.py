@@ -54,10 +54,13 @@ class ElasticsearchReports(api.Reports):
     def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
-    def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
+    def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         pass
 
     def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        pass
+
+    def cape(self, task_id: int) -> schema.CAPE | None:
         pass
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig] | None:
@@ -66,6 +69,9 @@ class ElasticsearchReports(api.Reports):
         for hit in resp["hits"]["hits"]:
             retval.append(schema.AnalysisConfig(**hit["_source"]))
         return retval
+
+    def cape_payloads(self, task_id: int) -> list[schema.CAPE.Payload] | None:
+        pass
 
     def iocs(self, task_id: int) -> dict:
         pass
@@ -113,9 +119,6 @@ class ElasticsearchReports(api.Reports):
         pass
 
     def network(self, task_id: int) -> schema.Network:
-        pass
-
-    def payloads(self, task_id: int) -> dict:
         pass
 
     def procdump(self, task_id: int) -> dict:

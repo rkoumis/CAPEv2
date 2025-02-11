@@ -121,20 +121,12 @@ class MongoDBReports(api.Reports):
         pass
 
     def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        pass
-
-    def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
-        results = self._analysis_collection.find(
-            filter={"target.file.file_ref": sha256}, projection={_ID_FIELD: 0, "suricata": 1}, limit=limit
-        )
-        retval: list[schema.Info] = []
-        for result in results:
-            if suricata := result.get("suricata"):
-                retval.append(schema.Suricata(**suricata))
-        return retval
-
-    def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Suricata]:
-        pass
+    # TODO: @josh-feather add unit-tests
+    def cape(self, task_id: int) -> schema.CAPE | None:
+        configs = self.cape_configs(task_id)
+        payloads = self.cape_payloads(task_id)
+        if configs and payloads:
+            return schema.CAPE(payloads=payloads, configs=configs)
 
     def cape_configs(self, task_id: int) -> list[schema.AnalysisConfig] | None:
         if result := self._analysis_collection.find_one(
@@ -145,6 +137,17 @@ class MongoDBReports(api.Reports):
         ):
             configs = result.get("CAPE", {}).get("configs", [])
             return [schema.AnalysisConfig(**cfg) for cfg in configs]
+
+    # TODO: @josh-feather add unit-tests
+    def cape_payloads(self, task_id: int) -> list[schema.CAPE.Payload] | None:
+        if result := self._analysis_collection.find_one(
+            filter={INFO_ID_FIELD: task_id},
+            projection={
+                "CAPE.payloads": 1,
+            },
+        ):
+            payloads = result.get("CAPE", {}).get("payloads", [])
+            return [schema.CAPE.Payload(**payload) for payload in payloads]
 
     def iocs(self, task_id: int) -> dict:
         # there's no well-defined representation of iocs data yet; defer to full get
