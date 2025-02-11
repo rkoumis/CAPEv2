@@ -285,10 +285,19 @@ class IOC(BaseModel):
     class Office(BaseModel):
         pass
 
+    class File(BaseModel):
+        pass
+
+    class ProcessTree(BaseModel):
+        pass
+
+    class Dropped(BaseModel):
+        pass
+
     class Static(BaseModel):
         pe: IOC.PE | None = None
         pdf: IOC.PDF | None = None
-        office: IOC.OFFICE | None = None
+        office: IOC.Office | None = None
 
     tr_extractor: str | None = None
     certs: list[Any] = []  # List of what?
