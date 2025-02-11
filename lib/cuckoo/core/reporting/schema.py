@@ -277,7 +277,7 @@ class IOC(BaseModel):
         tlp: str | None = None
         user_id: int | None = None
 
-    class Network(BaseModel):
+    class NetworkTraffic(BaseModel):
         tcp_count: int = 0
         udp_count: int = 0
         irc_count: int = 0
@@ -286,24 +286,42 @@ class IOC(BaseModel):
         smtp_count: int = 0
         hosts_count: int = 0
         domains_count: int = 0
+        http = list[Any]
+
+    class Network(BaseModel):
+        traffic: IOC.NetworkTraffic
+        hosts: list[Any] = []
+        domains: list[Any] = []
+
+    class FileInfo(BaseModel):
+        sha1: str
+        sha256: str
+        md5: str
+        sha512: str
 
     class IDS(BaseModel):
         totalalerts: int = 0
         totalfiles: int = 0
+        alerts: list[Any] = []
+        http: list[Any] = []
+        files: list[IOC.FileInfo] = []
 
     class PE(BaseModel):
-        id_signatures: list[Any] = []
-        timestamp: datetime.datetime | None = None
-        imphash: str | None = None
-        icon_hash: str | None = None
-        icon_fuzzy: str | None = None
-        version_info: str | None = None
+        peid_signatures: list[Any] = []
+        pe_timestamp: datetime.datetime | None = None
+        pe_imphash: str | None = None
+        pe_icon_hash: str | None = None
+        pe_icon_fuzzy: str | None = None
+        pe_version_info: str | None = None
 
     class PDF(BaseModel):
-        pass
+        objects: int = 0
+        header: str | None = None
+        pages: list[Any] = []
 
     class Office(BaseModel):
-        pass
+        signatures: list[Any] = []
+        macros: list[Any] = []
 
     class File(BaseModel):
         pass
