@@ -89,8 +89,8 @@ class TestMongoDBReportingBackend:
         sha256 = "a" * 64
         actual = mongo.search_suricata_by_sha256(sha256)
         assert len(actual) == len(TEST_TASK_IDS)
-        assert all([isinstance(hit, schema.Suricata) for hit in actual])
-        assert len(actual[0].http) > 0
+        assert all([isinstance(hit, schema.Info) for hit in actual])
+        assert actual[0].id == TEST_TASK_ID
 
     @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_search_suricata_by_sha256_with_limit(self):
@@ -100,8 +100,8 @@ class TestMongoDBReportingBackend:
         limit = 1
         actual = mongo.search_suricata_by_sha256(sha256, limit=limit)
         assert len(actual) == limit
-        assert all([isinstance(hit, schema.Suricata) for hit in actual])
-        assert len(actual[0].http) > 0
+        assert all([isinstance(hit, schema.Info) for hit in actual])
+        assert actual[0].id == TEST_TASK_ID
 
     def test_search_suricata_by_sha256_no_results(self):
         """Retrieve suricata object from sha256."""

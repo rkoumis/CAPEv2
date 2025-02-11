@@ -66,7 +66,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "shutdown_on": "2024-03-29 14:04:20",
     }
     info = {
-        "id": 1,
+        "id": "this_gets_populated_below",
         "machine": machine,
         "category": "file"
     }
@@ -191,7 +191,13 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "network": schema.Network(pcap_sha256="PCAP"*16).model_dump(),
         "behavior": behavior,
         "suricata": {
-            "http": ["example.com"]
+            "http": ["example.com"],
+            "files": [{
+                "sha256": "a"*64,
+                "file_info": {
+                    "sha256": "a"*64
+                }
+            }]
         },
         "suri_tls_cnt": 6,
         "suri_alert_cnt": 17,
