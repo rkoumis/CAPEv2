@@ -241,7 +241,7 @@ class Suricata(BaseModel):
     alerts: list[Suricata.Alert] = []
     tls: list[Suricata.TLS] = []
     perf: list[str] = []
-    files: list[str] = []
+    files: list[dict[str, Any]] = []
     http: list[str] = []
     dns: list[Suricata.DNS] = []
     ssh: list[str] = []
@@ -256,7 +256,27 @@ class Suricata(BaseModel):
 
 
 class IOC(BaseModel):
-    # WIP - more can be done here
+    # WIP - more can be done here. But do we need it all?
+    class ReducedInfo(BaseModel):
+        class ReducedMachine(BaseModel):
+            status: str | None = None
+            name: str | None = None
+            platform: str | None = None
+            started_on: datetime.datetime | None = None
+            shutdown_on: datetime.datetime | None = None
+
+        id: int | None = None
+        version: str | None = None
+        started: datetime.datetime | None = None
+        ended: datetime.datetime | None = None
+        duration: int | None = None
+        category: str | None = None
+        machine: Info.Machine | None = None
+        package: str | None = None
+        timeout: bool | None = None
+        tlp: str | None = None
+        user_id: int | None = None
+
     class Network(BaseModel):
         tcp_count: int = 0
         udp_count: int = 0
