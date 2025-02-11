@@ -69,6 +69,7 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query)
         return report if isinstance(report, dict) else {}
 
+    # TODO: @josh-feather include `process.calls` in retval
     def behavior(self, task_id: int) -> schema.Behavior | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
@@ -89,7 +90,7 @@ class MongoDBReports(api.Reports):
         rslt: pymongo.results.DeleteResult = self._analysis_collection.delete_one(filter=query)
         return True if rslt.deleted_count > 0 else False
 
-    def _find_info(self, filter, limit: int = 0) -> list[schema.Info]:
+    def _find_info(self, filter: dict[str, Any], limit: int = 0) -> list[schema.Info]:
         """Search for tasks using the specified filter."""
         results = self._analysis_collection.find(
             filter=filter, projection={_ID_FIELD: 0, INFO_FIELD: 1}, limit=limit
@@ -114,13 +115,32 @@ class MongoDBReports(api.Reports):
         filter={"target.file.file_ref": sha256}
         return self._find_info(filter=filter, limit=limit)
 
+    # TODO: @josh-feather add unit-tests
     def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        pass
+        filter={"CAPE.payloads.file_ref": sha256}
+        return self._find_info(filter=filter, limit=limit)
 
+    # TODO: @josh-feather add unit-tests
     def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        pass
+        filter={"dropped.file_ref": sha256}
+        return self._find_info(filter=filter, limit=limit)
 
+    # TODO: @josh-feather add unit-tests
     def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        filter={"dropped.file_ref": sha256}
+        return self._find_info(filter=filter, limit=limit)
+
+    # TODO: @josh-feather find example report with data.
+    # TODO: @josh-feather update unit-tests.
+    def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        filter={"suricata.files.file_info.sha256": sha256}
+        return self._find_info(filter=filter, limit=limit)
+
+    # TODO: @josh-feather add unit-tests
+    def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
+        filter={"$or": [{"detections.details.VirusTotal": sha256}, {"detections.details.Yara": sha256}]}
+        return self._find_info(filter=filter, limit=limit)
+
     # TODO: @josh-feather add unit-tests
     def cape(self, task_id: int) -> schema.CAPE | None:
         configs = self.cape_configs(task_id)
@@ -235,9 +255,6 @@ class MongoDBReports(api.Reports):
         if result := self._analysis_collection.find_one(filter=query, projection=projection):
             network = result.get("network")
             return schema.Network(**network) if isinstance(network, dict) else None
-
-    def payloads(self, task_id: int) -> dict:
-        pass
 
     def procdump(self, task_id: int) -> dict:
         query = {INFO_ID_FIELD: task_id}
