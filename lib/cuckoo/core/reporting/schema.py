@@ -133,7 +133,6 @@ class CAPE(BaseModel):
         name: str
         path: str
 
-    info: Info | None = None
     payloads: list[CAPE.Payload] = []
     configs: list = []
 
@@ -304,3 +303,9 @@ class IOC(BaseModel):
     dropped: list[IOC.Dropped] | None = None
     trid: Any | None = None  # what type is `trid` ?
     strings: list[str] = []
+
+
+class DroppedFile(BaseModel):
+    name: str
+    path: str
+    # More fields to be added?
