@@ -131,7 +131,6 @@ class MongoDBReports(api.Reports):
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather find example report with data.
-    # TODO: @josh-feather update unit-tests.
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
         filter={"suricata.files.file_info.sha256": sha256}
         return self._find_info(filter=filter, limit=limit)
