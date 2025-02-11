@@ -258,7 +258,9 @@ class Suricata(BaseModel):
 class IOC(BaseModel):
     # WIP - more can be done here. But do we need it all?
     class ReducedInfo(BaseModel):
+        # does not have "custom" (TODO enforce)
         class ReducedMachine(BaseModel):
+            # does not have "id", "manager", or "label" (TODO enforce)
             status: str | None = None
             name: str | None = None
             platform: str | None = None
@@ -271,7 +273,7 @@ class IOC(BaseModel):
         ended: datetime.datetime | None = None
         duration: int | None = None
         category: str | None = None
-        machine: Info.Machine | None = None
+        machine: IOC.ReducedInfo.ReducedMachine | None = None
         package: str | None = None
         timeout: bool | None = None
         tlp: str | None = None
@@ -286,25 +288,26 @@ class IOC(BaseModel):
         smtp_count: int = 0
         hosts_count: int = 0
         domains_count: int = 0
-        http = list[Any]
+        http: list[Any] = []  # list of ?? str ?
+
+    class IDS(BaseModel):
+        class FileInfo(BaseModel):
+            sha1: str
+            sha256: str
+            md5: str
+            sha512: str
+
+        totalalerts: int = 0
+        totalfiles: int = 0
+        alerts: list[Suricata.Alert] = []
+        files: list[IOC.IDS.FileInfo] = []
+        http: list[Any] = []  # list of ?? str ?
 
     class Network(BaseModel):
         traffic: IOC.NetworkTraffic
         hosts: list[Any] = []
         domains: list[Any] = []
-
-    class FileInfo(BaseModel):
-        sha1: str
-        sha256: str
-        md5: str
-        sha512: str
-
-    class IDS(BaseModel):
-        totalalerts: int = 0
-        totalfiles: int = 0
-        alerts: list[Any] = []
-        http: list[Any] = []
-        files: list[IOC.FileInfo] = []
+        ids: IOC.IDS | None = None
 
     class PE(BaseModel):
         peid_signatures: list[Any] = []
@@ -312,25 +315,38 @@ class IOC(BaseModel):
         pe_imphash: str | None = None
         pe_icon_hash: str | None = None
         pe_icon_fuzzy: str | None = None
-        pe_version_info: str | None = None
 
     class PDF(BaseModel):
         objects: int = 0
         header: str | None = None
-        pages: list[Any] = []
+        pages: list[Any] = []  # ok?
 
     class Office(BaseModel):
-        signatures: list[Any] = []
-        macros: list[Any] = []
+        signatures: list[Any] = []  # ok?
+        macros: list[Any] = []  # ok?
 
-    class File(BaseModel):
-        pass
+    class Files(BaseModel):
+        modified: list[Any] = []  # ok?
+        deleted: list[Any] = []  # ok?
+        read: list[Any] = []  # ok?
+
+    class Registry(BaseModel):
+        modified: list[str] = []
+        deleted: list[str] = []
 
     class ProcessTree(BaseModel):
-        pass
+        pid: int | None = None
+        name: str | None = None
+        spawned_processes: list[Any] = []  # TODO? It's a list of ProcessTree (recursion!)
 
     class Dropped(BaseModel):
-        pass
+        clamav: str | None = None
+        sha256: str | None = None
+        md5: str | None = None
+        yara: str | None = None
+        trid: str | None = None  # what _is_ a trid ?
+        type: str | None = None
+        guest_paths: list[str] | None = None  # list of str right?
 
     class Static(BaseModel):
         pe: IOC.PE | None = None
@@ -341,15 +357,51 @@ class IOC(BaseModel):
     certs: list[Any] = []  # List of what?
     detections: list[Any] = []  # List of what?
     malscore: float = 0.0
+    info: IOC.ReducedInfo | None = None
+    # signatures - not populated
     target: dict[Any, Any] = {}  # how's this?
     network: IOC.Network | None = None
-    ids: IOC.IDS | None = None
     static: IOC.Static | None = None
-    files: list[IOC.File] | None = None
-    process_tree: list[IOC.ProcessTree] | None = None
-    dropped: list[IOC.Dropped] | None = None
-    trid: Any | None = None  # what type is `trid` ?
+    files: IOC.Files | None = None
+    registry: IOC.Registry | None = None
+    mutexes: list[Any] | None = None  # how's this?
+    executed_commands: list[str] | None = None  # how's this?
+    process_tree: IOC.ProcessTree | None = None
+    dropped: list[IOC.Dropped] | None = None  # how's this?
+
+
+class DetailedIOC(IOC):
+    class DetailedPE(IOC.PE):
+        pe_versioninfo: str | None = None
+
+    class DetailedNetwork(IOC.Network):
+        class DetailedHTTP(BaseModel):
+            host: str = ""
+            data: str = ""
+            method: str = ""
+            ua: str = ""
+
+        http: DetailedIOC.DetailedNetwork.DetailedHTTP | None = None
+
+    class DetailedFiles(IOC.Files):
+        read: list[Any] = []  # ok?
+
+    class DetailedRegistry(IOC.Registry):
+        read: list[Any] = []
+
+    files: DetailedIOC.DetailedFiles | None = None
+    registry: DetailedIOC.DetailedRegistry | None = None
+    network: DetailedIOC.DetailedNetwork | None = None
+    resolved_apis: list[str] = []
     strings: list[str] = []
+    trid: list[str] = ["None matched"]
+
+
+class File(BaseModel):
+    pass
+
+
+files: list[IOC.File] | None = None
 
 
 class DroppedFile(BaseModel):
