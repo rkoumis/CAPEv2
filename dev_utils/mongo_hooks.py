@@ -5,13 +5,11 @@ from pymongo import UpdateOne, errors
 
 from dev_utils.mongodb import (
     mongo_bulk_write,
-    mongo_delete_data,
     mongo_delete_many,
     mongo_find,
     mongo_find_one,
     mongo_hook,
     mongo_insert_one,
-    mongo_update_many,
     mongo_update_one,
 )
 from modules.reporting.mongodb_constants import ANALYSIS_COLL, FILE_KEY, FILE_REF_KEY, FILES_COLL, ID_KEY, TASK_IDS_KEY
@@ -138,6 +136,7 @@ def denormalize_files(report):
     return report
 
 
+'''
 @mongo_hook(mongo_delete_data, ANALYSIS_COLL)
 def remove_task_references_from_files(task_ids):
     """Remove the given task_ids from the TASK_IDS_KEY field on "files"
@@ -148,6 +147,7 @@ def remove_task_references_from_files(task_ids):
         {TASK_IDS_KEY: {"$elemMatch": {"$in": task_ids}}},
         {"$pullAll": {TASK_IDS_KEY: task_ids}},
     )
+'''
 
 
 def delete_unused_file_docs():
