@@ -2,10 +2,10 @@ import collections
 import functools
 import logging
 import time
-from typing import Callable, Sequence, Union
+from typing import Callable
 
 from lib.cuckoo.common.config import Config
-from modules.reporting.mongodb_constants import ANALYSIS_COLL, CALLS_COLL, ID_KEY, INFO_ID_KEY
+from modules.reporting.mongodb_constants import ID_KEY
 
 log = logging.getLogger(__name__)
 logging.getLogger("pymongo").setLevel(logging.ERROR)
@@ -99,7 +99,6 @@ def mongo_hook(mongo_funcs, collection):
             mongo_update_one,
             mongo_find,
             mongo_find_one,
-            mongo_delete_data,
         ), f"{mongo_func} can not have hooks applied"
 
     def decorator(f):

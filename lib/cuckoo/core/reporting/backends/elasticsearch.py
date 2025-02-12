@@ -1,4 +1,4 @@
-from typing import Generator, Optional
+from typing import Generator
 
 from lib.cuckoo.common import config
 from lib.cuckoo.core.reporting import api, schema

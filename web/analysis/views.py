@@ -32,7 +32,7 @@ import modules.processing.network as network
 from lib.cuckoo.common.config import Config
 from lib.cuckoo.common.constants import ANALYSIS_BASE_PATH, CUCKOO_ROOT
 from lib.cuckoo.common.path_utils import path_exists, path_get_size, path_mkdir, path_read_file, path_safe
-from lib.cuckoo.common.utils import delete_folder, yara_detected, get_task_path
+from lib.cuckoo.common.utils import delete_folder, get_task_path, yara_detected
 from lib.cuckoo.common.web_utils import category_all_files, my_rate_minutes, my_rate_seconds, perform_search, rateblock, statistics
 from lib.cuckoo.core import reporting
 from lib.cuckoo.core.database import TASK_PENDING, Database, Task
@@ -633,7 +633,7 @@ def fetch_signature_call_data(task_id, requested_calls):
 
     behavior = reports.behavior(task_id)
     # Organize it for quick lookup by PID.
-    by_pid = {proc["process_id"]: proc["calls"] for proc in behavior.processes}
+    _ = {proc["process_id"]: proc["calls"] for proc in behavior.processes}
 
     # TODO need an API for this
     calls_to_return = reports.calls(task_id)
@@ -1259,9 +1259,7 @@ def report(request, task_id):
     # we don't want to do this for urls but we might as well check that the target exists
     if report.get("target", {}).get("file", {}).get("sha256"):
         vba2graph = processing_cfg.vba2graph.enabled
-        vba2graph_svg_path = os.path.join(
-            get_task_path(task_id), "vba2graph", "svg", report["target"]["file"]["sha256"] + ".svg"
-        )
+        vba2graph_svg_path = os.path.join(get_task_path(task_id), "vba2graph", "svg", report["target"]["file"]["sha256"] + ".svg")
 
         if path_exists(vba2graph_svg_path) and _path_safe(vba2graph_svg_path):
             vba2graph_dict_content.setdefault(report["target"]["file"]["sha256"], Path(vba2graph_svg_path).read_text())
@@ -1497,9 +1495,7 @@ def file(request, category, task_id, dlfile):
     elif category in ("droppedzipall", "procdumpzipall", "CAPEzipall"):
         if web_cfg.zipped_download.download_all:
             sub_cat = category.replace("zipall", "")
-            path = category_all_files(
-                task_id, sub_cat, os.path.join(get_task_path(task_id), category_map[sub_cat])
-            )
+            path = category_all_files(task_id, sub_cat, os.path.join(get_task_path(task_id), category_map[sub_cat]))
             file_name = f"{task_id}_{category}"
     elif category.startswith("CAPE"):
         buf = os.path.join(get_task_path(task_id), "CAPE", file_name)
@@ -2093,15 +2089,9 @@ def on_demand(request, service: str, task_id: str, category: str, sha256):
     # 4. reload page
     """
 
-    if service not in (
-        "bingraph",
-        "flare_capa",
-        "vba2graph",
-        "virustotal",
-        "xlsdeobf",
-        "strings",
-        "floss",
-    ) and not getattr(on_demand_config_mapper.get(service, {}), service).get("on_demand"):
+    if service not in ("bingraph", "flare_capa", "vba2graph", "virustotal", "xlsdeobf", "strings", "floss",) and not getattr(
+        on_demand_config_mapper.get(service, {}), service
+    ).get("on_demand"):
         return render(request, "error.html", {"error": "Not supported/enabled service on demand"})
 
     # Self Extracted support folder

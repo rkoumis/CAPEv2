@@ -18,8 +18,6 @@ from typing import Any, List, Optional, Union, cast
 from sflock.abstracts import File as SflockFile
 from sflock.ident import identify as sflock_identify
 
-from lib.cuckoo.core import reporting
-
 from lib.cuckoo.common.cape_utils import static_config_lookup, static_extraction
 from lib.cuckoo.common.colors import red
 from lib.cuckoo.common.config import Config
@@ -35,12 +33,9 @@ from lib.cuckoo.common.exceptions import (
 from lib.cuckoo.common.integrations.parse_pe import PortableExecutable
 from lib.cuckoo.common.objects import PCAP, URL, File, Static
 from lib.cuckoo.common.path_utils import path_delete, path_exists
-from lib.cuckoo.common.utils import (
-    bytes2str,
-    create_folder,
-    get_options,
-    get_task_path,
-)
+from lib.cuckoo.common.utils import bytes2str, create_folder, get_options, get_task_path
+from lib.cuckoo.core import reporting
+from lib.cuckoo.core.reporting import schema
 
 try:
     from sqlalchemy import (
@@ -2291,13 +2286,14 @@ class _Database:
 
             if not sample:
                 # TODO need a search payloads by hash API
-                task_ids: list[int] = reports.search_payloads_by_hash(sample_hash)
+                tasks: list[schema.Info] = reports.search_payloads_by_sha256(sample_hash)
+                task_ids = [info.task_id for info in tasks]
                 for task_id in task_ids:
                     # TODO need a CAPE-centric API (may want to drop cape_configs?)
-                    cape = reports.cape(task_id)
-                    for payload in cape.payloads:
+                    payloads = reports.cape_payloads(task_id)
+                    for payload in payloads:
                         if payload[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
-                            file_path = os.path.join(get_task_path(task_id), folders.get("CAPE"), block["sha256"])
+                            file_path = os.path.join(get_task_path(task_id), folders.get("CAPE"), payload.sha256)
                             if path_exists(file_path):
                                 sample = [file_path]
                                 break

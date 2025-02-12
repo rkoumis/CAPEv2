@@ -132,9 +132,14 @@ class CAPE(BaseModel):
     class Payload(BaseModel):
         name: str
         path: str
+        md5: str | None = None
+        sha1: str | None = None
+        sha256: str | None = None
+        sha512: str | None = None
+        sha3_384: str | None = None
 
     payloads: list[CAPE.Payload] = []
-    configs: list = []
+    configs: list[Any] = []
 
 
 class Call(BaseModel):
