@@ -168,7 +168,7 @@ class MongoDBReports(api.Reports):
             payloads = result.get("CAPE", {}).get("payloads", [])
             return [schema.CAPE.Payload(**payload) for payload in payloads]
 
-    def iocs(self, task_id: int) -> dict:
+    def iocs(self, task_id: int) -> schema.IOC | None:
         # there's no well-defined representation of iocs data yet; defer to full get
         return self.get(task_id)
 

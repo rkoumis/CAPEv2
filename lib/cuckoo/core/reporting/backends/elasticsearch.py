@@ -73,7 +73,7 @@ class ElasticsearchReports(api.Reports):
     def cape_payloads(self, task_id: int) -> list[schema.CAPE.Payload] | None:
         pass
 
-    def iocs(self, task_id: int) -> dict:
+    def iocs(self, task_id: int) -> schema.IOC | None:
         pass
 
     def summary(self, task_id: int) -> schema.Summary | None:

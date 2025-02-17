@@ -53,7 +53,7 @@ class Reports:
     def cape_payloads(self, task_id: int) -> list[schema.CAPE.Payload] | None:
         raise NotImplementedError()
 
-    def iocs(self, task_id: int): # -> schema.IOC | None:
+    def iocs(self, task_id: int) -> schema.IOC | None:
         raise NotImplementedError()
 
     def summary(self, task_id: int) -> schema.Summary | None:
