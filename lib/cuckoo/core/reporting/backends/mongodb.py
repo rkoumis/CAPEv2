@@ -69,7 +69,6 @@ class MongoDBReports(api.Reports):
         report = self._analysis_collection.find_one(filter=query)
         return report if isinstance(report, dict) else {}
 
-    # TODO: @josh-feather include `process.calls` in retval
     def behavior(self, task_id: int) -> schema.Behavior | None:
         query = {INFO_ID_FIELD: task_id}
         projection = {
@@ -81,7 +80,12 @@ class MongoDBReports(api.Reports):
         if result := self._analysis_collection.find_one(filter=query, projection=projection):
             detections2pid = result.get("detections2pid")
             behavior = result.get("behavior", {})
-            processes = behavior.get("processes")
+            processes = behavior.get("processes", [])
+            for process in processes:
+                if pid := process.get("process_id"):
+                    process["calls"] = self._calls(task_id, pid)
+                else:
+                    process["calls"] = []
             process_tree = behavior.get("processtree")
             return schema.Behavior(processes=processes, process_tree=process_tree, detections2pid=detections2pid)
 
@@ -168,8 +172,8 @@ class MongoDBReports(api.Reports):
             payloads = result.get("CAPE", {}).get("payloads", [])
             return [schema.CAPE.Payload(**payload) for payload in payloads]
 
+    # TODO: @josh-feather implement this
     def iocs(self, task_id: int) -> schema.IOC | None:
-        # there's no well-defined representation of iocs data yet; defer to full get
         return self.get(task_id)
 
     def summary(self, task_id: int) -> schema.Summary | None:
@@ -280,6 +284,7 @@ class MongoDBReports(api.Reports):
             filter={INFO_ID_FIELD: task_id},
             projection={
                 _ID_FIELD: 0,
+                "behavior.processes.process_id": 1,
                 "behavior.processes.calls": 1,
             },
         )
@@ -288,14 +293,14 @@ class MongoDBReports(api.Reports):
         if not result:
             return retval
 
-        processes = result.get("behavior", {}).get("processes", {})
-        calls = [proc.get("calls", {}) for proc in processes]
+        pid = [pid] if isinstance(pid, int) else pid
+
+        processes = result.get("behavior", {}).get("processes", [])
+        calls = [proc.get("calls", []) for proc in processes if pid is None or proc.get("process_id") in pid]
         call_ids = list(itertools.chain.from_iterable(calls))
 
         calls_filter: dict[str, Any] = {_ID_FIELD: {"$in": call_ids}}
-        if isinstance(pid, int):
-            calls_filter = {"$and": [calls_filter, {"pid": pid}]}
-        elif isinstance(pid, Iterable):
+        if isinstance(pid, Iterable):
             calls_filter = {"$and": [calls_filter, {"pid": {"$in": list(pid)}}]}
 
         call_docs = self._calls_collection.find(filter=calls_filter, sort=[(_ID_FIELD, 1)])

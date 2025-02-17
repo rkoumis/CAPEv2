@@ -70,41 +70,42 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "machine": machine,
         "category": "file"
     }
-    calls = [
-        {
-            "pid": _pid,
-            "calls": [
-                {
-                    "timestamp": "2024-11-19 14:33:38,985",
-                    "thread_id": "6716",
-                    "caller": "0x00401e03",
-                    "parentcaller": "0x00401fc1",
-                    "category": "process",
-                    "api": "SomeApiCall",
-                    "status": bool(_id - 1),
-                    "return": "0x00000000",
-                    "arguments": [
-                        {"name": "SomeArgument", "value": "0xffffffff"},
-                    ],
-                    "repeated": 0,
-                    "id": _id * _pid,
-                }
-                for _id in range(1, _pid + 1)
-            ],
-        }
-        for _pid in TEST_PIDS
-    ]
 
-    call_ids = calls_collection.insert_many(calls).inserted_ids
+    def insert_calls(_pid: int):
+        calls = [
+            {
+                "pid": _pid,
+                "calls": [
+                    {
+                        "timestamp": "2024-11-19 14:33:38,985",
+                        "thread_id": "6716",
+                        "caller": "0x00401e03",
+                        "parentcaller": "0x00401fc1",
+                        "category": "process",
+                        "api": "SomeApiCall",
+                        "status": bool(_id - 1),
+                        "return": "0x00000000",
+                        "arguments": [
+                            {"name": "SomeArgument", "value": "0xffffffff"},
+                        ],
+                        "repeated": 0,
+                        "id": _id
+                    }
+                    for _id in range(1, _pid + 1)
+                ],
+            }
+        ]
+        return calls_collection.insert_many(calls).inserted_ids
 
-    procs = [
-        {
-            "process_id": 4380,
+    procs = []
+    for _pid in TEST_PIDS:
+        procs.append({
+            "process_id": _pid,
             "process_name": "explorer.exe",
             "parent_id": 4344,
             "module_path": "C:\\Windows\\explorer.exe",
             "first_seen": "2024-11-13 16:55:42,645",
-            "calls": call_ids,
+            "calls": insert_calls(_pid),
             "threads": [
                 "4340",
                 "1460",
@@ -126,8 +127,8 @@ def mongodb_populate_test_data(mongodb_mock_client):
                 "Bitness": "64-bit",
             },
             "file_activities": {"read_files": [], "write_files": [], "delete_files": []},
-        }
-    ]
+        })
+
     behavior = {
         "processes": procs,
         "anomaly": [],

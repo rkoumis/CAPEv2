@@ -45,16 +45,18 @@ class TestMongoDBReportingBackend:
             result = mongo.ping()
         assert result is False
 
-    @pytest.mark.skip("API needs to populate process calls from calls collection")
     @pytest.mark.usefixtures("mongodb_populate_test_data")
     def test_behavior(self):
         """Retrieve behavior data."""
         mongo = mongodb.MongoDBReports(self.cfg)
         actual = mongo.behavior(TEST_TASK_ID)
-        assert len(actual) == len(TEST_TASK_IDS)
-        assert all([isinstance(hit, schema.Behavior) for hit in actual])
+        assert isinstance(actual, schema.Behavior)
+        assert len(actual.processes) == len(TEST_PIDS)
+        for process in actual.processes:
+            assert isinstance(process, schema.Behavior.Process)
+            assert len(process.calls) == process.process_id
+            assert all([isinstance(call, schema.Call) for call in process.calls])
 
-    @pytest.mark.skip("API needs to populate process calls from calls collection")
     def test_behavior_no_data(self):
         """Test `None` is returned when no matching task exists."""
         mongo = mongodb.MongoDBReports(self.cfg)
