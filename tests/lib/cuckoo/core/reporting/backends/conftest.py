@@ -93,10 +93,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
         ]
         return calls_collection.insert_many(calls).inserted_ids
 
-    procs = []
-    for _pid in TEST_PIDS:
-        procs.append(
-            {
+    procs = [{
                 "process_id": _pid,
                 "process_name": "explorer.exe",
                 "parent_id": 4344,
@@ -124,8 +121,8 @@ def mongodb_populate_test_data(mongodb_mock_client):
                     "Bitness": "64-bit",
                 },
                 "file_activities": {"read_files": [], "write_files": [], "delete_files": []},
-            }
-        )
+            } for _pid in TEST_PIDS
+        ]
 
     behavior = {
         "processes": procs,
