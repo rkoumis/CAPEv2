@@ -38,8 +38,10 @@ class TestMongoDBReportingBackend:
 
     def test_ping_fails(self, monkeypatch):
         mongo = mongodb.MongoDBReports(self.cfg)
+
         def connection_failure(*args, **kwargs):
             raise pymongo.errors.ConnectionFailure()
+
         with monkeypatch.context() as m:
             m.setattr(mongo._client.admin, "command", connection_failure)
             result = mongo.ping()
@@ -171,7 +173,7 @@ class TestMongoDBReportingBackend:
         mongo = mongodb.MongoDBReports(self.cfg)
         actual = mongo.network(TEST_TASK_ID)
         assert isinstance(actual, schema.Network)
-        assert actual.pcap_sha256 == "PCAP"*16
+        assert actual.pcap_sha256 == "PCAP" * 16
 
     def test_network_no_data(self):
         """Retrieve network data from MongoDB"""

@@ -65,11 +65,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
         "started_on": "2024-03-29 14:00:26",
         "shutdown_on": "2024-03-29 14:04:20",
     }
-    info = {
-        "id": "this_gets_populated_below",
-        "machine": machine,
-        "category": "file"
-    }
+    info = {"id": "this_gets_populated_below", "machine": machine, "category": "file"}
 
     def insert_calls(_pid: int):
         calls = [
@@ -89,7 +85,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
                             {"name": "SomeArgument", "value": "0xffffffff"},
                         ],
                         "repeated": 0,
-                        "id": _id
+                        "id": _id,
                     }
                     for _id in range(1, _pid + 1)
                 ],
@@ -99,35 +95,37 @@ def mongodb_populate_test_data(mongodb_mock_client):
 
     procs = []
     for _pid in TEST_PIDS:
-        procs.append({
-            "process_id": _pid,
-            "process_name": "explorer.exe",
-            "parent_id": 4344,
-            "module_path": "C:\\Windows\\explorer.exe",
-            "first_seen": "2024-11-13 16:55:42,645",
-            "calls": insert_calls(_pid),
-            "threads": [
-                "4340",
-                "1460",
-            ],
-            "environ": {
-                "UserName": "user",
-                "ComputerName": "DESKTOP-DESKTOP",
-                "WindowsPath": "C:\\Windows",
-                "TempPath": "C:\\Users\\user\\AppData\\Local\\Temp\\",
-                "CommandLine": "C:\\Windows\\Explorer.EXE",
-                "RegisteredOwner": "",
-                "RegisteredOrganization": "",
-                "ProductName": "",
-                "SystemVolumeSerialNumber": "ue4m-dzwd",
-                "SystemVolumeGUID": "85fmrfbw-0000-0000-0000-100000000000",
-                "MachineGUID": "",
-                "MainExeBase": "0x7ff702250000",
-                "MainExeSize": "0x004fd000",
-                "Bitness": "64-bit",
-            },
-            "file_activities": {"read_files": [], "write_files": [], "delete_files": []},
-        })
+        procs.append(
+            {
+                "process_id": _pid,
+                "process_name": "explorer.exe",
+                "parent_id": 4344,
+                "module_path": "C:\\Windows\\explorer.exe",
+                "first_seen": "2024-11-13 16:55:42,645",
+                "calls": insert_calls(_pid),
+                "threads": [
+                    "4340",
+                    "1460",
+                ],
+                "environ": {
+                    "UserName": "user",
+                    "ComputerName": "DESKTOP-DESKTOP",
+                    "WindowsPath": "C:\\Windows",
+                    "TempPath": "C:\\Users\\user\\AppData\\Local\\Temp\\",
+                    "CommandLine": "C:\\Windows\\Explorer.EXE",
+                    "RegisteredOwner": "",
+                    "RegisteredOrganization": "",
+                    "ProductName": "",
+                    "SystemVolumeSerialNumber": "ue4m-dzwd",
+                    "SystemVolumeGUID": "85fmrfbw-0000-0000-0000-100000000000",
+                    "MachineGUID": "",
+                    "MainExeBase": "0x7ff702250000",
+                    "MainExeSize": "0x004fd000",
+                    "Bitness": "64-bit",
+                },
+                "file_activities": {"read_files": [], "write_files": [], "delete_files": []},
+            }
+        )
 
     behavior = {
         "processes": procs,
@@ -173,7 +171,7 @@ def mongodb_populate_test_data(mongodb_mock_client):
                     "summary": "66/76",
                 },
                 "clamav": [],
-                "file_ref": "a"*64
+                "file_ref": "a" * 64,
             },
         },
         "url": {
@@ -189,17 +187,9 @@ def mongodb_populate_test_data(mongodb_mock_client):
                 ],
             }
         ],
-        "network": schema.Network(pcap_sha256="PCAP"*16).model_dump(),
+        "network": schema.Network(pcap_sha256="PCAP" * 16).model_dump(),
         "behavior": behavior,
-        "suricata": {
-            "http": ["example.com"],
-            "files": [{
-                "sha256": "a"*64,
-                "file_info": {
-                    "sha256": "a"*64
-                }
-            }]
-        },
+        "suricata": {"http": ["example.com"], "files": [{"sha256": "a" * 64, "file_info": {"sha256": "a" * 64}}]},
         "suri_tls_cnt": 6,
         "suri_alert_cnt": 17,
         "suri_http_cnt": 210,

@@ -42,7 +42,6 @@ INFO_ID_FIELD = f"{INFO_FIELD}.id"
 
 
 class MongoDBReports(api.Reports):
-
     def __init__(self, cfg: config.Config):
         if not hasattr(cfg, "mongodb"):
             raise CuckooOperationalError("mongodb must be configured")
@@ -96,9 +95,7 @@ class MongoDBReports(api.Reports):
 
     def _find_info(self, filter: dict[str, Any], limit: int = 0) -> list[schema.Info]:
         """Search for tasks using the specified filter."""
-        results = self._analysis_collection.find(
-            filter=filter, projection={_ID_FIELD: 0, INFO_FIELD: 1}, limit=limit
-        )
+        results = self._analysis_collection.find(filter=filter, projection={_ID_FIELD: 0, INFO_FIELD: 1}, limit=limit)
         retval: list[schema.Info] = []
         for result in results:
             if info := result.get(INFO_FIELD):
@@ -109,39 +106,39 @@ class MongoDBReports(api.Reports):
         pass
 
     def search_by_category(self, category: SearchCategories, limit: int = 0) -> list[schema.Info]:
-        filter={"info.category": category.value}
+        filter = {"info.category": category.value}
         return self._find_info(filter=filter, limit=limit)
 
     def search_by_user(self, term, value, user_id=False, privs=False, limit: int = 0) -> list[schema.Info]:
         pass
 
     def search_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"target.file.file_ref": sha256}
+        filter = {"target.file.file_ref": sha256}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather add unit-tests
     def search_payloads_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"CAPE.payloads.file_ref": sha256}
+        filter = {"CAPE.payloads.file_ref": sha256}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather add unit-tests
     def search_dropped_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"dropped.file_ref": sha256}
+        filter = {"dropped.file_ref": sha256}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather add unit-tests
     def search_procdump_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"dropped.file_ref": sha256}
+        filter = {"dropped.file_ref": sha256}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather find example report with data.
     def search_suricata_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"suricata.files.file_info.sha256": sha256}
+        filter = {"suricata.files.file_info.sha256": sha256}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather add unit-tests
     def search_detections_by_sha256(self, sha256: str, limit: int = 0) -> list[schema.Info]:
-        filter={"$or": [{"detections.details.VirusTotal": sha256}, {"detections.details.Yara": sha256}]}
+        filter = {"$or": [{"detections.details.VirusTotal": sha256}, {"detections.details.Yara": sha256}]}
         return self._find_info(filter=filter, limit=limit)
 
     # TODO: @josh-feather add unit-tests
