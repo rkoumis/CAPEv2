@@ -7,6 +7,7 @@ import logging
 
 from lib.cuckoo.common.abstracts import Report
 from lib.cuckoo.common.exceptions import CuckooDependencyError, CuckooReportError
+from modules.reporting.mongodb_constants import ANALYSIS_COLL, CUCKOO_COLL, ID_KEY, INFO, VERSION
 from modules.reporting.report_doc import ensure_valid_utf8, get_json_document, insert_calls
 
 try:
@@ -70,18 +71,18 @@ class MongoDB(Report):
 
     def loop_saver(self, report):
         keys = list(report.keys())
-        if "info" not in keys:
+        if INFO not in keys:
             log.error("Missing 'info' key: %s", keys)
             return
-        if "_id" in keys:
-            keys.remove("_id")
+        if ID_KEY in keys:
+            keys.remove(ID_KEY)
 
-        obj_id = mongo_insert_one("analysis", {"info": report["info"]}).inserted_id
-        keys.remove("info")
+        obj_id = mongo_insert_one(ANALYSIS_COLL, {INFO: report["info"]}).inserted_id
+        keys.remove(INFO)
 
         for key in keys:
             try:
-                mongo_update_one("analysis", {"_id": obj_id}, {"$set": {key: report[key]}}, bypass_document_validation=True)
+                mongo_update_one(ANALYSIS_COLL, {ID_KEY: obj_id}, {"$set": {key: report[key]}}, bypass_document_validation=True)
             except InvalidDocument:
                 log.warning("Investigate your key: %s", key)
 
@@ -98,11 +99,11 @@ class MongoDB(Report):
         # move to startup
         # Set mongo schema version.
         # TODO: This is not optimal because it run each analysis. Need to run only one time at startup.
-        if "cuckoo_schema" in mongo_collection_names():
-            if mongo_find_one("cuckoo_schema", {}, {"version": 1})["version"] != self.SCHEMA_VERSION:
+        if CUCKOO_COLL in mongo_collection_names():
+            if mongo_find_one(CUCKOO_COLL, {}, {VERSION: 1})[VERSION] != self.SCHEMA_VERSION:
                 CuckooReportError("Mongo schema version not expected, check data migration tool")
         else:
-            mongo_insert_one("cuckoo_schema", {"version": self.SCHEMA_VERSION})
+            mongo_insert_one(CUCKOO_COLL, {VERSION: self.SCHEMA_VERSION})
 
         # Create a copy of the dictionary. This is done in order to not modify
         # the original dictionary and possibly compromise the following
@@ -129,7 +130,7 @@ class MongoDB(Report):
 
         # Store the report and retrieve its object id.
         try:
-            mongo_insert_one("analysis", report)
+            mongo_insert_one(ANALYSIS_COLL, report)
         except OperationFailure as e:
             # Check for error codes indicating the BSON object was too large
             # (10334 BSONObjectTooLarge) or the maximum nested object depth was
@@ -140,11 +141,11 @@ class MongoDB(Report):
                 log.warning("Deleting behavior process tree children from results.")
                 del report["behavior"]["processtree"][0]["children"]
                 try:
-                    mongo_insert_one("analysis", report)
+                    mongo_insert_one(ANALYSIS_COLL, report)
                 except Exception as e:
                     log.error("Deleting behavior process tree parent from results: %s", str(e))
                     del report["behavior"]["processtree"][0]
-                    mongo_insert_one("analysis", report)
+                    mongo_insert_one(ANALYSIS_COLL, report)
             else:
                 raise CuckooReportError("Failed inserting report in Mongo") from e
         except InvalidDocument as e:
@@ -178,7 +179,7 @@ class MongoDB(Report):
                                 log.warn("results['%s']['%s'] deleted due to size: %s", parent_key, child_key, csize)
                                 del report[parent_key][child_key]
                         try:
-                            mongo_insert_one("analysis", report)
+                            mongo_insert_one(ANALYSIS_COLL, report)
                             error_saved = False
                         except InvalidDocument as e:
                             if str(e).startswith("documents must have only string keys"):

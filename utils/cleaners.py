@@ -59,12 +59,12 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
-        "-dm", "--delete-mongo", help="Delete data in mongo. By default keep", required=False, default=False, action="store_true"
+        "-dm", "--delete-report", help="Delete reports. By default keep", required=False, default=False, action="store_true"
     )
     parser.add_argument(
         "-duf",
-        "--delete-unused-file-data-in-mongo",
-        help="Delete data from the 'files' collection in mongo that is no longer needed.",
+        "--delete-unused-file-data",
+        help="Delete unused file data that is no longer needed.",
         action="store_true",
     )
     parser.add_argument(

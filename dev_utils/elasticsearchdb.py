@@ -12,6 +12,8 @@ from typing import Iterable, List
 
 from lib.cuckoo.common.config import Config
 
+elastic_handler = None
+
 repconf = Config("reporting")
 if repconf.elasticsearchdb.enabled:
     from elasticsearch import Elasticsearch

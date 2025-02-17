@@ -41,6 +41,7 @@ class ElasticSearchDB(Report):
 
     def __init__(self):
         self.es = None
+        super().__init__()
 
     def connect(self):
         """Connects to Elasticsearch database, loads options and set connectors.

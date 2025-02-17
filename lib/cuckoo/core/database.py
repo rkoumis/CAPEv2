@@ -33,7 +33,9 @@ from lib.cuckoo.common.exceptions import (
 from lib.cuckoo.common.integrations.parse_pe import PortableExecutable
 from lib.cuckoo.common.objects import PCAP, URL, File, Static
 from lib.cuckoo.common.path_utils import path_delete, path_exists
-from lib.cuckoo.common.utils import bytes2str, create_folder, get_options
+from lib.cuckoo.common.utils import bytes2str, create_folder, get_options, get_task_path
+from lib.cuckoo.core import reporting
+from lib.cuckoo.core.reporting import schema
 
 try:
     from sqlalchemy import (
@@ -116,19 +118,12 @@ sandbox_packages = (
 log = logging.getLogger(__name__)
 conf = Config("cuckoo")
 repconf = Config("reporting")
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 distconf = Config("distributed")
 web_conf = Config("web")
 LINUX_ENABLED = web_conf.linux.enabled
 LINUX_STATIC = web_conf.linux.static_only
 DYNAMIC_ARCH_DETERMINATION = web_conf.general.dynamic_arch_determination
-
-if repconf.mongodb.enabled:
-    from dev_utils.mongodb import mongo_find
-if repconf.elasticsearchdb.enabled:
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index
-
-    es = elastic_handler
-
 SCHEMA_VERSION = "c2bd0eb5e69d"
 TASK_BANNED = "banned"
 TASK_PENDING = "pending"
@@ -470,13 +465,6 @@ class Task(Base):
     guest = relationship("Guest", uselist=False, backref=backref("tasks"), cascade="save-update, delete")
     errors = relationship("Error", backref=backref("tasks"), cascade="save-update, delete")
 
-    shrike_url = Column(String(4096), nullable=True)
-    shrike_refer = Column(String(4096), nullable=True)
-    shrike_msg = Column(String(4096), nullable=True)
-    shrike_sid = Column(Integer(), nullable=True)
-
-    # To be removed - Deprecate soon, not used anymore
-    parent_id = Column(Integer(), nullable=True)
     tlp = Column(String(255), nullable=True)
 
     user_id = Column(Integer(), nullable=True)
@@ -516,6 +504,22 @@ class Task(Base):
 
     def __repr__(self):
         return f"<Task({self.id},'{self.target}')>"
+
+    def path(self):
+        """Get the Task's path.
+
+        Note this is only the computed path. The path may not exist. If it does
+        exist, it may not have anything in it.
+
+        @param task_id: task_id
+        @return: path to where the task data will be stored
+
+        For example:
+
+            >>> task.path()
+            '/opt/CAPEv2/storage/analyses/42'
+        """
+        return get_task_path(self.id)
 
 
 class AlembicVersion(Base):
@@ -1082,11 +1086,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         sample_parent_id=None,
         tlp=None,
         static=False,
@@ -1109,7 +1108,6 @@ class _Database:
         @param memory: toggle full memory dump.
         @param enforce_timeout: toggle full timeout execution.
         @param clock: virtual machine clock time
-        @param parent_id: parent task id
         @param sample_parent_id: original sample in case of archive
         @param static: try static extraction first
         @param tlp: TLP sharing designation
@@ -1188,11 +1186,6 @@ class _Database:
         task.platform = platform
         task.memory = bool(memory)
         task.enforce_timeout = enforce_timeout
-        task.shrike_url = shrike_url
-        task.shrike_msg = shrike_msg
-        task.shrike_sid = shrike_sid
-        task.shrike_refer = shrike_refer
-        task.parent_id = parent_id
         task.tlp = tlp
         task.route = route
         task.cape = cape
@@ -1243,11 +1236,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         sample_parent_id=None,
         tlp=None,
         static=False,
@@ -1270,7 +1258,6 @@ class _Database:
         @param memory: toggle full memory dump.
         @param enforce_timeout: toggle full timeout execution.
         @param clock: virtual machine clock time
-        @param parent_id: parent analysis id
         @param sample_parent_id: sample parent id, if archive
         @param static: try static extraction first
         @param tlp: TLP sharing designation
@@ -1306,11 +1293,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             sample_parent_id=sample_parent_id,
             tlp=tlp,
             source_url=source_url,
@@ -1445,11 +1427,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         static=False,
         source_url=False,
@@ -1619,11 +1596,6 @@ class _Database:
                     enforce_timeout=enforce_timeout,
                     tags=tags,
                     clock=clock,
-                    shrike_url=shrike_url,
-                    shrike_msg=shrike_msg,
-                    shrike_sid=shrike_sid,
-                    shrike_refer=shrike_refer,
-                    parent_id=parent_id,
                     sample_parent_id=sample_parent_id,
                     tlp=tlp,
                     source_url=source_url,
@@ -1658,11 +1630,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         user_id=0,
         username=False,
@@ -1680,11 +1647,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             tlp=tlp,
             user_id=user_id,
             username=username,
@@ -1704,11 +1666,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         static=True,
         user_id=0,
@@ -1740,10 +1697,6 @@ class _Database:
                 memory=memory,
                 enforce_timeout=enforce_timeout,
                 clock=clock,
-                shrike_url=shrike_url,
-                shrike_msg=shrike_msg,
-                shrike_sid=shrike_sid,
-                shrike_refer=shrike_refer,
                 tlp=tlp,
                 static=static,
                 sample_parent_id=sample_parent_id,
@@ -1769,11 +1722,6 @@ class _Database:
         memory=False,
         enforce_timeout=False,
         clock=None,
-        shrike_url=None,
-        shrike_msg=None,
-        shrike_sid=None,
-        shrike_refer=None,
-        parent_id=None,
         tlp=None,
         route=None,
         cape=False,
@@ -1823,11 +1771,6 @@ class _Database:
             memory=memory,
             enforce_timeout=enforce_timeout,
             clock=clock,
-            shrike_url=shrike_url,
-            shrike_msg=shrike_msg,
-            shrike_sid=shrike_sid,
-            shrike_refer=shrike_refer,
-            parent_id=parent_id,
             tlp=tlp,
             route=route,
             cape=cape,
@@ -2294,7 +2237,7 @@ class _Database:
             128: hashlib.sha512,
         }
 
-        sizes_mongo = {
+        sizes_hashes = {
             32: "md5",
             40: "sha1",
             64: "sha256",
@@ -2308,7 +2251,7 @@ class _Database:
         }
 
         if task_id:
-            file_path = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(task_id), "binary")
+            file_path = os.path.join(get_task_path(task_id), "binary")
             if path_exists(file_path):
                 return [file_path]
 
@@ -2322,7 +2265,7 @@ class _Database:
                 .first()
             )
             if db_sample:
-                path = os.path.join(CUCKOO_ROOT, "storage", "binaries", db_sample.sha256)
+                path = os.path.join(get_task_path(task_id), "binaries", db_sample.sha256)
                 if path_exists(path):
                     return [path]
 
@@ -2342,79 +2285,44 @@ class _Database:
                     sample = [path]
 
             if not sample:
-                if repconf.mongodb.enabled:
-                    tasks = mongo_find(
-                        "analysis",
-                        {f"CAPE.payloads.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                        {"CAPE.payloads": 1, "_id": 0, "info.id": 1},
-                    )
-                elif repconf.elasticsearchdb.enabled:
-                    tasks = [
-                        d["_source"]
-                        for d in es.search(
-                            index=get_analysis_index(),
-                            body={"query": {"match": {f"CAPE.payloads.{sizes_mongo.get(len(sample_hash), '')}": sample_hash}}},
-                            _source=["CAPE.payloads", "info.id"],
-                        )["hits"]["hits"]
-                    ]
-                else:
-                    tasks = []
+                # TODO need a search payloads by hash API
+                tasks: list[schema.Info] = reports.search_payloads_by_sha256(sample_hash)
+                task_ids = [info.task_id for info in tasks]
+                for task_id in task_ids:
+                    # TODO need a CAPE-centric API (may want to drop cape_configs?)
+                    payloads = reports.cape_payloads(task_id)
+                    for payload in payloads:
+                        if payload[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
+                            file_path = os.path.join(get_task_path(task_id), folders.get("CAPE"), payload.sha256)
+                            if path_exists(file_path):
+                                sample = [file_path]
+                                break
+                        if sample:
+                            break
 
-                if tasks:
-                    for task in tasks:
-                        for block in task.get("CAPE", {}).get("payloads", []) or []:
-                            if block[sizes_mongo.get(len(sample_hash), "")] == sample_hash:
-                                file_path = os.path.join(
-                                    CUCKOO_ROOT,
-                                    "storage",
-                                    "analyses",
-                                    str(task["info"]["id"]),
-                                    folders.get("CAPE"),
-                                    block["sha256"],
-                                )
+                for category in ("dropped", "procdump"):
+                    match category:
+                        case "dropped":
+                            # TODO need a search dropped by hash API
+                            task_ids: list[int] = reports.search_dropped_by_hash(sample_hash)
+                            pass
+                        case "procdump":
+                            # TODO need a search procdump by hash API
+                            task_ids: list[int] = reports.search_procdump_by_hash(sample_hash)
+                            pass
+                        case _:
+                            task_ids: list[int] = []
+
+                    for task_id in task_ids:
+                        task = reports.get(task_id)
+                        for block in task.get(category, []) or []:
+                            if block[sizes_hashes.get(len(sample_hash), "")] == sample_hash:
+                                file_path = os.path.join(get_task_path(task_id), folders.get(category), block["sha256"])
                                 if path_exists(file_path):
                                     sample = [file_path]
                                     break
                         if sample:
                             break
-
-                for category in ("dropped", "procdump"):
-                    # we can't filter more if query isn't sha256
-                    if repconf.mongodb.enabled:
-                        tasks = mongo_find(
-                            "analysis",
-                            {f"{category}.{sizes_mongo.get(len(sample_hash), '')}": sample_hash},
-                            {category: 1, "_id": 0, "info.id": 1},
-                        )
-                    elif repconf.elasticsearchdb.enabled:
-                        tasks = [
-                            d["_source"]
-                            for d in es.search(
-                                index=get_analysis_index(),
-                                body={"query": {"match": {f"{category}.{sizes_mongo.get(len(sample_hash), '')}": sample_hash}}},
-                                _source=["info.id", category],
-                            )["hits"]["hits"]
-                        ]
-                    else:
-                        tasks = []
-
-                    if tasks:
-                        for task in tasks:
-                            for block in task.get(category, []) or []:
-                                if block[sizes_mongo.get(len(sample_hash), "")] == sample_hash:
-                                    file_path = os.path.join(
-                                        CUCKOO_ROOT,
-                                        "storage",
-                                        "analyses",
-                                        str(task["info"]["id"]),
-                                        folders.get(category),
-                                        block["sha256"],
-                                    )
-                                    if path_exists(file_path):
-                                        sample = [file_path]
-                                        break
-                            if sample:
-                                break
 
             if not sample:
                 # search in temp folder if not found in binaries
@@ -2433,33 +2341,30 @@ class _Database:
                                 break
 
             if not sample:
-                # search in Suricata files folder
-                if repconf.mongodb.enabled:
-                    tasks = mongo_find(
-                        "analysis", {"suricata.files.sha256": sample_hash}, {"suricata.files.file_info.path": 1, "_id": 0}
-                    )
-                elif repconf.elasticsearchdb.enabled:
-                    tasks = [
-                        d["_source"]
-                        for d in es.search(
-                            index=get_analysis_index(),
-                            body={"query": {"match": {"suricata.files.sha256": sample_hash}}},
-                            _source="suricata.files.file_info.path",
-                        )["hits"]["hits"]
-                    ]
-                else:
-                    tasks = []
-
-                if tasks:
-                    for task in tasks:
-                        for item in task["suricata"]["files"] or []:
-                            file_path = item.get("file_info", {}).get("path", "")
-                            if sample_hash in file_path:
-                                if path_exists(file_path):
-                                    sample = [file_path]
-                                    break
-
+                # search in Suricata files
+                # TODO need a search suricata by hash API
+                task_ids: list[int] = reports.search_suricata_by_hash(sample_hash)
+                for task_id in task_ids:
+                    # TODO need a suricata-specific API
+                    task = reports.suricata(task_id)
+                    for item in task["files"] or []:
+                        file_path = item.get("file_info", {}).get("path", "")
+                        if sample_hash in file_path:
+                            if path_exists(file_path):
+                                sample = [file_path]
+                                break
         return sample
+
+    def task_path(self, task_id: int = False) -> str:
+        """Get the analysis path for a given task_id.
+
+        Note this is only the computed path. The path may not exist. If it does
+        exist, it may not have anything in it.
+
+        @param task_id: task_id
+        @return: path to where analysis data will be stored
+        """
+        return get_task_path(task_id)
 
     def count_samples(self) -> int:
         """Counts the amount of samples in the database."""

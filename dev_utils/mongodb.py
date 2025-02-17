@@ -2,27 +2,34 @@ import collections
 import functools
 import logging
 import time
-from typing import Callable, Sequence, Union
+from typing import Callable
 
 from lib.cuckoo.common.config import Config
+from modules.reporting.mongodb_constants import ID_KEY
 
 log = logging.getLogger(__name__)
 logging.getLogger("pymongo").setLevel(logging.ERROR)
-repconf = Config("reporting")
 
-mdb = repconf.mongodb.get("db", "cuckoo")
+mdb = None
+conn = None
 
 
-if repconf.mongodb.enabled:
-    from pymongo import MongoClient, version_tuple
+try:
+    import pymongo
+    from pymongo.database import Database
     from pymongo.errors import AutoReconnect, ConnectionFailure, OperationFailure, ServerSelectionTimeoutError
 
-    if version_tuple[0] < 4:
-        log.warning("You using old version of PyMongo, upgrade: poetry install")
+    MONGO_AVAILABLE = True
 
-    def connect_to_mongo() -> MongoClient:
+    def connect_to_mongo() -> pymongo.MongoClient:
+        """Create the connection to MongoDB."""
+        global mdb
         try:
-            return MongoClient(
+            log.info("Creating MongoClient connection.")
+            repconf = Config("reporting")
+            mdb = repconf.mongodb.get("db", "cuckoo")
+
+            return pymongo.MongoClient(
                 host=repconf.mongodb.get("host", "127.0.0.1"),
                 port=repconf.mongodb.get("port", 27017),
                 username=repconf.mongodb.get("username"),
@@ -34,14 +41,32 @@ if repconf.mongodb.enabled:
         except (ConnectionFailure, ServerSelectionTimeoutError):
             log.error("Cannot connect to MongoDB")
         except Exception as e:
-            log.warning("Unable to connect to MongoDB database: %s, %s", mdb, e)
+            log.warning("Unable to connect to MongoDB database, %s", e)
 
-    # code.interact(local=dict(locals(), **globals()))
-    # q = results_db.analysis.find({"info.id": 26}, {"memory": 1})
-    # https://pymongo.readthedocs.io/en/stable/changelog.html
+    def init_mongo():
+        """Initialize MongoDB connection."""
+        # TODO(njb) get rid of this
+        global conn
+        if conn is not None:
+            # Already initialized.
+            return
+        log.info("Initializing MongoDB connection.")
+        repconf = Config("reporting")
 
-    conn = connect_to_mongo()
-    results_db = conn[mdb]
+        if repconf.mongodb.enabled:
+            if pymongo.version_tuple[0] < 4:
+                log.warning("You are using an old version of PyMongo, upgrade: poetry install")
+            conn = connect_to_mongo()
+
+    def get_results_db() -> Database:
+        """Initialize mongodb, if needed. Return a handle to the database."""
+        if conn is None:
+            init_mongo()
+        return conn[mdb]
+
+except ImportError:
+    MONGO_AVAILABLE = False
+
 
 MAX_AUTO_RECONNECT_ATTEMPTS = 5
 
@@ -74,7 +99,6 @@ def mongo_hook(mongo_funcs, collection):
             mongo_update_one,
             mongo_find,
             mongo_find_one,
-            mongo_delete_data,
         ), f"{mongo_func} can not have hooks applied"
 
     def decorator(f):
@@ -91,30 +115,30 @@ def mongo_hook(mongo_funcs, collection):
 
 @graceful_auto_reconnect
 def mongo_bulk_write(collection: str, requests, **kwargs):
-    return getattr(results_db, collection).bulk_write(requests, **kwargs)
+    return getattr(get_results_db(), collection).bulk_write(requests, **kwargs)
 
 
 @graceful_auto_reconnect
 def mongo_create_index(collection: str, index, background: bool = True, name: str = False):
     if name:
-        getattr(results_db, collection).create_index(index, background=background, name=name)
+        getattr(get_results_db(), collection).create_index(index, background=background, name=name)
     else:
-        getattr(results_db, collection).create_index(index, background=background)
+        getattr(get_results_db(), collection).create_index(index, background=background)
 
 
 @graceful_auto_reconnect
 def mongo_insert_one(collection: str, doc):
     for hook in hooks[mongo_insert_one][collection]:
         doc = hook(doc)
-    return getattr(results_db, collection).insert_one(doc)
+    return getattr(get_results_db(), collection).insert_one(doc)
 
 
 @graceful_auto_reconnect
 def mongo_find(collection: str, query, projection=False, sort=None, limit=None):
     if sort is None:
-        sort = [("_id", -1)]
+        sort = [(ID_KEY, -1)]
 
-    find_by = functools.partial(getattr(results_db, collection).find, query, sort=sort)
+    find_by = functools.partial(getattr(get_results_db(), collection).find, query, sort=sort)
     if projection:
         find_by = functools.partial(find_by, projection=projection)
     if limit:
@@ -130,11 +154,11 @@ def mongo_find(collection: str, query, projection=False, sort=None, limit=None):
 @graceful_auto_reconnect
 def mongo_find_one(collection: str, query, projection=False, sort=None):
     if sort is None:
-        sort = [("_id", -1)]
+        sort = [(ID_KEY, -1)]
     if projection:
-        result = getattr(results_db, collection).find_one(query, projection, sort=sort)
+        result = getattr(get_results_db(), collection).find_one(query, projection, sort=sort)
     else:
-        result = getattr(results_db, collection).find_one(query, sort=sort)
+        result = getattr(get_results_db(), collection).find_one(query, sort=sort)
     if result:
         for hook in hooks[mongo_find_one][collection]:
             result = hook(result)
@@ -143,17 +167,17 @@ def mongo_find_one(collection: str, query, projection=False, sort=None):
 
 @graceful_auto_reconnect
 def mongo_delete_one(collection: str, query):
-    return getattr(results_db, collection).delete_one(query)
+    return getattr(get_results_db(), collection).delete_one(query)
 
 
 @graceful_auto_reconnect
 def mongo_delete_many(collection: str, query):
-    return getattr(results_db, collection).delete_many(query)
+    return getattr(get_results_db(), collection).delete_many(query)
 
 
 @graceful_auto_reconnect
 def mongo_update_many(collection: str, query, update):
-    return getattr(results_db, collection).update_many(query, update)
+    return getattr(get_results_db(), collection).update_many(query, update)
 
 
 @graceful_auto_reconnect
@@ -161,60 +185,39 @@ def mongo_update_one(collection: str, query, projection, bypass_document_validat
     if query.get("$set", None):
         for hook in hooks[mongo_find_one][collection]:
             query["$set"] = hook(query["$set"])
-    return getattr(results_db, collection).update_one(query, projection, bypass_document_validation=bypass_document_validation)
+    return getattr(get_results_db(), collection).update_one(
+        query, projection, bypass_document_validation=bypass_document_validation
+    )
 
 
 @graceful_auto_reconnect
 def mongo_aggregate(collection: str, query):
-    return getattr(results_db, collection).aggregate(query)
+    return getattr(get_results_db(), collection).aggregate(query)
 
 
 @graceful_auto_reconnect
 def mongo_collection_names() -> list:
-    return results_db.list_collection_names()
+    return get_results_db().list_collection_names()
 
 
 @graceful_auto_reconnect
 def mongo_find_one_and_update(collection, query, update, projection=None):
     if projection is None:
-        projection = {"_id": 1}
-    return getattr(results_db, collection).find_one_and_update(query, update, projection)
+        projection = {ID_KEY: 1}
+    return getattr(get_results_db(), collection).find_one_and_update(query, update, projection)
 
 
 @graceful_auto_reconnect
 def mongo_drop_database(database: str):
+    """Drop the mongo database!"""
+    init_mongo()
     conn.drop_database(database)
 
 
-def mongo_delete_data(task_ids: Union[int, Sequence[int]]):
-    try:
-        if isinstance(task_ids, int):
-            task_ids = [task_ids]
-
-        analyses_tmp = []
-        found_task_ids = []
-        tasks = mongo_find("analysis", {"info.id": {"$in": task_ids}}, {"behavior.processes.calls": 1, "info.id": 1})
-
-        for task in tasks or []:
-            for process in task.get("behavior", {}).get("processes", []):
-                if process.get("calls"):
-                    mongo_delete_many("calls", {"_id": {"$in": process["calls"]}})
-            analyses_tmp.append(task["_id"])
-            task_id = task.get("info", {}).get("id", None)
-            if task_id is not None:
-                found_task_ids.append(task_id)
-
-        if analyses_tmp:
-            mongo_delete_many("analysis", {"_id": {"$in": analyses_tmp}})
-            if found_task_ids:
-                for hook in hooks[mongo_delete_data]["analysis"]:
-                    hook(found_task_ids)
-    except Exception as e:
-        log.error(e, exc_info=True)
-
-
 def mongo_is_cluster():
+    """Detect if we are connected to a MongoDB cluster."""
     # This is only useful at the moment for clean to prevent destruction of cluster database
+    init_mongo()
     try:
         conn.admin.command("listShards")
         return True

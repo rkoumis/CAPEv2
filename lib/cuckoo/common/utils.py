@@ -172,6 +172,28 @@ def create_zip(files=False, folder=False, encrypted=False):
     return mem_zip
 
 
+def get_analyses_path() -> str:
+    """Gets the OS-specific path to {CUCKOO_ROOT}/storage/analyses.
+
+    For example:
+
+        >>> analyses_path()
+        '/opt/CAPEv2/storage/analyses'
+    """
+    return os.path.join(CUCKOO_ROOT, "storage", "analyses")
+
+
+def get_task_path(task_id: str | int) -> str:
+    """Gets the OS-specific path to {CUCKOO_ROOT}/storage/analyses/{task_id}.
+
+    For example:
+
+        >>> get_task_path(432584)
+        '/opt/CAPEv2/storage/analyses/432584'
+    """
+    return os.path.join(get_analyses_path(), str(task_id))
+
+
 def get_memdump_path(memdump_id, analysis_folder=False):
     """
     Get the path of memdump to store

@@ -26,6 +26,8 @@ from lib.cuckoo.core.database import (
     Task,
     _Database,
 )
+from lib.cuckoo.common.utils import get_task_path
+from lib.cuckoo.core import reporting
 from lib.cuckoo.core.startup import create_structure, init_console_logging
 
 log = logging.getLogger(__name__)
@@ -43,20 +45,7 @@ if hasattr(config, "tmpfs"):
 
 # Initialize the database connection.
 db: _Database = Database()
-if repconf.mongodb.enabled:
-    # mdb = repconf.mongodb.get("db", "cuckoo")
-    from dev_utils.mongo_hooks import delete_unused_file_docs
-    from dev_utils.mongodb import (
-        connect_to_mongo,
-        mdb,
-        mongo_delete_data,
-        mongo_drop_database,
-        mongo_find,
-        mongo_is_cluster,
-        mongo_update_one,
-    )
-elif repconf.elasticsearchdb.enabled:
-    from dev_utils.elasticsearchdb import all_docs, delete_analysis_and_related_calls, get_analysis_index
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 
 
 def free_space_monitor(path=False, return_value=False, processing=False, analysis=False):
@@ -68,7 +57,7 @@ def free_space_monitor(path=False, return_value=False, processing=False, analysi
     """
 
     cleanup_dict = {
-        "delete_mongo": config.cleaner.mongo,
+        "delete_report": config.cleaner.report,
     }
     if config.cleaner.binaries_days:
         cleanup_dict["delete_binaries_items_older_than_days"] = int(config.cleaner.binaries_days)
@@ -76,8 +65,8 @@ def free_space_monitor(path=False, return_value=False, processing=False, analysi
         cleanup_dict["delete_tmp_items_older_than_days"] = int(config.cleaner.tmp_days)
     if config.cleaner.analysis_days:
         cleanup_dict["delete_older_than_days"] = int(config.cleaner.analysis_days)
-    if config.cleaner.unused_files_in_mongodb:
-        cleanup_dict["delete_unused_file_data_in_mongo"] = 1
+    if config.cleaner.unused_files:
+        cleanup_dict["delete_unused_file_data"] = 1
 
     need_space, space_available = False, 0
     # Calculate the free disk space in megabytes.
@@ -152,49 +141,31 @@ def connect_to_es():
     return es
 
 
-def is_reporting_db_connected():
-    try:
-        if not webconf.web_reporting.enabled:
-            return True
-        if repconf.mongodb.enabled:
-            results_db = connect_to_mongo()[mdb]
-            # Database objects do not implement truth value testing or bool(). Please compare with None instead: database is not None
-            if results_db is None:
-                log.info("Can't connect to mongo")
-                return False
-            return True
-        elif repconf.elasticsearchdb.enabled:
-            connect_to_es()
-            return True
-    except Exception as e:
-        log.error(f"Can't connect to reporting db {e}")
-        return False
-
-
-def delete_bulk_tasks_n_folders(tids: list, delete_mongo: bool):
+def delete_bulk_tasks_n_folders(tids: list, delete_report: bool):
     ids = [tid["info.id"] for tid in tids]
     for i in range(0, len(ids), 10):
         ids_tmp = ids[i : i + 10]
-        if delete_mongo:
-            if mongo_is_cluster():
-                response = input("You are deleting mongo data in cluster, are you sure you want to continue? y/n")
-                if response.lower() in ("n", "not"):
-                    sys.exit()
-            mongo_delete_data(ids_tmp)
+        if delete_report:
+            # TODO(njb) do we need to know reporting backends support HA?
+            # if mongo_is_cluster():
+            #     response = input("You are deleting mongo data in cluster, are you sure you want to continue? y/n")
+            #     if response.lower() in ("n", "not"):
+            #         sys.exit()
 
             for id in ids_tmp:
+                reports.delete(id)
                 if db.delete_task(id):
+                    path = db.task_path(id)
                     try:
-                        path = os.path.join(CUCKOO_ROOT, "storage", "analyses", "%s" % str(id))
                         if path_is_dir(path):
                             delete_folder(path)
                     except Exception as e:
                         log.error(e)
         else:
-            # If we don't remove from mongo we should keep in db to be able to show task in webgui
+            # If we don't remove the report we should keep in db to be able to show task in webgui
             for id in ids_tmp:
+                path = db.task_path(id)
                 try:
-                    path = os.path.join(CUCKOO_ROOT, "storage", "analyses", "%s" % str(id))
                     if path_is_dir(path):
                         delete_folder(path)
                 except Exception as e:
@@ -224,10 +195,8 @@ def delete_data(tid):
             tid = tid["id"]
     try:
         log.info("removing %s from analysis db" % (tid))
-        if repconf.mongodb.enabled:
-            mongo_delete_data(tid)
-        elif repconf.elasticsearchdb.enabled:
-            delete_analysis_and_related_calls(tid)
+        if reporting.enabled():
+            reports.delete(tid)
     except Exception as e:
         log.error("failed to remove analysis info (may not exist) %s due to %s" % (tid, e), exc_info=True)
     with db.session.begin():
@@ -256,8 +225,8 @@ def dist_delete_data(data, dist_db):
 
 def cuckoo_clean():
     """Clean up cuckoo setup.
-    It deletes logs, all stored data from file system and configured databases (SQL
-    and MongoDB.
+
+    It deletes logs, stored data from the file system, and configured databases.
     """
     # Init logging.
     # This need to init a console logger handler, because the standard
@@ -267,17 +236,8 @@ def cuckoo_clean():
     # Drop all tables.
     db.drop()
 
-    if repconf.mongodb.enabled:
-        try:
-            mongo_drop_database(mdb)
-        except Exception as e:
-            log.error("Can't drop MongoDB. Error %s", str(e))
-
-    elif repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
-        analyses = all_docs(index=get_analysis_index(), query={"query": {"match_all": {}}}, _source=["info.id"])
-        if analyses:
-            for analysis in analyses:
-                delete_analysis_and_related_calls(analysis["_source"]["info"]["id"])
+    # TODO need a delete_all API
+    reports.delete_all()
 
     # Paths to clean.
     paths = [
@@ -309,9 +269,10 @@ def cuckoo_clean():
 
 
 def cuckoo_clean_failed_tasks():
-    """Clean up failed tasks
-    It deletes all stored data from file system and configured databases (SQL
-    and MongoDB for failed tasks.
+    """Clean up failed tasks.
+
+    Calls delete_data for any task that failed the analysis, processing, or
+    reporting phases, along with any task in the recovered state.
     """
     # Init logging.
     # This need to init a console logger handler, because the standard
@@ -329,7 +290,10 @@ def cuckoo_clean_failed_tasks():
 
 
 def cuckoo_clean_bson_suri_logs():
-    """Clean up raw suri log files probably not needed if storing in mongo. Does not remove extracted files"""
+    """Clean up raw log files probably not needed if stored in reports.
+
+    Does not remove extracted files.
+    """
     # Init logging.
     # This need to init a console logger handler, because the standard
     # logger (init_logging()) logs to a file which will be deleted.
@@ -341,57 +305,56 @@ def cuckoo_clean_bson_suri_logs():
     failed_tasks_r = db.list_tasks(status=TASK_FAILED_REPORTING)
     failed_tasks_rc = db.list_tasks(status=TASK_RECOVERED)
     tasks_rp = db.list_tasks(status=TASK_REPORTED)
+
     for e in failed_tasks_a, failed_tasks_p, failed_tasks_r, failed_tasks_rc, tasks_rp:
         for el2 in e:
             new = el2.to_dict()
-            id = new["id"]
-            path = os.path.join(CUCKOO_ROOT, "storage", "analyses", "%s" % id)
-            if path_exists(path):
-                jsonlogs = glob("%s/logs/*json*" % (path))
-                bsondata = glob("%s/logs/*.bson" % (path))
-                filesmeta = glob("%s/logs/files/*.meta" % (path))
-                for f in jsonlogs, bsondata, filesmeta:
-                    for fe in f:
-                        try:
-                            log.info(("removing %s" % (fe)))
-                            path_delete(fe)
-                        except Exception as Err:
-                            log.info(("failed to remove sorted_pcap from disk %s" % (Err)))
+            path = get_task_path(new["id"])
+            if not path_exists(path):
+                continue
+
+            jsonlogs = glob("%s/logs/*json*" % (path))
+            bsondata = glob("%s/logs/*.bson" % (path))
+            filesmeta = glob("%s/logs/files/*.meta" % (path))
+
+            for f in jsonlogs, bsondata, filesmeta:
+                for fe in f:
+                    try:
+                        log.info(("removing %s" % (fe)))
+                        path_delete(fe)
+                    except Exception as Err:
+                        log.info(("failed to remove sorted_pcap from disk %s" % (Err)))
 
 
 def cuckoo_clean_failed_url_tasks():
-    """Clean up failed tasks
-    It deletes all stored data from file system and configured databases (SQL
-    and MongoDB for failed tasks.
+    """Clean up failed URL tasks.
+
+    Calls delete_data for any URL task that failed to generate any HTTP data.
     """
     # Init logging.
     # This need to init a console logger handler, because the standard
     # logger (init_logging()) logs to a file which will be deleted.
     create_structure()
-    if not is_reporting_db_connected():
+    # TODO need a backend_available API
+    if not reporting.backend_available():
         return
 
-    if repconf.mongodb.enabled:
-        query = {"info.category": "url", "network.http.0": {"$exists": False}}
-        rtmp = mongo_find("analysis", query, projection={"info.id": 1}, sort=[("_id", -1)], limit=100)
-    elif repconf.elasticsearchdb.enabled:
-        rtmp = [
-            d["_source"]
-            for d in all_docs(
-                index=get_analysis_index(),
-                query={"query": {"bool": {"must": [{"exists": {"field": "network.http"}}, {"match": {"info.category": "url"}}]}}},
-                _source=["info.id"],
-            )
-        ]
-    else:
-        rtmp = []
+    # TODO consider using a more efficient approach here
+    url_reports = reports.search_by_category("url")
+    failed_task_ids = []
+    for url_report in url_reports:
+        network_report = reports.network(url_report.id)
+        if network_report and len(network_report.http) == 0:
+            failed_task_ids.append(url_report.id)
 
-    if rtmp and len(rtmp) > 0:
-        resolver_pool.map(lambda tid: delete_data(tid), rtmp)
+    if failed_task_ids:
+        resolver_pool.map(lambda task_id: delete_data(task_id), failed_task_ids)
 
 
 def cuckoo_clean_lower_score(malscore: int):
-    """Clean up tasks with score <= X
+    """Clean up tasks with score <= X.
+
+    Calls delete_data for any URL task that failed to generate any HTTP data.
     It deletes all stored data from file system and configured databases (SQL
     and MongoDB for tasks.
     """
@@ -400,22 +363,18 @@ def cuckoo_clean_lower_score(malscore: int):
     # logger (init_logging()) logs to a file which will be deleted.
 
     create_structure()
-    id_arr = []
-    if not is_reporting_db_connected():
+    if not reporting.backend_available():
         return
 
-    if repconf.mongodb.enabled:
-        result = list(mongo_find("analysis", {"malscore": {"$lte": malscore}}))
-        id_arr = [entry["info"]["id"] for entry in result]
-    elif repconf.elasticsearchdb.enabled:
-        id_arr = [
-            d["_source"]["info"]["id"]
-            for d in all_docs(
-                index=get_analysis_index(), query={"query": {"range": {"malscore": {"lte": malscore}}}}, _source=["info.id"]
-            )
-        ]
-    log.info(("number of matching records %s" % len(id_arr)))
-    resolver_pool.map(lambda tid: delete_data(tid), id_arr)
+    # TODO consider using a more efficient approach here
+    low_score_ids = []
+    for summary in reports.summaries():
+        if summary.malscore <= malscore:
+            low_score_ids.append(summary.id)
+
+    if low_score_ids:
+        log.info("number of matching records %s" % len(low_score_ids))
+        resolver_pool.map(lambda task_id: delete_data(task_id), low_score_ids)
 
 
 def tmp_clean_before_day(days: int):
@@ -447,8 +406,9 @@ def tmp_clean_before_day(days: int):
 
 def cuckoo_clean_before_day(args: dict):
     """Clean up failed tasks
-    It deletes all stored data from file system and configured databases (SQL
-    and MongoDB for tasks completed before now - days.
+
+    It deletes all stored data from file system and configured databases for
+    tasks completed before now - days.
     """
     # Init logging.
     # This need to init a console logger handler, because the standard
@@ -457,7 +417,7 @@ def cuckoo_clean_before_day(args: dict):
     create_structure()
     id_arr = []
 
-    if not is_reporting_db_connected():
+    if not reporting.backend_available():
         return
 
     days = args.get("delete_older_than_days")
@@ -478,22 +438,29 @@ def cuckoo_clean_before_day(args: dict):
     for e in old_tasks:
         id_arr.append({"info.id": (int(e.to_dict()["id"]))})
 
+    # TODO(njb) need to support deleting reports without Suricta alerts?
     log.info(("number of matching records %s before suri/custom filter " % len(id_arr)))
     if id_arr and args.get("suricata_zero_alert_filter"):
-        result = list(
-            mongo_find("analysis", {"suricata.alerts.alert": {"$exists": False}, "$or": id_arr}, {"info.id": 1, "_id": 0})
-        )
-        id_arr = [entry["info"]["id"] for entry in result]
+        raise NotImplementedError()
+        # result = list(
+        #     mongo_find(ANALYSIS_COLL, {"suricata.alerts.alert": {"$exists": False}, "$or": id_arr}, {INFO_ID_KEY: 1, ID_KEY: 0})
+        # )
+        # id_arr = [entry["info"]["id"] for entry in result]
+
+    # TODO(njb) need to support regex-based deletion of info.custom matches?
     if id_arr and args.get("custom_include_filter"):
-        result = list(
-            mongo_find(
-                "analysis", {"info.custom": {"$regex": args.get("custom_include_filter")}, "$or": id_arr}, {"info.id": 1, "_id": 0}
-            )
-        )
-        id_arr = [entry["info"]["id"] for entry in result]
+        raise NotImplementedError()
+        # result = list(
+        #     mongo_find(
+        #         ANALYSIS_COLL,
+        #         {"info.custom": {"$regex": args.get("custom_include_filter")}, "$or": id_arr},
+        #         {INFO_ID_KEY: 1, ID_KEY: 0},
+        #     )
+        # )
+        # id_arr = [entry["info"]["id"] for entry in result]
+
     log.info("number of matching records %s" % len(id_arr))
     delete_bulk_tasks_n_folders(id_arr, args.get("delete_mongo"))
-    # resolver_pool.map(lambda tid: delete_data(tid), id_arr)
 
 
 def cuckoo_clean_sorted_pcap_dump():
@@ -506,9 +473,13 @@ def cuckoo_clean_sorted_pcap_dump():
     # logger (init_logging()) logs to a file which will be deleted.
     create_structure()
 
-    if not is_reporting_db_connected():
+    if not reporting.backend_available():
         return
 
+    # TODO(njb) this function is a nightmare, find a better way
+    raise NotImplementedError("TODO")
+
+    """
     if repconf.elasticsearchdb.enabled:
         es = connect_to_es()
 
@@ -517,7 +488,7 @@ def cuckoo_clean_sorted_pcap_dump():
     while not done:
         if repconf.mongodb.enabled:
             query = {"network.sorted_pcap_id": {"$exists": True}}
-            rtmp = mongo_find("analysis", query, projection={"info.id": 1}, sort=[("_id", -1)], limit=100)
+            rtmp = mongo_find(ANALYSIS_COLL, query, projection={INFO_ID_KEY: 1}, sort=[(ID_KEY, -1)], limit=100)
         elif repconf.elasticsearchdb.enabled:
             rtmp = [
                 d["_source"]
@@ -537,7 +508,7 @@ def cuckoo_clean_sorted_pcap_dump():
                     try:
                         if repconf.mongodb.enabled:
                             mongo_update_one(
-                                "analysis", {"info.id": int(e["info"]["id"])}, {"$unset": {"network.sorted_pcap_id": ""}}
+                                ANALYSIS_COLL, {INFO_ID_KEY: int(e["info"]["id"])}, {"$unset": {"network.sorted_pcap_id": ""}}
                             )
                         elif repconf.elasticsearchdb.enabled:
                             es.update(index=e["index"], id=e["info"]["id"], body={"network.sorted_pcap_id": ""})
@@ -552,12 +523,13 @@ def cuckoo_clean_sorted_pcap_dump():
                     done = True
         else:
             done = True
+    """
 
 
 def cuckoo_clean_pending_tasks(before_time: int = None, delete: bool = False):
     """Clean up pending tasks
-    It deletes all stored data from file system and configured databases (SQL
-    and MongoDB for pending tasks.
+
+    For each pending task, it calls delete_data if delete is True, fail_job otherwise.
     """
 
     from datetime import timedelta
@@ -567,7 +539,7 @@ def cuckoo_clean_pending_tasks(before_time: int = None, delete: bool = False):
     # logger (init_logging()) logs to a file which will be deleted.
     create_structure()
 
-    if not is_reporting_db_connected():
+    if not reporting.backend_available():
         return
     if before_time:
         before_time = datetime.now() - timedelta(hours=before_time)
@@ -578,9 +550,9 @@ def cuckoo_clean_pending_tasks(before_time: int = None, delete: bool = False):
 
 
 def cuckoo_clean_range_tasks(start, end):
-    """Clean up tasks between start and end
-    It deletes all stored data from file system and configured databases (SQL
-    and MongoDB for selected tasks.
+    """Clean up tasks between start and end.
+
+    Calls delete_data for selected tasks.
     """
     # Init logging.
     # This need to init a console logger handler, because the standard
@@ -590,13 +562,14 @@ def cuckoo_clean_range_tasks(start, end):
     resolver_pool.map(lambda tid: delete_data(tid.to_dict()["id"]), pending_tasks)
 
 
-def delete_unused_file_data_in_mongo():
+def delete_unused_file_data():
     """Cleans the entries in the 'files' collection that no longer have any analysis
     tasks associated with them.
     """
-    log.info("Removing file entries in Mongo that are no longer referenced.")
-    result = delete_unused_file_docs()
-    log.info("Removed %s file %s.", result.deleted_count, "entry" if result.deleted_count == 1 else "entries")
+    # TODO(njb) how do we support files in the new reporting API
+    raise NotImplementedError()
+    # result = delete_unused_file_docs()
+    # log.info("Removed %s file %s.", result.deleted_count, "entry" if result.deleted_count == 1 else "entries")
 
 
 def cuckoo_dedup_cluster_queue():
@@ -623,7 +596,7 @@ def cuckoo_dedup_cluster_queue():
 def cape_clean_tlp():
     create_structure()
 
-    if not is_reporting_db_connected():
+    if not reporting.backend_available():
         return
 
     tlp_tasks = db.get_tlp_tasks()
@@ -697,5 +670,5 @@ def execute_cleanup(args: dict, init_log=True):
     if args.get("delete_binaries_items_older_than_days"):
         binaries_clean_before_day(args["delete_binaries_items_older_than_days"])
 
-    if args.get("delete_unused_file_data_in_mongo"):
-        delete_unused_file_data_in_mongo()
+    if args.get("delete_unused_file_data"):
+        delete_unused_file_data()

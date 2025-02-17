@@ -10,6 +10,7 @@ from lib.cuckoo.common.config import Config
 from lib.cuckoo.common.constants import CUCKOO_ROOT
 from lib.cuckoo.common.objects import File
 from lib.cuckoo.common.path_utils import path_read_file
+from lib.cuckoo.core import reporting
 
 try:
     import pydeep
@@ -36,18 +37,11 @@ cape_malware_parsers = {}
 # Config variables
 cfg = Config()
 repconf = Config("reporting")
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 process_cfg = Config("processing")
 
 log = logging.getLogger(__name__)
 
-
-if repconf.mongodb.enabled:
-    from dev_utils.mongodb import mongo_find_one
-
-if repconf.elasticsearchdb.enabled:
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index
-
-    es = elastic_handler
 
 try:
     import pefile
@@ -301,26 +295,20 @@ def static_config_lookup(file_path, sha256=False):
     if not sha256:
         sha256 = hashlib.sha256(open(file_path, "rb").read()).hexdigest()
 
-    if repconf.mongodb.enabled:
-        document_dict = mongo_find_one(
-            "analysis", {"target.file.sha256": sha256}, {"CAPE.configs": 1, "info.id": 1, "_id": 0}, sort=[("_id", -1)]
-        )
-    elif repconf.elasticsearchdb.enabled:
-        document_dict = es.search(
-            index=get_analysis_index(),
-            body={"query": {"match": {"target.file.sha256": sha256}}},
-            _source=["CAPE.configs", "info.id"],
-            sort={"_id": {"order": "desc"}},
-        )["hits"]["hits"][0]["_source"]
-    else:
-        document_dict = None
+    results = reports.search_by_sha256(sha256)
 
-    if not document_dict:
+    # TODO consider extending report APIs to get most recent result for us
+    most_recent_result = None
+    for result in results:
+        if most_recent_result is None:
+            most_recent_result = result
+            continue
+        if result.id > most_recent_result.id:
+            most_recent_result = result
+
+    if most_recent_result is None:
         return
-
-    has_config = document_dict.get("CAPE", {}).get("configs", [])
-    if has_config:
-        return document_dict["info"]
+    return reports.cape_configs(most_recent_result.id)
 
 
 # add your families here, should match file name as in cape yara

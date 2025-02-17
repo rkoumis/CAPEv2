@@ -50,6 +50,7 @@ from lib.cuckoo.common.exceptions import CuckooOperationalError, CuckooStartupEr
 from lib.cuckoo.common.path_utils import path_exists
 from lib.cuckoo.common.utils import create_folders
 from lib.cuckoo.core.database import TASK_FAILED_ANALYSIS, TASK_RUNNING, Database
+from lib.cuckoo.core import reporting
 from lib.cuckoo.core.log import init_logger
 from lib.cuckoo.core.plugins import import_package, import_plugin, list_plugins
 from lib.cuckoo.core.rooter import rooter, socks5s, vpns
@@ -104,32 +105,19 @@ def check_working_directory():
         raise CuckooStartupError(f"Fix permission on tmpfs path: chown cape:cape {cuckoo.tmpfs.path}")
 
 
-def check_webgui_mongo():
-    if repconf.mongodb.enabled:
-        from dev_utils.mongodb import connect_to_mongo, mongo_create_index
+def check_reporting():
+    if reporting.disabled():
+        return
 
-        client = connect_to_mongo()
-        if not client:
-            sys.exit(
-                "You have enabled webgui but mongo isn't working, see mongodb manual for correct installation and configuration\nrun `systemctl status mongodb` for more info"
-            )
+    # check the reporting backend is available
+    # TODO need a reporting function for this
+    if reporting.backend_available():
+        return
 
-        # Create an index based on the info.id dict key. Increases overall scalability
-        # with large amounts of data.
-        # Note: Silently ignores the creation if the index already exists.
-        mongo_create_index("analysis", "info.id", name="info.id_1")
-        # mongo_create_index([("target.file.sha256", TEXT)], name="target_sha256")
-        # We performs a lot of SHA256 hash lookup so we need this index
-        # mongo_create_index(
-        #     "analysis",
-        #     [("target.file.sha256", TEXT), ("dropped.sha256", TEXT), ("procdump.sha256", TEXT), ("CAPE.payloads.sha256", TEXT)],
-        #     name="ALL_SHA256",
-        # )
-        mongo_create_index("files", [("_task_ids", 1)])
+    raise CuckooStartupError("reporting backend is unavailable")
 
-    elif repconf.elasticsearchdb.enabled:
-        # ToDo add check
-        pass
+    # TODO(njb) bring back index creation and include
+    # https://github.com/kevoreilly/CAPEv2/pull/2079
 
 
 def check_configs():

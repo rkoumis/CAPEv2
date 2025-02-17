@@ -47,6 +47,7 @@ from lib.cuckoo.core.database import (
     Task,
     init_database,
 )
+from lib.cuckoo.core import reporting
 from lib.cuckoo.core.plugins import RunProcessing, RunReporting, RunSignatures
 from lib.cuckoo.core.startup import ConsoleHandler, check_linux_dist, init_modules
 
@@ -54,21 +55,8 @@ cfg = Config()
 logconf = Config("logging")
 repconf = Config("reporting")
 db = Database()
-
-if repconf.mongodb.enabled:
-    from bson.objectid import ObjectId
-
-    from dev_utils.mongodb import mongo_find, mongo_find_one
-
-if repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
-    from elasticsearch.exceptions import RequestError as ESRequestError
-
-    from dev_utils.elasticsearchdb import elastic_handler, get_analysis_index, get_query_by_info_id
-
-    es = elastic_handler
-
+reports: reporting.api.Reports = reporting.init_reports(repconf)
 check_linux_dist()
-
 pending_future_map = {}
 pending_task_id_map = {}
 original_proctitle = getproctitle()
@@ -393,31 +381,6 @@ def autoprocess(
             pool.join()
 
 
-def _load_report(task_id: int):
-    if repconf.mongodb.enabled:
-        analysis = mongo_find_one("analysis", {"info.id": task_id}, sort=[("_id", -1)])
-        for process in analysis.get("behavior", {}).get("processes", []):
-            calls = [ObjectId(call) for call in process["calls"]]
-            process["calls"] = []
-            for call in mongo_find("calls", {"_id": {"$in": calls}}, sort=[("_id", 1)]) or []:
-                process["calls"] += call["calls"]
-        return analysis
-
-    if repconf.elasticsearchdb.enabled and not repconf.elasticsearchdb.searchonly:
-        try:
-            analyses = (
-                es.search(index=get_analysis_index(), query=get_query_by_info_id(task_id), sort={"info.id": {"order": "desc"}})
-                .get("hits", {})
-                .get("hits", [])
-            )
-            if analyses:
-                return analyses[0]
-        except ESRequestError as e:
-            print(e)
-
-    return False
-
-
 def parse_id(id_string: str):
     if id_string == "auto":
         return id_string
@@ -538,8 +501,7 @@ def main():
                     db.session.expunge_all()
 
                 if args.signatures:
-                    report = False
-                    results = _load_report(num)
+                    results = reports.get(num)
                     if not results:
                         # fallback to json
                         report = os.path.join(CUCKOO_ROOT, "storage", "analyses", str(num), "reports", "report.json")
