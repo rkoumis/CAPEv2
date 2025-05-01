@@ -9,7 +9,6 @@ import enum
 import http.server
 import ipaddress
 import json
-import multiprocessing
 import os
 import platform
 import random
@@ -25,9 +24,8 @@ import tempfile
 import time
 import traceback
 from io import StringIO
-from multiprocessing.synchronize import Event as EventClass
 from threading import Lock
-from typing import Iterable, Optional
+from typing import Iterable
 from zipfile import ZipFile
 
 try:
@@ -97,13 +95,15 @@ class Status(enum.IntEnum):
 AGENT_BROWSER_EXT_PATH = ""
 AGENT_BROWSER_LOCK = Lock()
 ANALYZER_FOLDER = ""
-agent_mutexes: dict[str, str] = {}
+agent_mutexes: dict = {}
 """Holds handles of mutexes held by the agent."""
 state = {
     "status": Status.INIT,
     "description": "",
     "async_subprocess": None,
     "mutexes": agent_mutexes,
+    "async_subprocess_stdout_tempfile": None,
+    "async_subprocess_stderr_tempfile": None,
 }
 
 
@@ -180,7 +180,7 @@ class MiniHTTPServer:
         self,
         host: ipaddress.IPv4Address = ipaddress.IPv4Address("0.0.0.0"),
         port: int = 8000,
-        event: Optional[EventClass] = None,
+        event = None,
     ):
         socketserver.ThreadingTCPServer.allow_reuse_address = True
         self.s = socketserver.ThreadingTCPServer((str(host), port), self.handler)
@@ -324,8 +324,8 @@ class send_file:
 
 
 class request:
-    form: dict[str, str] = {}
-    files: dict[str, str] = {}
+    form: dict = {}
+    files: dict = {}
     client_ip = None
     client_port = None
     method = None
@@ -509,6 +509,15 @@ def get_logs():
     else:
         stdoutbuf = "verbose mode, stdout not saved"
         stderrbuf = "verbose mode, stderr not saved"
+    proc = state.get("async_subprocess")
+    if proc is not None:
+        stdout_tf = state.get("async_subprocess_stdout_tempfile")
+        stderr_tf = state.get("async_subprocess_stderr_tempfile")
+        with open(stdout_tf.name) as fh:
+            stdout_buf = fh.read()
+        with open(stderr_tf.name) as fh:
+            stderr_buf = fh.read()
+        return json_success("Agent logs", stdout=stdoutbuf, stderr=stderrbuf, proc_stdout=stdout_buf, proc_stderr=stderr_buf)
     return json_success("Agent logs", stdout=stdoutbuf, stderr=stderrbuf)
 
 
@@ -713,10 +722,14 @@ def background_subprocess(command_args, cwd, base64_encode, shell=False):
 
 def spawn(args, cwd, base64_encode, shell=False):
     """Kick off a subprocess in the background."""
-    proc = subprocess.Popen(args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
+    stdout_tf = tempfile.NamedTemporaryFile(delete=False)
+    stderr_tf = tempfile.NamedTemporaryFile(delete=False)
+    proc = subprocess.Popen(args, cwd=cwd, stdout=stdout_tf, stderr=stderr_tf, shell=shell)
     state["status"] = Status.RUNNING
     state["description"] = ""
     state["async_subprocess"] = proc
+    state["async_subprocess_stdout_tempfile"] = stdout_tf
+    state["async_subprocess_stderr_tempfile"] = stderr_tf
     return json_success("Successfully spawned command", process_id=proc.pid)
 
 
@@ -797,7 +810,6 @@ def do_kill():
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn")
     parser = argparse.ArgumentParser()
     parser.add_argument("host", nargs="?", default="0.0.0.0")
     parser.add_argument("port", type=int, nargs="?", default=8000)
