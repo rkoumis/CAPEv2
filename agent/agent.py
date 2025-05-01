@@ -9,7 +9,6 @@ import enum
 import http.server
 import ipaddress
 import json
-import multiprocessing
 import os
 import platform
 import random
@@ -25,7 +24,6 @@ import tempfile
 import time
 import traceback
 from io import StringIO
-from multiprocessing.synchronize import Event as EventClass
 from threading import Lock
 from typing import Iterable
 from zipfile import ZipFile
@@ -797,7 +795,6 @@ def do_kill():
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn")
     parser = argparse.ArgumentParser()
     parser.add_argument("host", nargs="?", default="0.0.0.0")
     parser.add_argument("port", type=int, nargs="?", default=8000)
