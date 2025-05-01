@@ -27,7 +27,7 @@ import traceback
 from io import StringIO
 from multiprocessing.synchronize import Event as EventClass
 from threading import Lock
-from typing import Iterable, Optional
+from typing import Iterable
 from zipfile import ZipFile
 
 try:
@@ -97,7 +97,7 @@ class Status(enum.IntEnum):
 AGENT_BROWSER_EXT_PATH = ""
 AGENT_BROWSER_LOCK = Lock()
 ANALYZER_FOLDER = ""
-agent_mutexes: dict[str, str] = {}
+agent_mutexes: dict = {}
 """Holds handles of mutexes held by the agent."""
 state = {
     "status": Status.INIT,
@@ -180,7 +180,7 @@ class MiniHTTPServer:
         self,
         host: ipaddress.IPv4Address = ipaddress.IPv4Address("0.0.0.0"),
         port: int = 8000,
-        event: Optional[EventClass] = None,
+        event = None,
     ):
         socketserver.ThreadingTCPServer.allow_reuse_address = True
         self.s = socketserver.ThreadingTCPServer((str(host), port), self.handler)
@@ -324,8 +324,8 @@ class send_file:
 
 
 class request:
-    form: dict[str, str] = {}
-    files: dict[str, str] = {}
+    form: dict = {}
+    files: dict = {}
     client_ip = None
     client_port = None
     method = None
