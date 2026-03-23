@@ -83,7 +83,40 @@ class ExpiringFakeTimeoutManager(FakeTimeoutManager):
         return True
 
 
+class DisabledTimeoutManager:
+    instances = []
+
+    def __init__(self, vm_ip, user, session_id="unknown"):
+        self.vm_ip = vm_ip
+        self.user = user
+        self.session_id = session_id
+        self.activity_updates = 0
+        self.activity_check_interval = None
+        self.idle_timeout_ms = 0
+        self.is_active = True
+        self.__class__.instances.append(self)
+
+    def update_activity(self):
+        self.activity_updates += 1
+
+    def set_inactive(self):
+        self.is_active = False
+
+    def is_timed_out(self):
+        return False
+
+    def get_idle_time_ms(self):
+        return 0
+
+    async def complete_analysis(self):
+        return True
+
+
 async def _background_task_stub(self):
+    await asyncio.Event().wait()
+
+
+async def _read_guacd_tracking_stub(self):
     await asyncio.Event().wait()
 
 
@@ -98,10 +131,13 @@ async def _cancel_then_close_read_guacd(self):
 
 @pytest.fixture
 def guac_consumer_app_factory(monkeypatch):
-    def _build(*, timeout_manager_cls=FakeTimeoutManager, stub_monitor_timeout=True, read_guacd_impl=_background_task_stub):
+    def _build(*, timeout_manager_cls=None, stub_monitor_timeout=True, read_guacd_impl=_background_task_stub):
         FakeGuacamoleClient.instances.clear()
         FakeTimeoutManager.instances.clear()
         ExpiringFakeTimeoutManager.instances.clear()
+        DisabledTimeoutManager.instances.clear()
+
+        timeout_manager_cls = timeout_manager_cls or FakeTimeoutManager
 
         monkeypatch.setattr(consumers, "GuacamoleClient", FakeGuacamoleClient)
         monkeypatch.setattr(consumers, "SessionTimeoutManager", timeout_manager_cls)
@@ -240,3 +276,45 @@ class TestGuacConsumers:
 
         assert timeout_manager.is_active is False
         assert client.closed is True
+
+    async def test_consumer_skips_timeout_monitor_when_idle_timeout_disabled(
+        self, guac_consumer_app_factory, monkeypatch
+    ):
+        scheduled_coroutines = []
+        real_create_task = asyncio.create_task
+
+        def tracking_create_task(coro):
+            scheduled_coroutines.append(coro.cr_code.co_name)
+            return real_create_task(coro)
+
+        monkeypatch.setattr(consumers.asyncio, "create_task", tracking_create_task)
+
+        guac_consumer_app = guac_consumer_app_factory(
+            timeout_manager_cls=DisabledTimeoutManager,
+            stub_monitor_timeout=False,
+            read_guacd_impl=_read_guacd_tracking_stub,
+        )
+        communicator = WebsocketCommunicator(
+            guac_consumer_app,
+            "/guac/websocket-tunnel/session_no_timeout/?guest_ip=192.168.56.13&vncport=5901&user=tester&recording_name=task-no-timeout",
+            subprotocols=["guacamole"],
+        )
+
+        connected, subprotocol = await communicator.connect()
+        assert connected is True
+        assert subprotocol == "guacamole"
+
+        await communicator.send_to(text_data="5.mouse,3.100,3.200,1.0;")
+        await asyncio.sleep(0.05)
+
+        assert len(DisabledTimeoutManager.instances) == 1
+        assert DisabledTimeoutManager.instances[0].idle_timeout_ms == 0
+        assert DisabledTimeoutManager.instances[0].activity_check_interval is None
+        assert "_read_guacd_tracking_stub" in scheduled_coroutines
+        assert "monitor_timeout" not in scheduled_coroutines
+
+        client = FakeGuacamoleClient.instances[0]
+        assert client.sent_messages == ["5.mouse,3.100,3.200,1.0;"]
+
+        await communicator.disconnect()
+        await asyncio.wait_for(communicator.wait(), timeout=1)

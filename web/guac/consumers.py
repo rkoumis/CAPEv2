@@ -145,7 +145,7 @@ class GuacamoleWebSocketConsumer(AsyncWebsocketConsumer):
                 await self.accept(subprotocol="guacamole")
                 logger.info("Guacamole connection accepted for session %s.", session_id)
 
-                # 4. Initialize timeout manager
+                # 4. Initialize timeout handling
                 try:
                     vm_ip, user = GuacamoleActivityDetector.extract_session_info(params)
                     if not vm_ip:
@@ -163,7 +163,8 @@ class GuacamoleWebSocketConsumer(AsyncWebsocketConsumer):
                 # 5. Start the background tasks
                 # Use asyncio.create_task instead of get_event_loop()
                 self.task = asyncio.create_task(self.read_guacd())
-                self.timeout_task = asyncio.create_task(self.monitor_timeout())
+                if self.timeout_manager and self.timeout_manager.idle_timeout_ms > 0:
+                    self.timeout_task = asyncio.create_task(self.monitor_timeout())
             else:
                 logger.warning("Guacamole handshake failed. Closing connection.")
                 self.is_closing = True
