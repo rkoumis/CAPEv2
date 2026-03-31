@@ -197,6 +197,12 @@ vnc_host = localhost
 # You might need to add your server IP to ALLOWED_HOSTS in web/web/settings.py if it not ["*""]
 # vnc or rdp
 guest_protocol = vnc
+# Idle timeout settings for interactive sessions
+# idle_timeout_ms: Maximum idle time before session is terminated
+# Defaults to 0 (disabled) when omitted or set to an invalid value
+idle_timeout_ms = 0
+# activity_check_interval: How often to check for timeout in seconds when enabled
+activity_check_interval = 30
 # TIP: For KVM/QEMU, using 'qxl' or 'virtio' video drivers in your VM XML
 # definition provides much better VNC performance than 'vga' or 'cirrus'.
 guacd_recording_path = /opt/CAPEv2/storage/guacrecordings

@@ -109,7 +109,7 @@ STATICFILES_FINDERS = (
     #    "django.contrib.staticfiles.finders.DefaultStoragddeFinder",
 )
 
-LOG_LEVEL = "WARNING"
+LOG_LEVEL = logging.WARNING
 logging.config.dictConfig(
     {
         "version": 1,
@@ -156,7 +156,7 @@ logging.config.dictConfig(
             },
             "guac-session": {
                 "handlers": ["file"],
-                "level": LOG_LEVEL,
+                "level": logging.INFO,
                 "propagate": False,
             },
             "gunicorn.errors": {
