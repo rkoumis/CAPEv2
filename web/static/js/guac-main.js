@@ -1,4 +1,4 @@
-function GuacMe(element, guest_ip, vncport, session_id, recording_name) {
+function GuacMe(element, guest_ip, vncport, session_id, recording_name, task_id) {
     "use strict";
 
     var terminal_connected = false;
@@ -10,7 +10,7 @@ function GuacMe(element, guest_ip, vncport, session_id, recording_name) {
         /* Process terminal URL. */
 
         dialog_container = $(element).find('.guaconsole')[0];
-        
+
         /* Build websocket url based on protocol */
         var terminal_ws_url = location.origin.replace(/^http(s?):/, function(match, p1) {
             return (p1 ? 'wss:' : 'ws:');
@@ -20,7 +20,7 @@ function GuacMe(element, guest_ip, vncport, session_id, recording_name) {
         terminal_client = new Guacamole.Client(
             new Guacamole.WebSocketTunnel(terminal_ws_url + '/guac/websocket-tunnel/' + session_id)
         );
-        terminal_connect(guest_ip, vncport, recording_name);
+        terminal_connect(guest_ip, vncport, recording_name, task_id);
 
         terminal_element = terminal_client.getDisplay().getElement();
 
@@ -185,18 +185,22 @@ function GuacMe(element, guest_ip, vncport, session_id, recording_name) {
 
     };
 
-    var terminal_connect = function(guest_ip, vncport, recording_name) {
+    var terminal_connect = function(guest_ip, vncport, recording_name, task_id) {
         if (terminal_connected) {
             terminal_client.disconnect()
             terminal_connected = false;
         }
 
         try {
-            terminal_client.connect($.param({
+            var params = {
                 'guest_ip': guest_ip,
                 'vncport': vncport,
                 'recording_name': recording_name,
-            }));
+            };
+            if (task_id) {
+                params['task_id'] = task_id;
+            }
+            terminal_client.connect($.param(params));
             terminal_connected = true;
         } catch (e) {
             console.warn(e);
